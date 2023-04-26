@@ -1,14 +1,28 @@
-#' Title
+#' Extract score peaks from a Tibble of audio scores
 #'
-#' @param tib_match
-#' @param tib_match_path
-#' @param buffer_size
-#' @param save_res
+#' This function extracts score peaks from a Tibble of audio scores obtained with \code{\link{match_template_n}}.
 #'
-#' @return
+#' @param tib_match Tibble. Tibble containing audio scores obtained with \code{\link{match_template_n}}.
+#' @param tib_match_path Character. Path to a folder containing audio scores as .wav.rds files.
+#' @param buffer_size Integer. Size of the buffer around the detected peak (in number of points).
+#' @param save_res Character. Path to save the result as an .rds file.
+#'
+#' @return A Tibble containing the detections of all audio scores.
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Load example audio scores
+#' tib_match <- readRDS(system.file("extdata", "example_audio_scores.rds", package = "my_package"))
+#'
+#' # Extract detections from scores
+#' tib_detecs <- fetch_score_peaks_n(tib_match, buffer_size = 25, save_res = "detections.rds")
+#' }
+#'
+#' @import dplyr
+#' @import purrr
+#' @importFrom utils saveRDS
+#' @seealso \code{\link{match_template_n}}, \code{\link{fetch_score_peaks_i}}
 fetch_score_peaks_n <- function(
     tib_match, tib_match_path = NULL, buffer_size = "template",
     save_res = NULL) {

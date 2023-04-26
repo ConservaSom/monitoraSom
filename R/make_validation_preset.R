@@ -1,37 +1,41 @@
-
-#' Title
+#' make_validation_preset
 #'
-#' @param preset_path
-#' @param preset_name
-#' @param validation_user
-#' @param templates_path
-#' @param soundscapes_path
-#' @param input_path
-#' @param output_path
-#' @param wav_cuts_path
-#' @param spec_path
-#' @param diag_tab_path
-#' @param wav_player_path
-#' @param wav_player_type
-#' @param val_subset
-#' @param min_score
-#' @param time_pads
-#' @param ovlp
-#' @param wl
-#' @param dyn_range
-#' @param color_scale
-#' @param zoom_freq
-#' @param nav_shuffle
-#' @param seed
-#' @param auto_next
-#' @param nav_autosave
-#' @param overwrite
-#' @param session_notes
+#' @title Creates a validation preset for a soundscape dataset.
 #'
-#' @return
+#' @param preset_path Path to save the validation preset. Default is NULL.
+#' @param preset_name Name for the validation preset. Default is NULL.
+#' @param validation_user User name for the validation session.
+#' @param templates_path Path to the directory containing the templates.
+#' @param soundscapes_path Path to the directory containing the soundscapes.
+#' @param input_path Path to the input file.
+#' @param output_path Path to the output file.
+#' @param wav_cuts_path Path to the directory where the waveform cuts will be saved.
+#' @param spec_path Path to the directory where the spectrograms will be saved.
+#' @param diag_tab_path Path to the directory where the diagnostic tables will be saved.
+#' @param wav_player_path Path to the executable of the waveform player. Default is "play".
+#' @param wav_player_type Type of waveform player. Default is "HTML player".
+#' @param val_subset Vector with the subset of the validation session to be performed.
+#' @param min_score Minimum score required to accept a detection. Default is 0.
+#' @param time_pads Time padding in seconds for waveform cuts. Default is 1.
+#' @param ovlp Overlap in percentage for waveform cuts. Default is 0.
+#' @param wl Window length in samples for spectrograms. Default is 2048.
+#' @param dyn_range Range in decibels for spectrograms. Default is c(-60, 0).
+#' @param color_scale Color scale for spectrograms. Default is "inferno".
+#' @param zoom_freq Frequency range for spectrogram zooming. Default is c(0, 4).
+#' @param nav_shuffle Shuffle navigation. Default is FALSE.
+#' @param seed Random seed. Default is 123.
+#' @param auto_next Automatic transition to the next detection. Default is FALSE.
+#' @param nav_autosave Autosave navigation. Default is FALSE.
+#' @param overwrite Overwrite output file. Default is FALSE.
+#' @param session_notes Notes about the validation session.
+#'
+#' @return A list with validation session settings.
 #' @export
 #'
 #' @examples
+#' make_validation_preset(validation_user = "user", templates_path = "templates", soundscapes_path = "soundscapes", input_path = "input", output_path = "output")
+#'
+
 make_validation_preset <- function(preset_path = NULL, preset_name = NULL,
                                    validation_user, templates_path, soundscapes_path,
                                    input_path, output_path, wav_cuts_path, spec_path, diag_tab_path,

@@ -1,14 +1,21 @@
-#' Title
+#' Match templates in a grid of images
 #'
-#' @param df_grid
-#' @param score_method
-#' @param ncores
-#' @param save_res
+#' This function matches templates in a grid of images using the `match_i` function. O chatGPT viajou na maionese, não esquecer de corrigir isso aqui!!!
 #'
-#' @return
+#' @param df_grid A data frame containing the paths of the images to be analyzed.
+#' @param score_method A character string indicating the method to be used to calculate the matching score. Default is "cor".
+#' @param ncores An integer indicating the number of cores to be used for parallelization. Default is 1.
+#' @param save_res A character string indicating the path to save the results as an RDS file. Default is FALSE.
+#'
+#' @return A data frame containing the matching scores for each template in the grid.
 #' @export
 #'
 #' @examples
+#' # Load example data
+#' data("df_grid")
+#'
+#' # Match templates
+#' res <- match_n(df_grid, score_method = "ssim", ncores = 2, save_res = "res.rds")
 match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE) {
 
   grid_list <- group_split(rowwise(df_grid))

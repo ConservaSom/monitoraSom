@@ -1,17 +1,26 @@
-
-#' Title
+#' Perform template matching on a set of soundscapes using a set of templates
 #'
-#' @param path_soundscapes
-#' @param path_templates
-#' @param template_type
-#' @param score_method
-#' @param buffer_size
-#' @param ncores
+#' This function performs template matching on a set of soundscapes using a set of templates, and returns a dataframe with the detected events.
 #'
-#' @return
+#' @param path_soundscapes Path to a directory containing the soundscapes to be analyzed.
+#' @param path_templates Path to a directory containing the templates to be used for matching.
+#' @param template_type The type of templates, either "standalone" or "library".
+#' @param score_method The method used for template matching, either "cor" or "dtw".
+#' @param buffer_size The size of the buffer used to calculate the scores for the template matches, either "template" or "event".
+#' @param ncores The number of cores to be used for parallel processing.
+#'
+#' @return A dataframe with the detected events.
 #' @export
 #'
 #' @examples
+#' df_detections <- template_matching(
+#'   path_soundscapes = "soundscapes/",
+#'   path_templates = "templates/",
+#'   template_type = "standalone",
+#'   score_method = "cor",
+#'   buffer_size = "template",
+#'   ncores = 4
+#' )
 template_matching <- function(
     path_soundscapes, path_templates, template_type = "standalone",
     score_method = "cor", buffer_size = "template", ncores = 1
