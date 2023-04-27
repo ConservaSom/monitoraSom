@@ -40,6 +40,7 @@ match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE)
   }
 
   if (ncores > 1) {
+    # ! Alguma coisa não funciona direito no RStudio com o multicore
     plan(multicore, workers = ncores)
   } else {
     plan(sequential)
@@ -54,9 +55,12 @@ match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE)
     if (dir.exists(dirname(save_res))) {
       saveRDS(res, save_res)
     } else {
+      # ! mover essa condição para o começo da função
       stop("The path for saving the results does not exist")
     }
   }
+  # todo Adicionar checagem do objeto para que salvamento possa ser incremental e não sobrescrever dados preexistentes
+
   message("Template matching completed")
   return(res)
 }

@@ -123,8 +123,8 @@ fetch_template_metadata <- function(path, method = c("standalone")) {
         template_min_freq, template_max_freq, template_wl,
         template_ovlp, template_comment
       ) %>%
-      filter(grepl("template", template_comment)) %>%
-      select(-template_comment)
+      fsubset(grepl("template", template_comment)) %>%
+      fselect(-template_comment)
   }
   message("Template metadata successfully extracted")
   return(res)

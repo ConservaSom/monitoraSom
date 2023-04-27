@@ -76,14 +76,13 @@ fast_spectro <- function(
       ) +
       annotation_raster(
         nr, interpolate = interpolate,
-        xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax,
+        xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax
       ) +
-      scale_fill_gradient(
-        low = colormap[0], high = colormap[length(colormap)],
-        limits = amp_range, na.value = "#00000000"
+      scale_fill_gradientn(
+        colors = colormap, limits = amp_range, na.value = "#00000000"
       ) +
       scale_x_continuous(limits = c(xmin, xmax), expand = c(0, 0)) +
       scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0)) +
-      labs(x = "seconds", y = "kHz")
+      labs(x = "seconds", y = "kHz", fill = "dB")
   )
 }

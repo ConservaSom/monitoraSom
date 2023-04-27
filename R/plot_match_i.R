@@ -15,23 +15,150 @@
 #' plot_match_i(tpmatch_detecs_i, corr_cut = 0.4, wl = 2048, flim = c(0, 20),
 #'               dyn.range = c(-100, -20), ovlp = 75)
 plot_match_i <- function(
-    tpmatch_detecs_i, corr_cut = 0.3, wl = 1024, flim = c(0, 12),
-    dyn.range = c(-80, -10), ovlp = 50, ...) {
+    match_i_res,
+    buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
+    flim = c(0, 10), ovlp = NULL, wl = NULL, dyn_range = c(-60, 0),
+    color_scale = "inferno", n_colors = 124, interpolate = FALSE,
+    score_lims = NULL, ...
+    ) {
 
-  detecs <- tpmatch_detecs_i$detecs[[1]]
-  wav_file <- readWave(tpmatch_detecs_i$query_file)
+    require(patchwork)
 
-  res_plot <- sonograma(
-    wav_file, qdet = qdet, wl = wl, flim = flim, dyn.range = dyn.range,
-    ovlp = ovlp, ...) +
-    annotate(
-      "rect",
-      xmin = detecs$start[which(detecs$peak_cor > corr_cut)],
-      xmax = detecs$end[which(detecs$peak_cor > corr_cut)],
-      ymin = detecs$min_freq[which(detecs$peak_cor > corr_cut)],
-      ymax = detecs$max_freq[which(detecs$peak_cor > corr_cut)],
-      color = "white", linetype = "dashed", alpha = 0) +
-    labs(x = "Tempo (s)", y = "Frequência (kHz)")
+    detecs <- fetch_score_peaks_i(match_i_res, buffer_size)
+    if (!is.null(min_score)) {
+      if (is.numeric(min_score) & min_score >= 0 & min_score <= 1) {
+        detecs <- fsubset(detecs, peak_score >= min_score)
+      } else {
+        stop("min_score must be a numeric value between 0 and 1")
+      }
+    }
+    if (!is.null(min_quant)) {
+      if (is.numeric(min_quant) & min_quant >= 0 & min_quant <= 1) {
+        detecs <- fsubset(detecs, peak_quant >= min_quant)
+      } else {
+        stop("min_quant must be a numeric value between 0 and 1")
+      }
+    }
 
-  return(res_plot)
+    if (!is.null(top_n)) {
+      if (is.numeric(top_n)) {
+        if (top_n >= 1) {
+          if (top_n <= nrow(detecs)) {
+            detecs <- detecs %>%
+              arrange(-peak_quant) %>%
+              slice(1:top_n)
+          } else {
+            warning(
+              "top_n must be smaller than the number of detections, returning all available detections instead"
+            )
+          }
+        } else {
+          stop("top_n must be equal or larger than 1")
+        }
+      } else {
+        stop("top_n must be a numeric value")
+      }
+    }
+
+    # todo Adicionar verificação se ainda restam detecções após filtragem
+
+    rec <- readWave(filename = match_i_res$soundscape_path)
+
+    if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
+      colormap <- viridis::viridis(n_colors, option = color_scale)
+    } else if (color_scale == "greyscale 1") {
+      colormap <- seewave::reverse.gray.colors.1(n_colors)
+    } else if (color_scale == "greyscale 2") {
+      colormap <- seewave::reverse.gray.colors.2(n_colors)
+    }
+    selection_color <- ifelse(
+      color_scale %in% c("greyscale 1", "greyscale 2"),
+      "black", "white"
+    )
+
+    if (is.null(ovlp)) {
+      ovlp <- match_i_res$template_ovlp
+    }
+    if (is.null(wl)) {
+      wl <- match_i_res$template_wl
+    }
+    if (is.null(flim)) {
+      flim <- c(0, 10)
+    }
+    if (is.null(dyn_range)) {
+      dyn_range <- c(-60, 0)
+    }
+    if (is.null(score_lims)) {
+      score_lims <- range(match_i_res$score_vec[[1]]$score_vec)
+    }
+
+    soundscape_spectro <- fast_spectro(
+      rec,
+      f = rec@samp.rate,
+      flim = flim, ovlp = ovlp, wl = wl, dyn_range = dyn_range,
+      color_scale = color_scale, n_colors = 124, interpolate = interpolate
+    ) +
+      annotate(
+        "rect",
+        alpha = 0, linewidth = 0.2, linetype = "solid",
+        color = selection_color,
+        xmin = detecs$detection_start,
+        xmax = detecs$detection_end,
+        ymin = detecs$min_freq,
+        ymax = detecs$max_freq
+      ) +
+      annotate(
+        "label",
+        label = paste0(
+          match_i_res$soundscape_file,
+          " (sr = ", match_i_res$soundscape_sample_rate, ")"
+        ),
+        x = -Inf, y = Inf, hjust = 0, vjust = 1,
+        color = "white", fill = "black", size = 3
+      ) +
+      theme(
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()
+      )
+
+    plot_score <- match_i_res$score_vec[[1]] %>%
+      ggplot(aes(x = time_vec, y = score_vec)) +
+      annotate(
+        "point",
+        x = match_i_res$score_vec[[1]]$time_vec[detecs$peak_index],
+        y = match_i_res$score_vec[[1]]$score_vec[detecs$peak_index],
+        pch = 21, color = "black", fill = "#ff6262", size = 4
+      ) +
+      annotate(
+        "rect",
+        alpha = 0.2, linewidth = 0.5, linetype = "solid",
+        fill = "red",
+        xmin = detecs$detection_start,
+        xmax = detecs$detection_end,
+        ymin = -Inf, ymax = Inf
+      ) +
+      geom_line() +
+      scale_x_continuous(expand = c(0, 0)) +
+      scale_y_continuous(limits = c(score_lims[1], score_lims[2] + 0.1)) +
+      annotate(
+        "label",
+        label = paste0(
+          match_i_res$template_file,
+          " (sr = ", match_i_res$template_sample_rate, ")"
+        ),
+        x = -Inf, y = Inf, hjust = 0, vjust = 1,
+        color = "#000000", fill = "#ffffff", size = 3
+      ) +
+      labs(x = "seconds", y = "matching score") +
+      theme_bw()
+
+    # todo Mostrar os critérios aqui
+      # todo Adicionar uma trave para min_score
+      # todo Adicionar mostradores para top_n e min_quant
+
+    res <- soundscape_spectro +
+      plot_score +
+      plot_layout(nrow = 2, byrow = FALSE)
+    return(res)
 }

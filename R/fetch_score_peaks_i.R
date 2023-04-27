@@ -83,7 +83,7 @@ fetch_score_peaks_i <- function(match_res_i, buffer_size = "template") {
   pad_length <- match_res_i$score_sliding_window %/% 2
   res <- data.frame(
     peak_index = peak_locations,
-    peak_cor = match_res_i$score_vec[[1]]$score_vec[peak_locations],
+    peak_score = match_res_i$score_vec[[1]]$score_vec[peak_locations],
     peak_quant = round(
       ecdf(
         match_res_i$score_vec[[1]]$score_vec
@@ -104,10 +104,10 @@ fetch_score_peaks_i <- function(match_res_i, buffer_size = "template") {
       ),
       min_freq = match_res_i$template_min_freq,
       max_freq = match_res_i$template_max_freq,
-      detec_wl = match_res_i$template_wl,
-      detec_ovlp = match_res_i$template_ovlp,
-      detec_sample_rate = match_res_i$template_sample_rate,
-      detec_buffer = min_points,
+      detection_wl = match_res_i$template_wl,
+      detection_ovlp = match_res_i$template_ovlp,
+      detection_sample_rate = match_res_i$template_sample_rate,
+      detection_buffer = min_points,
       .before = peak_index
     )
   return(res)

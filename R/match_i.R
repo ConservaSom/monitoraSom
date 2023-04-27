@@ -72,7 +72,7 @@ match_i <- function(df_grid_i, score_method = "cor") {
   } else if (score_method == "dtw") {
     stretch <- 0.2
     norm <- "L1"
-    step.pattern <- dtw::symmetric2
+    step.pattern <- dtw::symmetric1
     score_vec <- lapply(
       1:length(ind),
       function(x) {
@@ -80,7 +80,7 @@ match_i <- function(df_grid_i, score_method = "cor") {
           mat_soundscape[ind[[x]], ], mat_template,
           backtrack = F, norm = norm, step.pattern = step.pattern,
           window.size = round(sliding_window + (stretch * sliding_window), 0),
-          normalize = TRUE
+          normalize = FALSE
         )
       }
     ) %>%

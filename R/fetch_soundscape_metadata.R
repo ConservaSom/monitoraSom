@@ -37,8 +37,7 @@ fetch_soundscape_metadata <- function(path, ncores = 1) {
   ))
 
   get_metadata <- function(soundscape_list) {
-
-    p <- progressor(steps = length(soundscape_list))
+    p <- progressor(along = 1:length(soundscape_list), auto_finish = FALSE)
     res <- future_map_dfr(
       soundscape_list,
       function(x) {
