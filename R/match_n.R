@@ -34,7 +34,8 @@ match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE,
         res <- match_i(x, score_method = score_method)
         p(message = "Template matching")
         return(res)
-      }
+      },
+      .options = furrr_options(scheduling = 2)
     ) |>
       list_rbind()
   }
@@ -49,6 +50,7 @@ match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE,
         require(parallel)
         require(doParallel)
         require(foreach)
+        require(dplyr)
         res <- match_i(grid_list[[i]], score_method = score_method)
       }
       stopCluster(my_cluster)
@@ -66,6 +68,16 @@ match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE,
       res <- match_i_wrap(grid_list, score_method = score_method)
     })
     plan(sequential)
+  }
+
+  if (par_strat == "pbapply") {
+    if (ncores > 1) {
+      res <- pbapply::pblapply(grid_list, function(x) match_i(x, score_method = score_method), cl = ncores) |>
+        list_rbind()
+    } else {
+      res <- pbapply::pblapply(grid_list, function(x) match_i(x, score_method = score_method)) |>
+        list_rbind()
+    }
   }
 
   if (save_res != FALSE) {
