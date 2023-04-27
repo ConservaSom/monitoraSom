@@ -53,7 +53,7 @@ match_i <- function(df_grid_i, score_method = "cor") {
     base::Filter(base::Negate(is.null), .)
 
   if (score_method == "cor") {
-    score_vec <- map(
+    score_vec <- purrr::map(
       1:length(ind),
       function(x) {
         cor(
