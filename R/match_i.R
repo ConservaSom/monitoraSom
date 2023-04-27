@@ -25,17 +25,17 @@
 #' match_i(df_grid_i = my_data_frame, score_method = "cor")
 
 match_i <- function(df_grid_i, score_method = "cor") {
-  wav_query <- readWave(df_grid_i$soundscape_path)
-  wav_template <- readWave(df_grid_i$template_path)
+  wav_query <- tuneR::readWave(df_grid_i$soundscape_path)
+  wav_template <- tuneR::readWave(df_grid_i$template_path)
 
-  spectro_template <- spectro(
+  spectro_template <- seewave::spectro(
     wav_template,
     wl = df_grid_i$template_wl, ovlp = df_grid_i$template_ovlp,
     tlim = c(df_grid_i$template_start, df_grid_i$template_end),
     flim = c(df_grid_i$template_min_freq, df_grid_i$template_max_freq),
     plot = F, norm = T
   )
-  spectro_soundscape <- spectro(
+  spectro_soundscape <- seewave::spectro(
     wav_query,
     wl = df_grid_i$template_wl, ovlp = df_grid_i$template_ovlp,
     flim = c(df_grid_i$template_min_freq, df_grid_i$template_max_freq),

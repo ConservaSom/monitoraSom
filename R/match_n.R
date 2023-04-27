@@ -16,7 +16,7 @@
 #'
 #' # Match templates
 #' res <- match_n(df_grid, score_method = "ssim", ncores = 2, save_res = "res.rds")
-match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE) {
+match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE, par_strat = "future") {
 
   grid_list <- group_split(rowwise(df_grid))
 
@@ -39,39 +39,34 @@ match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE)
       list_rbind()
   }
 
-  if (ncores > 1) {
-    my_cluster <- makeCluster(ncores, type = "PSOCK")
-    registerDoParallel(cl = my_cluster) # use multicore, set to the number of our cores
+  if (par_strat == "foreach") {
+      if (ncores > 1) {
+        my_cluster <- makeCluster(ncores, type = "PSOCK")
+        registerDoParallel(cl = my_cluster) # use multicore, set to the number of our cores
+      }
+      res <- foreach(i = 1:length(grid_list), .combine = rbind) %dopar% {
+        source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
+        require(parallel)
+        require(doParallel)
+        require(foreach)
+        res <- match_i(grid_list[[i]], score_method = score_method)
+      }
+      stopCluster(my_cluster)
   }
 
+  if (par_strat == "future") {
+    if (ncores > 1) {
+      # ! Alguma coisa não funciona direito no RStudio com o multicore
+      plan(multicore, workers = ncores)
+    } else {
+      plan(sequential)
+    }
 
-  res <- foreach(i = 1:length(grid_list), .combine = rbind) %dopar% {
-    source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
-    require(tuneR)
-    require(parallel)
-    require(doParallel)
-    require(foreach)
-    require(dplyr)
-    require(seewave)
-    require(dtwclust)
-    require(collapse)
-    require(slider)
-    require(purrr)
-
-    res <- match_i(grid_list[[i]], score_method = score_method)
+    with_progress({
+      res <- match_i_wrap(grid_list, score_method = score_method)
+    })
+    plan(sequential)
   }
-
-  # if (ncores > 1) {
-  #   # ! Alguma coisa não funciona direito no RStudio com o multicore
-  #   plan(multicore, workers = ncores)
-  # } else {
-  #   plan(sequential)
-  # }
-
-  # with_progress({
-  #   res <- match_i_wrap(grid_list, score_method = score_method)
-  # })
-  # plan(sequential)
 
   if (save_res != FALSE) {
     if (dir.exists(dirname(save_res))) {
