@@ -91,7 +91,7 @@ fetch_score_peaks_i <- function(match_res_i, buffer_size = "template") {
         match_res_i$score_vec[[1]]$score_vec[peak_locations]), 3
     )
   ) %>%
-    mutate(
+    fmutate(
       soundscape_path = match_res_i$soundscape_path,
       soundscape_file = match_res_i$soundscape_file,
       template_path = match_res_i$template_path,

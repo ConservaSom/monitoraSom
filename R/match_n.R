@@ -20,11 +20,13 @@ match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE,
 
   grid_list <- group_split(rowwise(df_grid))
 
-  handlers(handler_pbcol(
-    adjust = 1.0,
-    complete = function(s) cli::bg_cyan(cli::col_black(s)),
-    incomplete = function(s) cli::bg_red(cli::col_black(s))
-  ))
+  handlers(
+    handler_pbcol(
+      adjust = 1.0,
+      complete = function(s) cli::bg_cyan(cli::col_black(s)),
+      incomplete = function(s) cli::bg_red(cli::col_black(s))
+    )
+  )
 
   match_i_wrap <- function(grid_list, score_method) {
     p <- progressor(along = grid_list)
@@ -34,40 +36,45 @@ match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE,
         res <- match_i(x, score_method = score_method)
         p(message = "Template matching")
         return(res)
-      },
-      .options = furrr_options(scheduling = 2)
+      } #, .options = furrr_options(scheduling = 2)
     ) |>
       list_rbind()
   }
 
-  if (par_strat == "foreach") {
-      if (ncores > 1) {
-        my_cluster <- makeCluster(ncores, type = "PSOCK")
-        registerDoParallel(cl = my_cluster) # use multicore, set to the number of our cores
-      }
-      res <- foreach(i = 1:length(grid_list), .combine = rbind) %dopar% {
-        source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
-        require(parallel)
-        require(doParallel)
-        require(foreach)
-        require(dplyr)
-        res <- match_i(grid_list[[i]], score_method = score_method)
-      }
-      stopCluster(my_cluster)
-  }
-
   if (par_strat == "future") {
     if (ncores > 1) {
-      # ! Alguma coisa não funciona direito no RStudio com o multicore
       plan(multicore, workers = ncores)
     } else {
       plan(sequential)
     }
-
     with_progress({
       res <- match_i_wrap(grid_list, score_method = score_method)
     })
     plan(sequential)
+  }
+
+
+  if (par_strat == "foreach") {
+      if (ncores > 1) {
+        cl <- makeCluster(ncores)
+        plan(cluster, workers = cl)
+        with_progress({
+          p <- progressor(along = 1:length(grid_list)) # iniciando a barra
+          res <- foreach(i = 1:length(grid_list), .combine = rbind) %dopar% {
+            source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
+            require(parallel)
+            require(doParallel)
+            require(foreach)
+            require(dplyr)
+            p(message = "Template matching")
+            res <- match_i(grid_list[[i]], score_method = score_method)
+            return(res)
+          }
+        })
+        stopCluster(cl)
+      } else {
+        stop("The number of cores must be greater than 1")
+      }
   }
 
   if (par_strat == "pbapply") {
