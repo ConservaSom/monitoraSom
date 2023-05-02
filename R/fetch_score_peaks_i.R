@@ -1,49 +1,43 @@
-#' Find score peaks
+#' Find and filter detections from one score vector
 #'
-#' This function detects peaks in the score vector resulting from a template matching operation.
-#' The peaks represent potential detections of a template in a soundscape recording.
+#' This function detects peaks in the score vector resulting from one iteration of template matching, i.e. the output of 'match_i()' or one row of the output of 'match_n()' . The peaks represent potential detections of a template in a soundscape recording.
 #'
-#' @param match_res_i A list containing the result of a template matching operation performed with a specific template and soundscape recording. It must contain at least the following elements:
+#' @param match_res_i One row of the output of the function 'match_n()' or the output of 'match_i()', which contain score vector the result of a template matching operation performed with a specific template and soundscape recording.
+#' @param buffer_size A numeric value specifying the number of frames of the buffer within which overlap between detections is avoided. Defaults to "template", which means that the buffer size equals the number of frames present in the template spectrogram. The buffer exclusion is oriented by score quantiles, so that the highest scoring detections are always kept. Setting the buffer size to 0 disables the exclusion buffer.
+#' @param min_score A numeric value between 0 and 0.99 indicating the minimum score of the kept detections. Defaults to NA, which return all available detections.
+#' @param min_quant A numeric value between 0 and 1 indicating the minimum score quantile of the kept detections. Defaults to NA, which return all available detections.
+#' @param top_n An integer indicating the maximum number of peaks to be returned, selected according to the highest scores available. Defaults to NA, which return all available detections.
+#'
+#' @return A data frame in which each row is a detection and has the follwing attributes:
 #' \describe{
-#'   \item{\code{score_vec}}{A list containing the score vector obtained from the matching operation.}
-#'   \item{\code{score_sliding_window}}{The size of the sliding window used in the matching operation.}
-#'   \item{\code{soundscape_path}}{The path to the soundscape recording.}
-#'   \item{\code{soundscape_file}}{The name of the soundscape recording file.}
-#'   \item{\code{template_path}}{The path to the template used in the matching operation.}
-#'   \item{\code{template_file}}{The name of the template file.}
-#'   \item{\code{template_min_freq}}{The minimum frequency of the template.}
-#'   \item{\code{template_max_freq}}{The maximum frequency of the template.}
-#'   \item{\code{template_wl}}{The window length used in the template matching operation.}
-#'   \item{\code{template_ovlp}}{The overlap between windows used in the template matching operation.}
-#'   \item{\code{template_sample_rate}}{The sample rate of the template.}
-#' }
-#'
-#' @param buffer_size An integer indicating the minimum number of points required to define a peak. Defaults to "template", which sets it equal to the sliding window size of the matching operation.
-#'
-#' @return A data frame with the following columns:
-#' \describe{
-#'   \item{\code{peak_index}}{The index of the peak in the score vector.}
-#'   \item{\code{peak_cor}}{The value of the peak.}
-#'   \item{\code{peak_quant}}{The quantile of the peak value in the score vector.}
-#'   \item{\code{soundscape_path}}{The path to the soundscape recording.}
-#'   \item{\code{soundscape_file}}{The name of the soundscape recording file.}
-#'   \item{\code{template_path}}{The path to the template used in the matching operation.}
-#'   \item{\code{template_file}}{The name of the template file.}
-#'   \item{\code{detection_start}}{The start time of the detection in the soundscape recording.}
-#'   \item{\code{detection_end}}{The end time of the detection in the soundscape recording.}
-#'   \item{\code{min_freq}}{The minimum frequency of the template.}
-#'   \item{\code{max_freq}}{The maximum frequency of the template.}
-#'   \item{\code{detec_wl}}{The window length used in the detection process.}
-#'   \item{\code{detec_ovlp}}{The overlap between windows used in the detection process.}
-#'   \item{\code{detec_sample_rate}}{The sample rate of the soundscape recording.}
-#'   \item{\code{detec_buffer}}{The minimum number of points required to define a peak.}
+#'   \item \code{peak_index} {A numeric value representing the index of the score peak in the original score vector.}
+#'   \item \code{peak_cor} {A numeric value between 0 and 1 with the detection score.}
+#'   \item \code{peak_quant} {The quantile of the peak value in the score vector.}
+#'   \item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
+#'   \item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
+#'   \item \code{template_path} {A character string specifying the complete path to the soundscape WAV files.}
+#'   \item \code{template_file} {A character string specifying the name of the soundscape WAV files (without the complete path).}
+#'   \item \code{detection_start} {The start time (s) of the detection in the soundscape recording. Based on the template duration.}
+#'   \item \code{detection_end} {The end time (s) of the detection in the soundscape recording. Based on the template duration.}
+#'   \item \code{template_min_freq} {The minimum frequency (kHz) of the band used to compute the template spectrogram.}
+#'   \item \code{template_max_freq} {The maximum frequency (kHz) of the band used to compute the template spectrogram.}
+#'   \item \code{detec_wl} {The FFT window length used to generate the spectrograms.}
+#'   \item \code{detec_ovlp} {The overlap between windows used generate the spectrograms.}
+#'   \item \code{detec_sample_rate} {The sample rate of the soundscape and template WAV files.}
+#'   \item \code{detec_buffer} {The value of 'buffer_size'.}
+#'   \item \code{detec_min_score} {The value of 'min_score'.}
+#'   \item \code{detec_min_quant} {The value of 'min_quant'.}
+#'   \item \code{detec_top_n} {The value of 'top_n'.}
 #' }
 #'
 #' @export
 #'
 #' @examples
 #' fetch_score_peaks_i(match_res_i, 10)
-fetch_score_peaks_i <- function(match_res_i, buffer_size = "template") {
+fetch_score_peaks_i <- function(
+  match_res_i, buffer_size = "template", min_score = NA, min_quant = NA, top_n = NA
+  ) {
+
   data <- match_res_i$score_vec[[1]]$score_vec
 
   if (buffer_size == "template") {
@@ -69,8 +63,6 @@ fetch_score_peaks_i <- function(match_res_i, buffer_size = "template") {
     }
   ) |> unlist()
 
-  # Controls wether peaks result in detections that are out of the recording.
-  # ? The alternative would be allowing partial detections, but this would require a more complex approach to set its time limits
   peak_locations <- peak_locations[
     c(
       which(
@@ -81,6 +73,7 @@ fetch_score_peaks_i <- function(match_res_i, buffer_size = "template") {
     )
   ]
   pad_length <- match_res_i$score_sliding_window %/% 2
+
   res <- data.frame(
     peak_index = peak_locations,
     peak_score = match_res_i$score_vec[[1]]$score_vec[peak_locations],
@@ -108,7 +101,59 @@ fetch_score_peaks_i <- function(match_res_i, buffer_size = "template") {
       detection_ovlp = match_res_i$template_ovlp,
       detection_sample_rate = match_res_i$template_sample_rate,
       detection_buffer = min_points,
+      detec_min_score = min_score,
+      detec_min_quant = min_quant,
+      detec_top_n = top_n,
       .before = peak_index
     )
+
+    if (!is.na(min_score)) {
+      if (is.numeric(min_score) & min_score >= 0 & min_score <= 1) {
+        res_temp <- fsubset(res, peak_score >= min_score)
+        if (nrow(res) == 0) {
+          warning("No detections found with the specified min_score, returning all available detections instead")
+          res <- fsubset(res, peak_score >= 0)
+        } else {
+          res <- res_temp
+        }
+      } else {
+        stop("min_score must be a numeric value between 0 and 1")
+      }
+    }
+
+    if (!is.na(min_quant)) {
+      if (is.numeric(min_quant) & min_quant >= 0 & min_quant <= 1) {
+        res_temp <- fsubset(res, peak_quant >= min_quant)
+        if (nrow(res) == 0) {
+          warning("No detections found with the specified min_quant, returning all available detections instead")
+          res <- fsubset(res, peak_quant >= 0)
+        } else {
+          res <- res_temp
+        }
+      } else {
+        stop("min_quant must be a numeric value between 0 and 1")
+      }
+    }
+
+    if (!is.na(top_n)) {
+      if (is.numeric(top_n)) {
+        if (top_n >= 1) {
+          if (top_n <= nrow(res)) {
+            res <- res %>%
+              arrange(-peak_quant) %>%
+              slice(1:top_n)
+          } else {
+            warning(
+              "top_n must be smaller than the number of detections, returning all available detections instead"
+            )
+          }
+        } else {
+          stop("top_n must be equal or larger than 1")
+        }
+      } else {
+        stop("top_n must be a numeric value")
+      }
+    }
+
   return(res)
 }

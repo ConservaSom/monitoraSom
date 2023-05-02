@@ -1,18 +1,19 @@
-#' Fetch Soundscape Metadata
+#' Get Soundscape Metadata
 #'
 #' Extracts metadata from all WAV files found in a directory and its subdirectories.
 #'
 #' @param path A character string specifying the directory path where the WAV files are located.
-#' @param ncores An integer specifying the number of CPU cores to use for parallel processing.
+#' @param par_strat A character string indicating the parallelization strategy to be used. The available options are: "foreach" (default), "future" and "pbapply". The 'future' and 'pbapply' strategies do not work on Windows, but are more efficient in linux (especially when running and R session outside of Rstudio). The 'foreach' strategy works on all platforms, but is less efficient than the other two. See the documentation of the 'future' and 'pbapply' packages for more details.
+#' @param ncores An integer indicating the number of cores to be used for parallelization. Default is 1.
 #'
 #' @return A data frame with the following columns:
 #' \describe{
-#' \item{\code{soundscape_path}}{A character string specifying the full path to the WAV file.}
-#' \item{\code{soundscape_file}}{A character string specifying the name of the WAV file.}
-#' \item{\code{soundscape_duration}}{A numeric value specifying the duration of the WAV file in seconds.}
-#' \item{\code{soundscape_sample_rate}}{An integer specifying the sample rate of the WAV file in Hz.}
-#' \item{\code{soundscape_codec}}{A character string specifying the audio codec used in the WAV file.}
-#' \item{\code{soundscape_layout}}{A character string specifying the audio channel layout of the WAV file# .}
+#' \item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
+#' \item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
+#' \item \code{soundscape_duration} {A numeric value specifying the total duration (s) of the WAV file.}
+#' \item \code{soundscape_sample_rate} {An integer specifying the sample rate of the WAV file in Hz.}
+#' \item \code{soundscape_codec} {A character string specifying the audio codec used in the WAV file. See the documentation of the 'av' package for more details.}
+#' \item \code{soundscape_layout} {A character string specifying the audio channel layout of the WAV file. See the documentation of the 'av' package for more details.}
 #' }
 #'
 #' @export
@@ -20,7 +21,6 @@
 #' @examples
 #' fetch_soundscape_metadata(path = "/path/to/soundscapes", ncores = 4)
 #'
-
 fetch_soundscape_metadata <- function(path, ncores = 1) {
   # The process begin by creating a dataframe with the complete paths to all
   # files as a variable in a dataframe
@@ -37,6 +37,7 @@ fetch_soundscape_metadata <- function(path, ncores = 1) {
   ))
 
   # todo Implementar as outras estraégias de paralelização
+  # todo Parar processos abertos no caso de interrupção do foreach
 
   get_metadata <- function(soundscape_list) {
     p <- progressor(along = 1:length(soundscape_list), auto_finish = FALSE)

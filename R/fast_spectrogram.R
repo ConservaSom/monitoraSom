@@ -2,16 +2,16 @@
 #'
 #' This function creates a spectrogram plot using ggplot2 nearly ten times faster by introducing the spectrogram layer with `annotation_raster()` instead of `geom_raster()` or `geom_tile()`
 #'
-#' @param rec An object of class "Wave" as defined in the tuneR package
+#' @param rec An object of class "Wave" as implemented in the tuneR package
 #' @param f The sampling frequency of the recording, in Hz
 #' @param flim A numeric vector of length 2 giving the minimum and maximum frequency limits to be displayed in the spectrogram, in kHz.
 #' @param ovlp A numeric value specifying the percentage overlap of windows in the spectrogram calculation.
 #' @param wl An integer specifying the length of the FFT window used to calculate the spectrogram.
 #' @param dyn_range A numeric vector of length 2 giving the minimum and maximum values of relative amplitude to be displayed in the spectrogram.
 #' @param color_scale A character string specifying the color scale to be used in the spectrogram. Possible values are "viridis", "magma", "inferno", "cividis", "greyscale 1", or "greyscale 2".
-#' @param n_colors An integer specifying the number of colors to be used in the color scale.
+#' @param n_colors An integer specifying the number of colors to be used in the color scale. Smaller values will result in lower resolution color scales, but will also result in faster rendering times.
 #' @param interpolate A logical value indicating whether the raster should be interpolated or not.
-#' @param ... Additional arguments to be passed to the spectro() function.
+#' @param ... Additional arguments to be passed internally to the spectro() function.
 #'
 #' @return This function returns a spectrogram plot using ggplot2.
 #' @export

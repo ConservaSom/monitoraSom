@@ -1,23 +1,12 @@
 
-#' Match template to soundscape
+#' Run one iteration of the matching algorithm to obtain the matching score vector between one template and one soundscape
 #'
-#' This function takes in a data frame of soundscapes and their associated templates, and matches each template to its corresponding soundscape. The matching is done using either the Pearson correlation coefficient ("cor") or dynamic time warping ("dtw").
+#' This function takes uses the metadata contained in one row of the output of the function 'fetch_match_grid()' to calculate the matching score of the template spectrogram and a portion of the soundscape spectrogram of same dimensions. The available matching algorithms are the Pearson correlation coefficient ("cor") or dynamic time warping ("dtw").
 #'
-#' @param df_grid_i A data frame containing information about the soundscape and template to match. The data frame must contain the following columns:
-#' \itemize{
-#'   \item soundscape_path: A string specifying the file path of the soundscape.
-#'   \item template_path: A string specifying the file path of the template.
-#'   \item template_wl: An integer specifying the window length (in samples) for the spectrogram.
-#'   \item template_ovlp: A numeric between 0 and 1 specifying the overlap between windows for the spectrogram.
-#'   \item template_start: A numeric specifying the start time (in seconds) of the template within the soundscape.
-#'   \item template_end: A numeric specifying the end time (in seconds) of the template within the soundscape.
-#'   \item template_min_freq: A numeric specifying the minimum frequency (in Hz) for the spectrogram.
-#'   \item template_max_freq: A numeric specifying the maximum frequency (in Hz) for the spectrogram.
-#' }
+#' @param df_grid_i One row of the output of the function 'fetch_match_grid()
+#' @param score_method A character string indicating the method to use for matching. The two methods available are: "cor" (Pearson correlation coefficient) or "dtw" (dynamic time warping). Defaults to "cor".
 #'
-#' @param score_method A character string indicating the method to use for matching. Currently, two methods are available: "cor" (Pearson correlation coefficient) or "dtw" (dynamic time warping). Defaults to "cor".
-#'
-#' @return A tibble containing the input data frame with an additional column "score_vec", which is a data frame with columns "time_vec" (the time points of the spectrogram) and "score_vec" (the matching scores).
+#' @return A tibble row containing the input data frame with an additional column "score_vec", which is a list of length one containing a data frame with the columns "time_vec" (the time value of each spectrogram frame) and "score_vec" (the matching score obtained when the template and the soundscape spectrogram of samew dimensions are alligned at that frame). The length of the "score_vec" is equal to the number of frames of the soundscape spectrogram minus the number of frames of the template spectrogram (i.e. the number of possible allignments between the two spectrograms. The score is not available for the first and last frames of the soundscape spectrogram because score cannot be calculated between spectrograms of different dimensions. To produce a score vector with the same number of frames of the soundscape spectrogram, pads with length quals half the number of frames from the template are added to the beginning and end of the score vector.
 #'
 #' @export
 #'

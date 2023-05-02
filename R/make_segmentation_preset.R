@@ -23,7 +23,7 @@
 #' @param sp_list Species list used in the analysis
 #'
 #' @return A list with the segmentation preset parameters
-#' @export
+#' @export An 'rds' file with the segmentation preset parameters for input in the segmentation app.
 #'
 #' @examples
 make_segmentation_preset <- function(

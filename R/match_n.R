@@ -1,13 +1,14 @@
-#' Match templates in a grid of images
+#' Run multiple iterations of the matching algorithm to obtain the matching score vector between multiple templates and soundscapes
 #'
-#' This function matches templates in a grid of images using the `match_i` function. O chatGPT viajou na maionese, não esquecer de corrigir isso aqui!!!
+#' This function takes uses the metadata contained in the output of the function 'fetch_match_grid()' to calculate the matching scores of multiple templates and spectrograms. The available matching algorithms are the Pearson correlation coefficient ("cor") or dynamic time warping ("dtw").
 #'
-#' @param df_grid A data frame containing the paths of the images to be analyzed.
-#' @param score_method A character string indicating the method to be used to calculate the matching score. Default is "cor".
+#' @param df_grid The output of the function 'fetch_match_grid()
+#' @param save_res A character string indicating the path to save the results in the format of an RDS file. Default is FALSE.
+#' @param score_method A character string indicating the method to use for matching. The two methods available are: "cor" (Pearson correlation coefficient) or "dtw" (dynamic time warping). Defaults to "cor".
+#' @param par_strat A character string indicating the parallelization strategy to be used. The available options are: "foreach" (default), "future" and "pbapply". The 'future' and 'pbapply' strategies do not work on Windows, but are more efficient in linux (especially when running and R session outside of Rstudio). The 'foreach' strategy works on all platforms, but is less efficient than the other two. See the documentation of the 'future' and 'pbapply' packages for more details.
 #' @param ncores An integer indicating the number of cores to be used for parallelization. Default is 1.
-#' @param save_res A character string indicating the path to save the results as an RDS file. Default is FALSE.
 #'
-#' @return A data frame containing the matching scores for each template in the grid.
+#' @return A tibble containing input data frame with an additional column "score_vec", which is a list of dataframes with the columns "time_vec" (the time value of each spectrogram frame) and "score_vec" (the matching score obtained when the template and the soundscape spectrogram of samew dimensions are alligned at that frame) for each match. The length of the "score_vec" is equal to the number of frames of the soundscape spectrogram minus the number of frames of the template spectrogram (i.e. the number of possible allignments between the two spectrograms. The score is not available for the first and last frames of the soundscape spectrogram because score cannot be calculated between spectrograms of different dimensions. To produce a score vector with the same number of frames of the soundscape spectrogram, pads with length quals half the number of frames from the template are added to the beginning and end of the
 #' @export
 #'
 #' @examples
@@ -16,7 +17,7 @@
 #'
 #' # Match templates
 #' res <- match_n(df_grid, score_method = "ssim", ncores = 2, save_res = "res.rds")
-match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE, par_strat = "future") {
+match_n <- function(df_grid, score_method = "cor", save_res = FALSE, par_strat = "future", ncores = 1) {
 
   grid_list <- group_split(rowwise(df_grid))
 
@@ -71,6 +72,7 @@ match_n <- function(df_grid, score_method = "cor", ncores = 1, save_res = FALSE,
             return(res)
           }
         })
+        # todo Adicionar método para parar os clusters no caso de interrupção do processo
         stopCluster(cl)
       } else {
         stop("The number of cores must be greater than 1")
