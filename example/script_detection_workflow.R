@@ -90,6 +90,7 @@ df_detections <- fetch_score_peaks_n(
 )
 glimpse(df_detections)
 
+
 # 6. Whole workflow in a single pipeline
 df_detections <- fetch_match_grid(
    template_data = fetch_template_metadata(
@@ -107,15 +108,15 @@ df_detections <- fetch_match_grid(
 # df_detections <- template_matching(
 #   path_soundscapes = here("example", "soundscapes"),
 #   path_templates = here("example", "roi_cuts"),
-#   template_type = "standalone",
-#   score_method = "cor", buffer_size = "template",
+#   template_type = "standalone", score_method = "cor",
+#   buffer_size = "template", min_score = NA, min_quant = NA, top_n = NA,
 #   ncores = 8, par_strat = "foreach" # todo Implementação pendente
 # )
 
 
 # 8. Plotting
 # 8.a. Without filters
-plot_match_i(df_matches_cor[188, ], buffer_size = 0)
+plot_match_i(match_i_res = df_matches_cor[188, ], buffer_size = 0)
 # 8.b. With template buffer
 plot_match_i(df_matches_cor[188, ], buffer_size = "template")
 # 8.c. With min_score (cutoff) filter

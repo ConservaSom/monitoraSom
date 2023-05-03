@@ -24,43 +24,12 @@ plot_match_i <- function(
 
     require(patchwork)
 
-    detecs <- fetch_score_peaks_i(match_i_res, buffer_size)
-    if (!is.null(min_score)) {
-      if (is.numeric(min_score) & min_score >= 0 & min_score <= 1) {
-        detecs <- fsubset(detecs, peak_score >= min_score)
-      } else {
-        stop("min_score must be a numeric value between 0 and 1")
-      }
-    }
-    if (!is.null(min_quant)) {
-      if (is.numeric(min_quant) & min_quant >= 0 & min_quant <= 1) {
-        detecs <- fsubset(detecs, peak_quant >= min_quant)
-      } else {
-        stop("min_quant must be a numeric value between 0 and 1")
-      }
-    }
+    detecs <- fetch_score_peaks_i(
+      match_i_res, buffer_size = buffer_size, min_score = min_score,
+      min_quant = min_quant, top_n = top_n
+    )
 
-    if (!is.null(top_n)) {
-      if (is.numeric(top_n)) {
-        if (top_n >= 1) {
-          if (top_n <= nrow(detecs)) {
-            detecs <- detecs %>%
-              arrange(-peak_quant) %>%
-              slice(1:top_n)
-          } else {
-            warning(
-              "top_n must be smaller than the number of detections, returning all available detections instead"
-            )
-          }
-        } else {
-          stop("top_n must be equal or larger than 1")
-        }
-      } else {
-        stop("top_n must be a numeric value")
-      }
-    }
 
-    # todo Adicionar verificação se ainda restam detecções após filtragem
 
     rec <- readWave(filename = match_i_res$soundscape_path)
 
@@ -104,8 +73,8 @@ plot_match_i <- function(
         color = selection_color,
         xmin = detecs$detection_start,
         xmax = detecs$detection_end,
-        ymin = detecs$min_freq,
-        ymax = detecs$max_freq
+        ymin = detecs$template_min_freq,
+        ymax = detecs$template_max_freq
       ) +
       annotate(
         "label",
