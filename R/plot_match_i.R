@@ -29,8 +29,6 @@ plot_match_i <- function(
       min_quant = min_quant, top_n = top_n
     )
 
-
-
     rec <- readWave(filename = match_i_res$soundscape_path)
 
     if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
@@ -129,5 +127,6 @@ plot_match_i <- function(
     res <- soundscape_spectro +
       plot_score +
       plot_layout(nrow = 2, byrow = FALSE)
+
     return(res)
 }

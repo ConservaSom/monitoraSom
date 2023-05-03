@@ -31,6 +31,7 @@ path_backup <- here("example", "backup")
 path_plots <- here("example", "plots")
 path_scripts <- here("R/")
 # path_scripts <- "C:/R_repos/monitoraSom/R/"
+# path_scripts <- "C:/Users/grosa/Documents/R/R_repos/monitoraSom/R/"
 
 c(
   dir.exists(path_soundscapes), dir.exists(path_templates),
@@ -38,15 +39,14 @@ c(
   dir.exists(path_plots), dir.exists(path_scripts)
 )
 
-# todo Criar a função set_paths() copm checagens para facilitar a definição dos
-# diretórios
+# todo Criar a função set_paths() copm checagens para facilitar a definição dos diretórios
 
+# Carregando os scripts necessários
 invisible(
   list.files(path_scripts, full.names = TRUE) %>%
     gsub("//", "/", .) %>%
     map(~ source(.x))
 )
-
 
 # 1. Get template metadata
 # 1.a. Get metadata from standalone cuts
