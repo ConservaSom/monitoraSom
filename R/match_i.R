@@ -12,7 +12,6 @@
 #'
 #' @examples
 #' match_i(df_grid_i = my_data_frame, score_method = "cor")
-
 match_i <- function(df_grid_i, score_method = "cor") {
   wav_query <- tuneR::readWave(df_grid_i$soundscape_path)
   wav_template <- tuneR::readWave(df_grid_i$template_path)

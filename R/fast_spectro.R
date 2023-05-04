@@ -1,4 +1,4 @@
-#' ggplot2 bypass to accelerate rendering of large spectrograms
+#' Fast spectrogram rendering with ggplot2
 #'
 #' This function creates a spectrogram plot using ggplot2 nearly ten times faster by introducing the spectrogram layer with `annotation_raster()` instead of `geom_raster()` or `geom_tile()`
 #'
@@ -13,7 +13,7 @@
 #' @param interpolate A logical value indicating whether the raster should be interpolated or not.
 #' @param ... Additional arguments to be passed internally to the spectro() function.
 #'
-#' @return This function returns a spectrogram plot using ggplot2.
+#' @return This function returns a ggplot2 object.
 #' @export
 #'
 #' @examples

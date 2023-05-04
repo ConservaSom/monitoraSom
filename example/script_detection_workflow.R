@@ -84,16 +84,21 @@ glimpse(df_grid)
 #     "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
 # )
 df_matches_cor <- readRDS(
-  "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
+  "/home/grosa/R_repos/monitoraSom/example/data/matches/"
 )
 glimpse(df_matches_cor)
 
 # 5. Get detections
-# df_detections <- fetch_score_peaks_n(
-#   tib_match = df_matches_cor, buffer_size = "template"
-# )
-# glimpse(df_detections)
-
+# 5.a. From a match oject within the session environment
+df_detectionsA <- fetch_score_peaks_n(
+  tib_match = df_matches_cor,
+  buffer_size = "template"
+) %>% glimpse()
+# 5.b. From multiple match objects stored in rds files ouside the session environment
+df_detectionsB <- fetch_score_peaks_n(
+  tib_match = "/home/grosa/R_repos/monitoraSom/example/data/matches/",
+  buffer_size = "template"
+) %>% glimpse()
 
 # 6. Whole workflow in a single pipeline
 # df_detections <- fetch_match_grid(

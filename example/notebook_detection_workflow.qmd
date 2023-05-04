@@ -120,7 +120,6 @@ glimpse(df_detections)
 6.  Whole workflow in a single pipeline
 
 ```{r}
-#|
 df_detections <- fetch_match_grid(
     template_data = fetch_template_metadata(
         path = here("example", "roi_cuts"), method = "standalone"

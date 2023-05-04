@@ -1,9 +1,9 @@
-
 #' Extract template metadata
 #'
 #' This function extracts metadata from a directory of template waveform files, which can be used for soundscape analysis.
 #'
 #' @param path The directory path containing the template waveform files (for method = "standalone") or CSV files (for method = "roi_table").
+#' @param recursive A logical value indicating whether the search for template files should be recursive or not. Default is TRUE.
 #' @param method The method of metadata extraction. The available Options include "standalone" and "roi_table". See details for more information on the format of the input files for each method.
 #'
 #' @return A tibble containing the following metadata for each template file:
@@ -22,16 +22,15 @@
 #'
 #' @examples
 #' # Extract metadata from standalone waveform files
-#' fetch_template_metadata("/path/to/templates", method = "standalone")
+#' fetch_template_metadata("/path/to/templates", recursive = TRUE, method = "standalone")
 #'
 #' # Extract metadata from a table of ROIs
-#' fetch_template_metadata("/path/to/rois.csv", method = "roi_table")
-fetch_template_metadata <- function(path, method = c("standalone")) {
+#' fetch_template_metadata("/path/to/rois.csv", recursive = TRUE, method = "roi_table")
+fetch_template_metadata <- function(path, recursive = TRUE, method = c("standalone")) {
   if (method == "standalone") {
     template_list <- list.files(
-      path,
-      pattern = ".wav",
-      full.names = TRUE, ignore.case = TRUE, recursive = TRUE
+      path, pattern = ".wav", full.names = TRUE, ignore.case = TRUE,
+      recursive = recursive
     )
     if (length(template_list) == 0) {
       stop("No template files found in the specified directory")

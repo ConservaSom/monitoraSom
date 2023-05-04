@@ -1,6 +1,6 @@
-#' Run multiple iterations of the matching algorithm to obtain the matching score vector between multiple templates and soundscapes
+#' Batch template matching
 #'
-#' This function takes uses the metadata contained in the output of the function 'fetch_match_grid()' to calculate the matching scores of multiple templates and spectrograms. The available matching algorithms are the Pearson correlation coefficient ("cor") or dynamic time warping ("dtw").
+#' This function is wrapper of 'match_i()' to perform a batch computation of the matching vectors of the template and soundscape matches defined in the metadata grid obtained as output of the function 'fetch_match_grid()'. The available algorithms to compare spectrograms and compute matching scores are the Pearson correlation coefficient ("cor") or dynamic time warping ("dtw").
 #'
 #' @param df_grid The output of the function 'fetch_match_grid()
 #' @param save_res A character string indicating the path to save the results in the format of an RDS file. Default is FALSE.
@@ -16,7 +16,7 @@
 #' data("df_grid")
 #'
 #' # Match templates
-#' res <- match_n(df_grid, score_method = "ssim", ncores = 2, save_res = "res.rds")
+#' res <- match_n(df_grid, score_method = "cor", ncores = 2, save_res = "res.rds")
 match_n <- function(df_grid, score_method = "cor", save_res = FALSE, par_strat = "future", ncores = 1) {
 
   grid_list <- group_split(rowwise(df_grid))
