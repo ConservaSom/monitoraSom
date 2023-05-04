@@ -1,7 +1,7 @@
 ---
 title: "Template Matching Workflow"
 author: "GLMRosa"
-format: html
+format: pdf
 ---
 
 # Template Matching Workflow

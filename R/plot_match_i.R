@@ -1,21 +1,27 @@
 #' plot_match_i - Plots the results of the match_i function
 #'
-#' @param tpmatch_detecs_i The output of the function tpmatch::match_i
-#' @param corr_cut The correlation threshold above which to plot detected templates
-#' @param wl The length of the window (in samples) used for the STFT calculation
-#' @param flim A vector of length 2 specifying the frequency limits (in kHz) of the plot
-#' @param dyn.range A vector of length 2 specifying the dynamic range (in dB) of the plot
-#' @param ovlp The overlap (in %) between adjacent windows used for the STFT calculation
-#' @param ... Other arguments passed to the sonograma function from the seewave package
+#' @param match_res_i The output of the function tpmatch::match_i
+#' @param buffer_size A numeric value specifying the number of frames of the buffer within which overlap between detections is avoided. Defaults to "template", which means that the buffer size equals the number of frames present in the template spectrogram. The buffer exclusion priority is oriented by score quantiles, so that the highest scoring detections are always kept. Setting the buffer size to 0 disables the exclusion buffer.
+#' @param min_score A numeric value between 0 and 0.99 indicating the minimum score of the detections that will be kept. Defaults to NULL, which returns all available detections.
+#' @param min_quant A numeric value between 0 and 1 indicating the minimum score quantile of the kept detections. Defaults to NULL, which returns all available detections.
+#' @param top_n An integer indicating the maximum number of peaks to be returned, selected according to the highest scores available. Defaults to NULL, which return all available detections. It should be noted that because the peak quantiles are callculated within each score vector, the top_n parameter is applied to each score vector separately, and not to the whole matching grid.
+#' @param ovlp A numeric value specifying the percentage overlap of windows in the spectrogram calculation. Defaults to NULL, which uses the value obtained from match_res_i, but overrides it if a value is provided.
+#' @param wl An integer specifying the length of the FFT window used to calculate the spectrogram. Defaults to NULL, which uses the value obtained from match_res_i, but overrides it if a value is provided.
+#' @param dyn_range A numeric vector of length 2 giving the minimum and maximum values of relative amplitude to be displayed in the spectrogram.
+#' @param color_scale A character string specifying the color scale to be used in the spectrogram. Possible values are "viridis", "magma", "inferno", "cividis", "greyscale 1", or "greyscale 2".
+#' @param n_colors An integer specifying the number of colors to be used in the color scale. Smaller values will result in lower resolution color scales, but will also result in faster rendering times.
+#' @param interpolate A logical value indicating whether the raster should be interpolated or not.
+#' @param score_lims A numeric vector of length 2 specifying the score range to be displayed.
+#' @param ... Other arguments passed to the seewave::spectro() function
 #'
-#' @return A plot of the spectrogram with detected templates highlighted
-#' @export
+#' @return Todo
+#' @export Todo argumento para exportar o plot
 #'
 #' @examples
-#' plot_match_i(tpmatch_detecs_i, corr_cut = 0.4, wl = 2048, flim = c(0, 20),
+#' plot_match_i(match_res_i, corr_cut = 0.4, wl = 2048, flim = c(0, 20),
 #'               dyn.range = c(-100, -20), ovlp = 75)
 plot_match_i <- function(
-    match_i_res,
+    match_res_i,
     buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
     flim = c(0, 10), ovlp = NULL, wl = NULL, dyn_range = c(-60, 0),
     color_scale = "inferno", n_colors = 124, interpolate = FALSE,
@@ -25,11 +31,11 @@ plot_match_i <- function(
     require(patchwork)
 
     detecs <- fetch_score_peaks_i(
-      match_i_res, buffer_size = buffer_size, min_score = min_score,
+      match_res_i, buffer_size = buffer_size, min_score = min_score,
       min_quant = min_quant, top_n = top_n
     )
 
-    rec <- readWave(filename = match_i_res$soundscape_path)
+    rec <- readWave(filename = match_res_i$soundscape_path)
 
     if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
       colormap <- viridis::viridis(n_colors, option = color_scale)
@@ -44,10 +50,10 @@ plot_match_i <- function(
     )
 
     if (is.null(ovlp)) {
-      ovlp <- match_i_res$template_ovlp
+      ovlp <- match_res_i$template_ovlp
     }
     if (is.null(wl)) {
-      wl <- match_i_res$template_wl
+      wl <- match_res_i$template_wl
     }
     if (is.null(flim)) {
       flim <- c(0, 10)
@@ -56,14 +62,26 @@ plot_match_i <- function(
       dyn_range <- c(-60, 0)
     }
     if (is.null(score_lims)) {
-      score_lims <- range(match_i_res$score_vec[[1]]$score_vec)
+      score_lims <- range(match_res_i$score_vec[[1]]$score_vec)
     }
+    if (buffer_size == "template") {
+      buffer_size <- match_res_i$score_sliding_window
+    } else if (!is.numeric(buffer_size)) {
+      stop("buffer_size must be either 'template' or a numeric value")
+    }
+
+    filter_caption <- paste0(
+      "buffer_size = ", buffer_size, "; ",
+      "min_score = ", ifelse(is.null(min_score), "NULL", min_score), "; ",
+      "min_quant = ", ifelse(is.null(min_quant), "NULL", min_quant), "; ",
+      "top_n = ", ifelse(is.null(top_n), "NULL", top_n)
+    )
 
     soundscape_spectro <- fast_spectro(
       rec,
-      f = rec@samp.rate,
-      flim = flim, ovlp = ovlp, wl = wl, dyn_range = dyn_range,
-      color_scale = color_scale, n_colors = 124, interpolate = interpolate
+      f = rec@samp.rate, flim = flim, ovlp = ovlp, wl = wl,
+      dyn_range = dyn_range, color_scale = color_scale, n_colors = 124,
+      interpolate = interpolate, ...
     ) +
       annotate(
         "rect",
@@ -77,8 +95,8 @@ plot_match_i <- function(
       annotate(
         "label",
         label = paste0(
-          match_i_res$soundscape_file,
-          " (sr = ", match_i_res$soundscape_sample_rate, ")"
+          match_res_i$soundscape_file,
+          " (sr = ", match_res_i$soundscape_sample_rate, ")"
         ),
         x = -Inf, y = Inf, hjust = 0, vjust = 1,
         color = "white", fill = "black", size = 3
@@ -89,12 +107,12 @@ plot_match_i <- function(
         axis.ticks.x = element_blank()
       )
 
-    plot_score <- match_i_res$score_vec[[1]] %>%
+    plot_score <- match_res_i$score_vec[[1]] %>%
       ggplot(aes(x = time_vec, y = score_vec)) +
       annotate(
         "point",
-        x = match_i_res$score_vec[[1]]$time_vec[detecs$peak_index],
-        y = match_i_res$score_vec[[1]]$score_vec[detecs$peak_index],
+        x = match_res_i$score_vec[[1]]$time_vec[detecs$peak_index],
+        y = match_res_i$score_vec[[1]]$score_vec[detecs$peak_index],
         pch = 21, color = "black", fill = "#ff6262", size = 4
       ) +
       annotate(
@@ -111,18 +129,20 @@ plot_match_i <- function(
       annotate(
         "label",
         label = paste0(
-          match_i_res$template_file,
-          " (sr = ", match_i_res$template_sample_rate, ")"
+          match_res_i$template_file,
+          " (sr = ", match_res_i$template_sample_rate, ")"
         ),
         x = -Inf, y = Inf, hjust = 0, vjust = 1,
         color = "#000000", fill = "#ffffff", size = 3
-      ) +
-      labs(x = "seconds", y = "matching score") +
+      ) + {
+        if (!is.null(min_score)) {
+          geom_hline(yintercept = min_score, linetype = "dashed")
+        }
+      } +
+      labs(
+        x = "seconds", y = "matching score", caption = filter_caption
+        ) +
       theme_bw()
-
-    # todo Mostrar os critérios aqui
-      # todo Adicionar uma trave para min_score
-      # todo Adicionar mostradores para top_n e min_quant
 
     res <- soundscape_spectro +
       plot_score +

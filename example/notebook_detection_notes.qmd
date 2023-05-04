@@ -1,0 +1,8 @@
+---
+title: "Template Matching Notes"
+author: "GLMRosa"
+format: pdf
+---
+
+- Verificar se `fetch_score_peaks_i()` deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro.
+- 

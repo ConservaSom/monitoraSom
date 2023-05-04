@@ -40,6 +40,7 @@ c(
 )
 
 # todo Criar a função set_paths() copm checagens para facilitar a definição dos diretórios
+# todo Fazer uma função para cortar rois tables em standalone templates em batch
 
 # Carregando os scripts necessários
 invisible(
@@ -76,33 +77,36 @@ glimpse(df_grid)
 
 # 4. Match templates to soundscape
 # 4.a. Match templates to soundscape using correlation
-df_matches_cor <- match_n(
-  df_grid = df_grid, score_method = "cor",
-  ncores = 8, par_strat = "future",
-  save_res =
-    "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
+# df_matches_cor <- match_n(
+#   df_grid = df_grid, score_method = "cor",
+#   ncores = 8, par_strat = "future",
+#   save_res =
+#     "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
+# )
+df_matches_cor <- readRDS(
+  "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
 )
 glimpse(df_matches_cor)
 
 # 5. Get detections
-df_detections <- fetch_score_peaks_n(
-  tib_match = df_matches_cor, buffer_size = "template"
-)
-glimpse(df_detections)
+# df_detections <- fetch_score_peaks_n(
+#   tib_match = df_matches_cor, buffer_size = "template"
+# )
+# glimpse(df_detections)
 
 
 # 6. Whole workflow in a single pipeline
-df_detections <- fetch_match_grid(
-   template_data = fetch_template_metadata(
-    path = here("example", "roi_cuts"), method = "standalone"
-  ),
-  soundscape_data = fetch_soundscape_metadata(
-    path = path_soundscapes, ncores = 6
-  )
-) %>%
-  match_n(score_method = "cor", ncores = 8, par_strat = "foreach") %>%
-  fetch_score_peaks_n(buffer_size = "template") %>%
-  glimpse()
+# df_detections <- fetch_match_grid(
+#    template_data = fetch_template_metadata(
+#     path = here("example", "roi_cuts"), method = "standalone"
+#   ),
+#   soundscape_data = fetch_soundscape_metadata(
+#     path = path_soundscapes, ncores = 6
+#   )
+# ) %>%
+#   match_n(score_method = "cor", ncores = 8, par_strat = "foreach") %>%
+#   fetch_score_peaks_n(buffer_size = "template") %>%
+#   glimpse()
 
 # # 7. Whole workflow in a single function
 # df_detections <- template_matching(
@@ -113,21 +117,20 @@ df_detections <- fetch_match_grid(
 #   ncores = 8, par_strat = "foreach" # todo Implementação pendente
 # )
 
-
+df_matches_cor[188, ] %>% glimpse()
 # 8. Plotting
 # 8.a. Without filters
-plot_match_i(match_i_res = df_matches_cor[188, ], buffer_size = 0)
+x11(); plot_match_i(df_matches_cor[188, ], buffer_size = 0)
 # 8.b. With template buffer
-plot_match_i(df_matches_cor[188, ], buffer_size = "template")
+x11(); plot_match_i(df_matches_cor[188, ], buffer_size = "template")
 # 8.c. With min_score (cutoff) filter
-plot_match_i(df_matches_cor[188, ], buffer_size = 0, min_score = 0.2)
+x11(); plot_match_i(df_matches_cor[188, ], buffer_size = 0, min_score = 0.2)
 # 8.d. With top_n filter
-plot_match_i(df_matches_cor[188, ], buffer_size = 0, top_n = 4)
+x11(); plot_match_i(df_matches_cor[188, ], buffer_size = 0, top_n = 4)
 # 8.e. With quantile filter
 # without buffer
-plot_match_i(df_matches_cor[188, ], buffer_size = 0, min_quant = 0.975)
+x11(); plot_match_i(df_matches_cor[188, ], buffer_size = 0, min_quant = 0.975)
 # with buffer
-plot_match_i(df_matches_cor[188, ], buffer_size = "template", min_quant = 0.975)
-
+x11(); plot_match_i(df_matches_cor[188, ], buffer_size = "template", min_quant = 0.975)
 
 
