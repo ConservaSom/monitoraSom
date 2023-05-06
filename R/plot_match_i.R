@@ -1,17 +1,47 @@
 #' plot_match_i - Plots the results of the match_i function
 #'
+#' @description `r lifecycle::badge("experimental")`
+#'
+#' This function plots a spectrogram of the soundscape and the results of the
+#' match_i() and fetch_score_peaks_i() functions.
+#'
 #' @param match_res_i The output of the function tpmatch::match_i
-#' @param buffer_size A numeric value specifying the number of frames of the buffer within which overlap between detections is avoided. Defaults to "template", which means that the buffer size equals the number of frames present in the template spectrogram. The buffer exclusion priority is oriented by score quantiles, so that the highest scoring detections are always kept. Setting the buffer size to 0 disables the exclusion buffer.
-#' @param min_score A numeric value between 0 and 0.99 indicating the minimum score of the detections that will be kept. Defaults to NULL, which returns all available detections.
-#' @param min_quant A numeric value between 0 and 1 indicating the minimum score quantile of the kept detections. Defaults to NULL, which returns all available detections.
-#' @param top_n An integer indicating the maximum number of peaks to be returned, selected according to the highest scores available. Defaults to NULL, which return all available detections. It should be noted that because the peak quantiles are callculated within each score vector, the top_n parameter is applied to each score vector separately, and not to the whole matching grid.
-#' @param ovlp A numeric value specifying the percentage overlap of windows in the spectrogram calculation. Defaults to NULL, which uses the value obtained from match_res_i, but overrides it if a value is provided.
-#' @param wl An integer specifying the length of the FFT window used to calculate the spectrogram. Defaults to NULL, which uses the value obtained from match_res_i, but overrides it if a value is provided.
-#' @param dyn_range A numeric vector of length 2 giving the minimum and maximum values of relative amplitude to be displayed in the spectrogram.
-#' @param color_scale A character string specifying the color scale to be used in the spectrogram. Possible values are "viridis", "magma", "inferno", "cividis", "greyscale 1", or "greyscale 2".
-#' @param n_colors An integer specifying the number of colors to be used in the color scale. Smaller values will result in lower resolution color scales, but will also result in faster rendering times.
-#' @param interpolate A logical value indicating whether the raster should be interpolated or not.
-#' @param score_lims A numeric vector of length 2 specifying the score range to be displayed.
+#' @param buffer_size A numeric value specifying the number of frames of the
+#'   buffer within which overlap between detections is avoided. Defaults to
+#'   "template", which means that the buffer size equals the number of frames
+#'   present in the template spectrogram. The buffer exclusion priority is
+#'   oriented by score quantiles, so that the highest scoring detections are
+#'   always kept. Setting the buffer size to 0 disables the exclusion buffer.
+#' @param min_score A numeric value between 0 and 0.99 indicating the minimum
+#'   score of the detections that will be kept. Defaults to NULL, which returns
+#'   all available detections.
+#' @param min_quant A numeric value between 0 and 1 indicating the minimum score
+#'   quantile of the kept detections. Defaults to NULL, which returns all
+#'   available detections.
+#' @param top_n An integer indicating the maximum number of peaks to be
+#'   returned, selected according to the highest scores available. Defaults to
+#'   NULL, which return all available detections. It should be noted that
+#'   because the peak quantiles are callculated within each score vector, the
+#'   top_n parameter is applied to each score vector separately, and not to the
+#'   whole matching grid.
+#' @param ovlp A numeric value specifying the percentage overlap of windows in
+#'   the spectrogram calculation. Defaults to NULL, which uses the value
+#'   obtained from match_res_i, but overrides it if a value is provided.
+#' @param wl An integer specifying the length of the FFT window used to
+#'   calculate the spectrogram. Defaults to NULL, which uses the value obtained
+#'   from match_res_i, but overrides it if a value is provided.
+#' @param dyn_range A numeric vector of length 2 giving the minimum and maximum
+#'   values of relative amplitude to be displayed in the spectrogram.
+#' @param color_scale A character string specifying the color scale to be used
+#'   in the spectrogram. Possible values are "viridis", "magma", "inferno",
+#'   "cividis", "greyscale 1", or "greyscale 2".
+#' @param n_colors An integer specifying the number of colors to be used in the
+#'   color scale. Smaller values will result in lower resolution color scales,
+#'   but will also result in faster rendering times.
+#' @param interpolate A logical value indicating whether the raster should be
+#'   interpolated or not.
+#' @param score_lims A numeric vector of length 2 specifying the score range to
+#'   be displayed.
 #' @param ... Other arguments passed to the seewave::spectro() function
 #'
 #' @return Todo

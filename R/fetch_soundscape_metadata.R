@@ -1,11 +1,23 @@
 #' Extract Soundscape Metadata
 #'
-#' Extracts metadata from all WAV files found in a directory and its subdirectories.
+#' @description `r lifecycle::badge("experimental")`
 #'
-#' @param path A character string specifying the directory path where all WAV files are located.
-#' @param recursive A logical value indicating whether the search for WAV files should be recursive or not. Default is TRUE.
-#' @param par_strat A character string indicating the parallelization strategy to be used. The available options are: "foreach" (default), "future" and "pbapply". The 'future' and 'pbapply' strategies do not work on Windows, but are more efficient in linux (especially when running and R session outside of Rstudio). The 'foreach' strategy works on all platforms, but is less efficient than the other two. See the documentation of the 'future' and 'pbapply' packages for more details.
-#' @param ncores An integer indicating the number of cores to be used for parallelization. Default is 1.
+#' Extracts metadata from all WAV files found in a directory and its
+#' subdirectories.
+#'
+#' @param path A character string specifying the directory path where all WAV
+#'   files are located.
+#' @param recursive A logical value indicating whether the search for WAV files
+#'   should be recursive or not. Default is TRUE.
+#' @param par_strat A character string indicating the parallelization strategy
+#'   to be used. The available options are: "foreach" (default), "future" and
+#'   "pbapply". The 'future' and 'pbapply' strategies do not work on Windows,
+#'   but are more efficient in linux (especially when running and R session
+#'   outside of Rstudio). The 'foreach' strategy works on all platforms, but is
+#'   less efficient than the other two. See the documentation of the 'future'
+#'   and 'pbapply' packages for more details.
+#' @param ncores An integer indicating the number of cores to be used for
+#'   parallelization. Default is 1.
 #'
 #' @return A data frame with the following columns:
 #' \describe{

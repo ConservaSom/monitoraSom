@@ -2,7 +2,7 @@
 % Please edit documentation in R/fetch_match_grid.R
 \name{fetch_match_grid}
 \alias{fetch_match_grid}
-\title{Fetches a grid of matching templates and soundscapes}
+\title{Creates a grid with all combinations of templates and soundscapes for template matching}
 \usage{
 fetch_match_grid(soundscape_data, template_data)
 }
@@ -12,10 +12,10 @@ fetch_match_grid(soundscape_data, template_data)
 \item{template_data}{A data frame containing metadata about the templates to be matched.}
 }
 \value{
-A data frame with a grid of all possible matching combinations between the two input data sets.
+A data frame with a grid of all possible matching combinations between the two input data sets. In other words, each row of the output data frame represents the match between a template and a soundscape. All columns with metadata from soundscapes and templates are kept (see the documentation of the functions 'fetch_soundscape_metadata()' and 'fetch_template_metadata()' for more details).
 }
 \description{
-This function takes in two data frames: soundscape_data and template_data, and returns a new data frame with a grid of all possible matching combinations between the two data sets.
+This function takes in two data frames: soundscape_data (the output of the function 'fetch_soundscape_metadata()') and template_data (the output of the function 'fetch_template_metadata()'), checks their compatibilities, and returns a new data frame with a grid of all possible matching combinations between the two data sets.
 }
 \examples{
 fetch_match_grid(soundscape_data, template_data)

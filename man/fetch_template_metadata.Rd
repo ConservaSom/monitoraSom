@@ -4,26 +4,28 @@
 \alias{fetch_template_metadata}
 \title{Extract template metadata}
 \usage{
-fetch_template_metadata(path, method = c("standalone"))
+fetch_template_metadata(path, recursive = TRUE, method = c("standalone"))
 }
 \arguments{
-\item{path}{The directory path containing the template waveform files.}
+\item{path}{The directory path containing the template waveform files (for method = "standalone") or CSV files (for method = "roi_table").}
 
-\item{method}{The method to use for metadata extraction. Options include "standalone" to extract metadata from standalone waveform files, or "roi_table" to extract metadata from a table of regions of interest (ROIs).}
+\item{recursive}{A logical value indicating whether the search for template files should be recursive or not. Default is TRUE.}
+
+\item{method}{The method of metadata extraction. The available Options include "standalone" and "roi_table". See details for more information on the format of the input files for each method.}
 }
 \value{
 A tibble containing the following metadata for each template file:
 \itemize{
-\item \code{template_path}: The full path to the template file.
-\item \code{template_file}: The filename of the template file.
-\item \code{template_label}: A label for the template file, extracted from the filename.
-\item \code{template_start}: The start time of the template file, set to 0.
-\item \code{template_end}: The end time of the template file, calculated from the duration of the file.
-\item \code{template_sample_rate}: The sample rate of the template file.
-\item \code{template_min_freq}: The minimum frequency of the template file, extracted from the filename.
-\item \code{template_max_freq}: The maximum frequency of the template file, extracted from the filename.
-\item \code{template_wl}: The waveform length (WL) of the template file, extracted from the filename.
-\item \code{template_ovlp}: The waveform overlap (OVLP) of the template file, extracted from the filename.
+\item \code{template_path} {A character string specifying the complete path to the soundscape WAV files.}
+\item \code{template_file} {A character string specifying the name of the soundscape WAV files (without the complete path).}
+\item \code{template_label} {A character string specifying the label indicating the origin of the signal represented in the template.}
+\item \code{template_start} {A numeric value representing the time (s) in which computation of the spectrogram starts within the template file.}
+\item \code{template_end} {A numeric value representing the time (s) in which computation of the spectrogram ends within the template file.}
+\item \code{template_sample_rate} {The sample rate of the template file.}
+\item \code{template_min_freq} {The minimum frequency (kHz) of the band that will be used to compute the template spectrogram.}
+\item \code{template_max_freq} {The maximum frequency (kHz) of the band that will be used to compute the template spectrogram.}
+\item \code{template_wl} {The FFT window length used to compute the template spectrogram.}
+\item \code{template_ovlp} {The overlap used to compute the template spectrogram.}
 }
 }
 \description{
@@ -31,8 +33,8 @@ This function extracts metadata from a directory of template waveform files, whi
 }
 \examples{
 # Extract metadata from standalone waveform files
-fetch_template_metadata("/path/to/templates", method = "standalone")
+fetch_template_metadata("/path/to/templates", recursive = TRUE, method = "standalone")
 
 # Extract metadata from a table of ROIs
-fetch_template_metadata("/path/to/rois.csv", method = "roi_table")
+fetch_template_metadata("/path/to/rois.csv", recursive = TRUE, method = "roi_table")
 }

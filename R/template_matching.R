@@ -1,12 +1,19 @@
 #' Perform template matching on a set of soundscapes using a set of templates
 #'
-#' This function performs template matching on a set of soundscapes using a set of templates, and returns a dataframe with the detected events.
+#' @description `r lifecycle::badge("experimental")`
 #'
-#' @param path_soundscapes Path to a directory containing the soundscapes to be analyzed.
-#' @param path_templates Path to a directory containing the templates to be used for matching.
+#' This function performs template matching on a set of soundscapes using a set
+#' of templates, and returns a dataframe with the detected events.
+#'
+#' @param path_soundscapes Path to a directory containing the soundscapes to be
+#'   analyzed.
+#' @param path_templates Path to a directory containing the templates to be used
+#'   for matching.
 #' @param template_type The type of templates, either "standalone" or "library".
-#' @param score_method The method used for template matching, either "cor" or "dtw".
-#' @param buffer_size The size of the buffer used to calculate the scores for the template matches, either "template" or "event".
+#' @param score_method The method used for template matching, either "cor" or
+#'   "dtw".
+#' @param buffer_size The size of the buffer used to calculate the scores for
+#'   the template matches, either "template" or "event".
 #' @param ncores The number of cores to be used for parallel processing.
 #'
 #' @return A dataframe with the detected events.

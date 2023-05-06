@@ -2,51 +2,52 @@
 % Please edit documentation in R/fetch_score_peaks_i.R
 \name{fetch_score_peaks_i}
 \alias{fetch_score_peaks_i}
-\title{Find score peaks}
+\title{Find and filter detections from one score vector}
 \usage{
-fetch_score_peaks_i(match_res_i, buffer_size = "template")
+fetch_score_peaks_i(
+  match_res_i,
+  buffer_size = "template",
+  min_score = NULL,
+  min_quant = NULL,
+  top_n = NULL
+)
 }
 \arguments{
-\item{match_res_i}{A list containing the result of a template matching operation performed with a specific template and soundscape recording. It must contain at least the following elements:
-\describe{
-  \item{\code{score_vec}}{A list containing the score vector obtained from the matching operation.}
-  \item{\code{score_sliding_window}}{The size of the sliding window used in the matching operation.}
-  \item{\code{soundscape_path}}{The path to the soundscape recording.}
-  \item{\code{soundscape_file}}{The name of the soundscape recording file.}
-  \item{\code{template_path}}{The path to the template used in the matching operation.}
-  \item{\code{template_file}}{The name of the template file.}
-  \item{\code{template_min_freq}}{The minimum frequency of the template.}
-  \item{\code{template_max_freq}}{The maximum frequency of the template.}
-  \item{\code{template_wl}}{The window length used in the template matching operation.}
-  \item{\code{template_ovlp}}{The overlap between windows used in the template matching operation.}
-  \item{\code{template_sample_rate}}{The sample rate of the template.}
-}}
+\item{match_res_i}{One row of the output of the function 'match_n()' or the output of 'match_i()', which contain score vector the result of a template matching operation performed with a specific template and soundscape recording.}
 
-\item{buffer_size}{An integer indicating the minimum number of points required to define a peak. Defaults to "template", which sets it equal to the sliding window size of the matching operation.}
+\item{buffer_size}{A numeric value specifying the number of frames of the buffer within which overlap between detections is avoided. Defaults to "template", which means that the buffer size equals the number of frames present in the template spectrogram. The buffer exclusion is oriented by score quantiles, so that the highest scoring detections are always kept. Setting the buffer size to 0 disables the exclusion buffer.}
+
+\item{min_score}{A numeric value between 0 and 0.99 indicating the minimum score of the detections that will be kept. Defaults to NULL, which returns all available detections.}
+
+\item{min_quant}{A numeric value between 0 and 1 indicating the minimum score quantile of the kept detections. Defaults to NULL, which returns all available detections.}
+
+\item{top_n}{An integer indicating the maximum number of peaks to be returned, selected according to the highest scores available. Defaults to NULL, which return all available detections. It should be noted that because the peak quantiles are callculated within each score vector, the top_n parameter is applied to each score vector separately, and not to the whole matching grid.}
 }
 \value{
-A data frame with the following columns:
+A data frame in which each row is a detection and has the follwing attributes:
 \describe{
-  \item{\code{peak_index}}{The index of the peak in the score vector.}
-  \item{\code{peak_cor}}{The value of the peak.}
-  \item{\code{peak_quant}}{The quantile of the peak value in the score vector.}
-  \item{\code{soundscape_path}}{The path to the soundscape recording.}
-  \item{\code{soundscape_file}}{The name of the soundscape recording file.}
-  \item{\code{template_path}}{The path to the template used in the matching operation.}
-  \item{\code{template_file}}{The name of the template file.}
-  \item{\code{detection_start}}{The start time of the detection in the soundscape recording.}
-  \item{\code{detection_end}}{The end time of the detection in the soundscape recording.}
-  \item{\code{min_freq}}{The minimum frequency of the template.}
-  \item{\code{max_freq}}{The maximum frequency of the template.}
-  \item{\code{detec_wl}}{The window length used in the detection process.}
-  \item{\code{detec_ovlp}}{The overlap between windows used in the detection process.}
-  \item{\code{detec_sample_rate}}{The sample rate of the soundscape recording.}
-  \item{\code{detec_buffer}}{The minimum number of points required to define a peak.}
+  \item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
+  \item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
+  \item \code{template_path} {A character string specifying the complete path to the soundscape WAV files.}
+  \item \code{template_file} {A character string specifying the name of the soundscape WAV files (without the complete path).}
+  \item \code{template_min_freq} {The minimum frequency (kHz) of the band used to compute the template spectrogram.}
+  \item \code{template_max_freq} {The maximum frequency (kHz) of the band used to compute the template spectrogram.}
+  \item \code{detection_start} {The start time (s) of the detection in the soundscape recording. Based on the template duration.}
+  \item \code{detection_end} {The end time (s) of the detection in the soundscape recording. Based on the template duration.}
+  \item \code{detec_wl} {The FFT window length used to generate the spectrograms.}
+  \item \code{detec_ovlp} {The overlap between windows used generate the spectrograms.}
+  \item \code{detec_sample_rate} {The sample rate of the soundscape and template WAV files.}
+  \item \code{detec_buffer} {The value of 'buffer_size'.}
+  \item \code{detec_min_score} {The value of 'min_score'.}
+  \item \code{detec_min_quant} {The value of 'min_quant'.}
+  \item \code{detec_top_n} {The value of 'top_n'.}
+  \item \code{peak_index} {A numeric value representing the index of the score peak in the original score vector.}
+  \item \code{peak_cor} {A numeric value between 0 and 1 with the detection score.}
+  \item \code{peak_quant} {The quantile of the peak value in the score vector.}
 }
 }
 \description{
-This function detects peaks in the score vector resulting from a template matching operation.
-The peaks represent potential detections of a template in a soundscape recording.
+This function detects peaks in the score vector resulting from one iteration of template matching, i.e. the output of 'match_i()' or one row of the output of 'match_n()' . The peaks represent potential detections of a template in a soundscape recording.
 }
 \examples{
 fetch_score_peaks_i(match_res_i, 10)

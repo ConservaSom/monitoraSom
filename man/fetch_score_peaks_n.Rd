@@ -2,21 +2,28 @@
 % Please edit documentation in R/fetch_score_peaks_n.R
 \name{fetch_score_peaks_n}
 \alias{fetch_score_peaks_n}
-\title{Extract score peaks from a Tibble of audio scores}
+\title{Batch find and filter detections from score vectors}
 \usage{
 fetch_score_peaks_n(
   tib_match,
-  tib_match_path = NULL,
+  recursive = FALSE,
   buffer_size = "template",
+  min_score = NULL,
+  min_quant = NULL,
+  top_n = NULL,
   save_res = NULL
 )
 }
 \arguments{
-\item{tib_match}{Tibble. Tibble containing audio scores obtained with \code{\link{match_template_n}}.}
+\item{tib_match}{A tibble containing the output of 'match_n()' or a filtered subset of it with at least two rows that is already within the environement of the current R session. Alternatively, a path to a folder containing the output of 'match_n()' as .rds files for importing multiple match objects from outside the current R session.}
 
-\item{tib_match_path}{Character. Path to a folder containing audio scores as .wav.rds files.}
+\item{buffer_size}{A numeric value specifying the number of frames of the buffer within which overlap between detections is avoided. Defaults to "template", which means that the buffer size equals the number of frames present in the template spectrogram. The buffer exclusion priority is oriented by score quantiles, so that the highest scoring detections are always kept. Setting the buffer size to 0 disables the exclusion buffer.}
 
-\item{buffer_size}{Integer. Size of the buffer around the detected peak (in number of points).}
+\item{min_score}{A numeric value between 0 and 0.99 indicating the minimum score of the detections that will be kept. Defaults to NULL, which returns all available detections.}
+
+\item{min_quant}{A numeric value between 0 and 1 indicating the minimum score quantile of the kept detections. Defaults to NULL, which returns all available detections.}
+
+\item{top_n}{An integer indicating the maximum number of peaks to be returned, selected according to the highest scores available. Defaults to NULL, which return all available detections. It should be noted that because the peak quantiles are callculated within each score vector, the top_n parameter is applied to each score vector separately, and not to the whole matching grid.}
 
 \item{save_res}{Character. Path to save the result as an .rds file.}
 }
@@ -24,7 +31,7 @@ fetch_score_peaks_n(
 A Tibble containing the detections of all audio scores.
 }
 \description{
-This function extracts score peaks from a Tibble of audio scores obtained with \code{\link{match_template_n}}.
+This function is wrapper of 'fetch_score_peaks_i()' for detection of peaks in score vectors from matches between multiple templates and soundscapes, i.e. the output of 'match_n()'. The also allows multiple methods for filtering suboptimal detections.
 }
 \examples{
 \dontrun{

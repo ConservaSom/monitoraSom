@@ -52,22 +52,29 @@ invisible(
 # 1. Get template metadata
 # 1.a. Get metadata from standalone cuts
 df_templates_A <- fetch_template_metadata(
-  path = here("example", "roi_cuts"), method = "standalone"
+  path = "/home/grosa/R_repos/monitoraSom/example/roi_cuts",
+  recursive = TRUE, method = "standalone"
 )
 glimpse(df_templates_A)
 
 # 1.b. Get metadata from ROI tables
 df_templates_B <- fetch_template_metadata(
-  path = here("example", "roi_tables"), method = "roi_table"
+  path = "/home/grosa/R_repos/monitoraSom/example/roi_tables",
+  method = "roi_table"
 )
+# todo Resolver nome de template file aqui
 glimpse(df_templates_B)
 
 # 2. Get soundscape metadata
 df_soundscapes <- fetch_soundscape_metadata(
-  path = path_soundscapes, ncores = 1
+  path = path_soundscapes, recursive = TRUE, ncores = 1
 )
 glimpse(df_soundscapes)
-
+# todo Capturar metadados de gravações dos audiomoths
+# todo Verificar o que acontece com os arquivos 0kb
+# todo Adicionar verbose = TRUE pra mostrar um diagnóstico basico
+# todo Fazer a extraçãop de dados espaciais do nome do arquivo como processo opcional
+# todo Arrumar uma alternativa para codificar o ponto da amostra e dar a opção em um argumento para o usuário escolher entre opções disponíveis
 
 # 3. Get match grid
 df_grid <- fetch_match_grid(
@@ -84,36 +91,43 @@ glimpse(df_grid)
 #     "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
 # )
 df_matches_cor <- readRDS(
-  "/home/grosa/R_repos/monitoraSom/example/data/matches/"
+  "/home/grosa/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
 )
 glimpse(df_matches_cor)
+
+fetch_score_peaks_i(
+  match_res_i = df_matches_cor[188, ],
+  buffer_size = df_matches_cor[188, ]$score_sliding_window
+) %>% glimpse()
+# todo Adicionar os metadados com os parâmetros do template matching
+# todo Mudar a quantificação do buffer para a % de frames do template
 
 # 5. Get detections
 # 5.a. From a match oject within the session environment
 df_detectionsA <- fetch_score_peaks_n(
-  tib_match = df_matches_cor,
-  buffer_size = "template"
-) %>% glimpse()
+  tib_match = df_matches_cor, buffer_size = "template"
+)
 # 5.b. From multiple match objects stored in rds files ouside the session environment
 df_detectionsB <- fetch_score_peaks_n(
   tib_match = "/home/grosa/R_repos/monitoraSom/example/data/matches/",
   buffer_size = "template"
-) %>% glimpse()
+)
 
 # 6. Whole workflow in a single pipeline
-# df_detections <- fetch_match_grid(
-#    template_data = fetch_template_metadata(
-#     path = here("example", "roi_cuts"), method = "standalone"
-#   ),
-#   soundscape_data = fetch_soundscape_metadata(
-#     path = path_soundscapes, ncores = 6
-#   )
-# ) %>%
-#   match_n(score_method = "cor", ncores = 8, par_strat = "foreach") %>%
-#   fetch_score_peaks_n(buffer_size = "template") %>%
-#   glimpse()
+df_detections <- fetch_match_grid(
+   template_data = fetch_template_metadata(
+    path = here("example", "roi_cuts"),
+    method = "standalone"
+  ),
+  soundscape_data = fetch_soundscape_metadata(
+    path = path_soundscapes, ncores = 6
+  )
+) %>%
+  match_n(score_method = "cor", ncores = 8, par_strat = "foreach") %>%
+  fetch_score_peaks_n(buffer_size = "template") %>%
+  glimpse()
 
-# # 7. Whole workflow in a single function
+# # 7. Whole workflow in a single function (detectR)
 # df_detections <- template_matching(
 #   path_soundscapes = here("example", "soundscapes"),
 #   path_templates = here("example", "roi_cuts"),
@@ -122,20 +136,20 @@ df_detectionsB <- fetch_score_peaks_n(
 #   ncores = 8, par_strat = "foreach" # todo Implementação pendente
 # )
 
-df_matches_cor[188, ] %>% glimpse()
+
 # 8. Plotting
 # 8.a. Without filters
-x11(); plot_match_i(df_matches_cor[188, ], buffer_size = 0)
+plot_match_i(df_matches_cor[188, ], buffer_size = 0)
 # 8.b. With template buffer
-x11(); plot_match_i(df_matches_cor[188, ], buffer_size = "template")
+plot_match_i(df_matches_cor[188, ], buffer_size = "template")
 # 8.c. With min_score (cutoff) filter
-x11(); plot_match_i(df_matches_cor[188, ], buffer_size = 0, min_score = 0.2)
+plot_match_i(df_matches_cor[188, ], buffer_size = 0, min_score = 0.2)
 # 8.d. With top_n filter
-x11(); plot_match_i(df_matches_cor[188, ], buffer_size = 0, top_n = 4)
+plot_match_i(df_matches_cor[188, ], buffer_size = 0, top_n = 4)
 # 8.e. With quantile filter
 # without buffer
-x11(); plot_match_i(df_matches_cor[188, ], buffer_size = 0, min_quant = 0.975)
+plot_match_i(df_matches_cor[188, ], buffer_size = 0, min_quant = 0.975)
 # with buffer
-x11(); plot_match_i(df_matches_cor[188, ], buffer_size = "template", min_quant = 0.975)
+plot_match_i(df_matches_cor[188, ], buffer_size = "template", min_quant = 0.975)
 
 

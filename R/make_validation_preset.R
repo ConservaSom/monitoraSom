@@ -1,6 +1,8 @@
 #' make_validation_preset
 #'
-#' @title Creates a validation preset for a soundscape dataset.
+#' @description `r lifecycle::badge("experimental")`
+#'
+#' Creates a validation preset for a soundscape dataset.
 #'
 #' @param preset_path Path to save the validation preset. Default is NULL.
 #' @param preset_name Name for the validation preset. Default is NULL.
@@ -9,12 +11,16 @@
 #' @param soundscapes_path Path to the directory containing the soundscapes.
 #' @param input_path Path to the input file.
 #' @param output_path Path to the output file.
-#' @param wav_cuts_path Path to the directory where the waveform cuts will be saved.
+#' @param wav_cuts_path Path to the directory where the waveform cuts will be
+#'   saved.
 #' @param spec_path Path to the directory where the spectrograms will be saved.
-#' @param diag_tab_path Path to the directory where the diagnostic tables will be saved.
-#' @param wav_player_path Path to the executable of the waveform player. Default is "play".
+#' @param diag_tab_path Path to the directory where the diagnostic tables will
+#'   be saved.
+#' @param wav_player_path Path to the executable of the waveform player. Default
+#'   is "play".
 #' @param wav_player_type Type of waveform player. Default is "HTML player".
-#' @param val_subset Vector with the subset of the validation session to be performed.
+#' @param val_subset Vector with the subset of the validation session to be
+#'   performed.
 #' @param min_score Minimum score required to accept a detection. Default is 0.
 #' @param time_pads Time padding in seconds for waveform cuts. Default is 1.
 #' @param ovlp Overlap in percentage for waveform cuts. Default is 0.
@@ -24,7 +30,8 @@
 #' @param zoom_freq Frequency range for spectrogram zooming. Default is c(0, 4).
 #' @param nav_shuffle Shuffle navigation. Default is FALSE.
 #' @param seed Random seed. Default is 123.
-#' @param auto_next Automatic transition to the next detection. Default is FALSE.
+#' @param auto_next Automatic transition to the next detection. Default is
+#'   FALSE.
 #' @param nav_autosave Autosave navigation. Default is FALSE.
 #' @param overwrite Overwrite output file. Default is FALSE.
 #' @param session_notes Notes about the validation session.

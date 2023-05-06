@@ -5,37 +5,56 @@
 \title{plot_match_i - Plots the results of the match_i function}
 \usage{
 plot_match_i(
-  tpmatch_detecs_i,
-  corr_cut = 0.3,
-  wl = 1024,
-  flim = c(0, 12),
-  dyn.range = c(-80, -10),
-  ovlp = 50,
+  match_res_i,
+  buffer_size = "template",
+  min_score = NULL,
+  min_quant = NULL,
+  top_n = NULL,
+  flim = c(0, 10),
+  ovlp = NULL,
+  wl = NULL,
+  dyn_range = c(-60, 0),
+  color_scale = "inferno",
+  n_colors = 124,
+  interpolate = FALSE,
+  score_lims = NULL,
   ...
 )
 }
 \arguments{
-\item{tpmatch_detecs_i}{The output of the function tpmatch::match_i}
+\item{match_res_i}{The output of the function tpmatch::match_i}
 
-\item{corr_cut}{The correlation threshold above which to plot detected templates}
+\item{buffer_size}{A numeric value specifying the number of frames of the buffer within which overlap between detections is avoided. Defaults to "template", which means that the buffer size equals the number of frames present in the template spectrogram. The buffer exclusion priority is oriented by score quantiles, so that the highest scoring detections are always kept. Setting the buffer size to 0 disables the exclusion buffer.}
 
-\item{wl}{The length of the window (in samples) used for the STFT calculation}
+\item{min_score}{A numeric value between 0 and 0.99 indicating the minimum score of the detections that will be kept. Defaults to NULL, which returns all available detections.}
 
-\item{flim}{A vector of length 2 specifying the frequency limits (in kHz) of the plot}
+\item{min_quant}{A numeric value between 0 and 1 indicating the minimum score quantile of the kept detections. Defaults to NULL, which returns all available detections.}
 
-\item{dyn.range}{A vector of length 2 specifying the dynamic range (in dB) of the plot}
+\item{top_n}{An integer indicating the maximum number of peaks to be returned, selected according to the highest scores available. Defaults to NULL, which return all available detections. It should be noted that because the peak quantiles are callculated within each score vector, the top_n parameter is applied to each score vector separately, and not to the whole matching grid.}
 
-\item{ovlp}{The overlap (in %) between adjacent windows used for the STFT calculation}
+\item{ovlp}{A numeric value specifying the percentage overlap of windows in the spectrogram calculation. Defaults to NULL, which uses the value obtained from match_res_i, but overrides it if a value is provided.}
 
-\item{...}{Other arguments passed to the sonograma function from the seewave package}
+\item{wl}{An integer specifying the length of the FFT window used to calculate the spectrogram. Defaults to NULL, which uses the value obtained from match_res_i, but overrides it if a value is provided.}
+
+\item{dyn_range}{A numeric vector of length 2 giving the minimum and maximum values of relative amplitude to be displayed in the spectrogram.}
+
+\item{color_scale}{A character string specifying the color scale to be used in the spectrogram. Possible values are "viridis", "magma", "inferno", "cividis", "greyscale 1", or "greyscale 2".}
+
+\item{n_colors}{An integer specifying the number of colors to be used in the color scale. Smaller values will result in lower resolution color scales, but will also result in faster rendering times.}
+
+\item{interpolate}{A logical value indicating whether the raster should be interpolated or not.}
+
+\item{score_lims}{A numeric vector of length 2 specifying the score range to be displayed.}
+
+\item{...}{Other arguments passed to the seewave::spectro() function}
 }
 \value{
-A plot of the spectrogram with detected templates highlighted
+Todo
 }
 \description{
 plot_match_i - Plots the results of the match_i function
 }
 \examples{
-plot_match_i(tpmatch_detecs_i, corr_cut = 0.4, wl = 2048, flim = c(0, 20),
+plot_match_i(match_res_i, corr_cut = 0.4, wl = 2048, flim = c(0, 20),
               dyn.range = c(-100, -20), ovlp = 75)
 }

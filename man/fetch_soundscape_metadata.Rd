@@ -2,24 +2,28 @@
 % Please edit documentation in R/fetch_soundscape_metadata.R
 \name{fetch_soundscape_metadata}
 \alias{fetch_soundscape_metadata}
-\title{Fetch Soundscape Metadata}
+\title{Extract Soundscape Metadata}
 \usage{
-fetch_soundscape_metadata(path, ncores = 1)
+fetch_soundscape_metadata(path, recursive = TRUE, ncores = 1)
 }
 \arguments{
-\item{path}{A character string specifying the directory path where the WAV files are located.}
+\item{path}{A character string specifying the directory path where all WAV files are located.}
 
-\item{ncores}{An integer specifying the number of CPU cores to use for parallel processing.}
+\item{recursive}{A logical value indicating whether the search for WAV files should be recursive or not. Default is TRUE.}
+
+\item{ncores}{An integer indicating the number of cores to be used for parallelization. Default is 1.}
+
+\item{par_strat}{A character string indicating the parallelization strategy to be used. The available options are: "foreach" (default), "future" and "pbapply". The 'future' and 'pbapply' strategies do not work on Windows, but are more efficient in linux (especially when running and R session outside of Rstudio). The 'foreach' strategy works on all platforms, but is less efficient than the other two. See the documentation of the 'future' and 'pbapply' packages for more details.}
 }
 \value{
 A data frame with the following columns:
 \describe{
-\item{\code{soundscape_path}}{A character string specifying the full path to the WAV file.}
-\item{\code{soundscape_file}}{A character string specifying the name of the WAV file.}
-\item{\code{soundscape_duration}}{A numeric value specifying the duration of the WAV file in seconds.}
-\item{\code{soundscape_sample_rate}}{An integer specifying the sample rate of the WAV file in Hz.}
-\item{\code{soundscape_codec}}{A character string specifying the audio codec used in the WAV file.}
-\item{\code{soundscape_layout}}{A character string specifying the audio channel layout of the WAV file# .}
+\item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
+\item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
+\item \code{soundscape_duration} {A numeric value specifying the total duration (s) of the WAV file.}
+\item \code{soundscape_sample_rate} {An integer specifying the sample rate of the WAV file in Hz.}
+\item \code{soundscape_codec} {A character string specifying the audio codec used in the WAV file. See the documentation of the 'av' package for more details.}
+\item \code{soundscape_layout} {A character string specifying the audio channel layout of the WAV file. See the documentation of the 'av' package for more details.}
 }
 }
 \description{

@@ -1,12 +1,35 @@
 #' Batch find and filter detections from score vectors
 #'
-#' This function is wrapper of 'fetch_score_peaks_i()' for detection of peaks in score vectors from matches between multiple templates and soundscapes, i.e. the output of 'match_n()'. The also allows multiple methods for filtering suboptimal detections.
+#' @description `r lifecycle::badge("experimental")`
 #'
-#' @param tib_match A tibble containing the output of 'match_n()' or a filtered subset of it with at least two rows that is already within the environement of the current R session. Alternatively, a path to a folder containing the output of 'match_n()' as .rds files for importing multiple match objects from outside the current R session.
-#' @param buffer_size A numeric value specifying the number of frames of the buffer within which overlap between detections is avoided. Defaults to "template", which means that the buffer size equals the number of frames present in the template spectrogram. The buffer exclusion priority is oriented by score quantiles, so that the highest scoring detections are always kept. Setting the buffer size to 0 disables the exclusion buffer.
-#' @param min_score A numeric value between 0 and 0.99 indicating the minimum score of the detections that will be kept. Defaults to NULL, which returns all available detections.
-#' @param min_quant A numeric value between 0 and 1 indicating the minimum score quantile of the kept detections. Defaults to NULL, which returns all available detections.
-#' @param top_n An integer indicating the maximum number of peaks to be returned, selected according to the highest scores available. Defaults to NULL, which return all available detections. It should be noted that because the peak quantiles are callculated within each score vector, the top_n parameter is applied to each score vector separately, and not to the whole matching grid.
+#' This function is wrapper of 'fetch_score_peaks_i' for detection of peaks in
+#' score vectors from matches between multiple templates and soundscapes, i.e.
+#' the output of 'match_n'. The also allows multiple methods for filtering
+#' suboptimal detections.
+#'
+#' @param tib_match A tibble containing the output of 'match_n' or a filtered
+#'   subset of it with at least two rows that is already within the environement
+#'   of the current R session. Alternatively, a path to a folder containing the
+#'   output of 'match_n' as .rds files for importing multiple match objects
+#'   from outside the current R session.
+#' @param buffer_size A numeric value specifying the number of frames of the
+#'   buffer within which overlap between detections is avoided. Defaults to
+#'   "template", which means that the buffer size equals the number of frames
+#'   present in the template spectrogram. The buffer exclusion priority is
+#'   oriented by score quantiles, so that the highest scoring detections are
+#'   always kept. Setting the buffer size to 0 disables the exclusion buffer.
+#' @param min_score A numeric value between 0 and 0.99 indicating the minimum
+#'   score of the detections that will be kept. Defaults to NULL, which returns
+#'   all available detections.
+#' @param min_quant A numeric value between 0 and 1 indicating the minimum score
+#'   quantile of the kept detections. Defaults to NULL, which returns all
+#'   available detections.
+#' @param top_n An integer indicating the maximum number of peaks to be
+#'   returned, selected according to the highest scores available. Defaults to
+#'   NULL, which return all available detections. It should be noted that
+#'   because the peak quantiles are callculated within each score vector, the
+#'   top_n parameter is applied to each score vector separately, and not to the
+#'   whole matching grid.
 #' @param save_res Character. Path to save the result as an .rds file.
 #'
 #' @return A Tibble containing the detections of all audio scores.

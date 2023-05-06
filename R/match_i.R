@@ -1,12 +1,34 @@
 
-#' Run one iteration of the matching algorithm to obtain the matching score vector between one template and one soundscape
+#' Run one iteration of the matching algorithm to obtain the matching score
+#' vector between one template and one soundscape
 #'
-#' This function takes uses the metadata contained in one row of the output of the function 'fetch_match_grid()' to calculate the matching score of the template spectrogram and a portion of the soundscape spectrogram of same dimensions. The available matching algorithms are the Pearson correlation coefficient ("cor") or dynamic time warping ("dtw").
+#' @description `r lifecycle::badge("experimental")`
+#'
+#' This function takes uses the metadata contained in one row of the output of
+#' the function 'fetch_match_grid()' to calculate the matching score of the
+#' template spectrogram and a portion of the soundscape spectrogram of same
+#' dimensions. The available matching algorithms are the Pearson correlation
+#' coefficient ("cor") or dynamic time warping ("dtw").
 #'
 #' @param df_grid_i One row of the output of the function 'fetch_match_grid()
-#' @param score_method A character string indicating the method to use for matching. The two methods available are: "cor" (Pearson correlation coefficient) or "dtw" (dynamic time warping). Defaults to "cor".
+#' @param score_method A character string indicating the method to use for
+#'   matching. The two methods available are: "cor" (Pearson correlation
+#'   coefficient) or "dtw" (dynamic time warping). Defaults to "cor".
 #'
-#' @return A tibble row containing the input data frame with an additional column "score_vec", which is a list of length one containing a data frame with the columns "time_vec" (the time value of each spectrogram frame) and "score_vec" (the matching score obtained when the template and the soundscape spectrogram of samew dimensions are alligned at that frame). The length of the "score_vec" is equal to the number of frames of the soundscape spectrogram minus the number of frames of the template spectrogram (i.e. the number of possible allignments between the two spectrograms. The score is not available for the first and last frames of the soundscape spectrogram because score cannot be calculated between spectrograms of different dimensions. To produce a score vector with the same number of frames of the soundscape spectrogram, pads with length quals half the number of frames from the template are added to the beginning and end of the score vector.
+#' @return A tibble row containing the input data frame with an additional
+#'   column "score_vec", which is a list of length one containing a data frame
+#'   with the columns "time_vec" (the time value of each spectrogram frame) and
+#'   "score_vec" (the matching score obtained when the template and the
+#'   soundscape spectrogram of samew dimensions are alligned at that frame). The
+#'   length of the "score_vec" is equal to the number of frames of the
+#'   soundscape spectrogram minus the number of frames of the template
+#'   spectrogram (i.e. the number of possible allignments between the two
+#'   spectrograms. The score is not available for the first and last frames of
+#'   the soundscape spectrogram because score cannot be calculated between
+#'   spectrograms of different dimensions. To produce a score vector with the
+#'   same number of frames of the soundscape spectrogram, pads with length quals
+#'   half the number of frames from the template are added to the beginning and
+#'   end of the score vector.
 #'
 #' @export
 #'

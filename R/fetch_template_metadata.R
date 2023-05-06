@@ -1,5 +1,8 @@
 #' Extract template metadata
 #'
+#' @description
+#' `r lifecycle::badge("experimental")`
+#'
 #' This function extracts metadata from a directory of template waveform files, which can be used for soundscape analysis.
 #'
 #' @param path The directory path containing the template waveform files (for method = "standalone") or CSV files (for method = "roi_table").

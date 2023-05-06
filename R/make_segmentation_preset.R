@@ -1,29 +1,48 @@
 #' Function to create segmentation presets for soundscape analysis
 #'
-#' This function creates a list with the segmentation preset parameters for soundscape analysis, such as soundscapes path, region of interest tables path, cuts path, fast display, label angle, and dynamic range, among others. The validation user parameter is mandatory. If the 'soundscapes_path' parameter is not found locally, a warning message will be shown, and if the roi_tables_path or cuts_path do not exist, the function will create new folders.
+#' @description `r lifecycle::badge("experimental")`
+#'
+#' This function creates a list with the segmentation preset parameters for
+#' soundscape analysis, such as soundscapes path, region of interest tables
+#' path, cuts path, fast display, label angle, and dynamic range, among others.
+#' The validation user parameter is mandatory. If the 'soundscapes_path'
+#' parameter is not found locally, a warning message will be shown, and if the
+#' roi_tables_path or cuts_path do not exist, the function will create new
+#' folders.
 #'
 #' @param preset_path Path to save the preset file (optional)
 #' @param preset_id Identification for the preset (optional)
-#' @param validation_user User responsible for the validation of the segmentation
+#' @param validation_user User responsible for the validation of the
+#'   segmentation
 #' @param soundscapes_path Path to soundscapes files
 #' @param roi_tables_path Path to region of interest tables files
 #' @param cuts_path Path to cuts files
-#' @param fastdisp If TRUE, the next cut is automatically displayed when the user validates a cut
-#' @param label_angle Angle to draw the cut labels. Must be between 0 and 180, and multiple of 10
+#' @param fastdisp If TRUE, the next cut is automatically displayed when the
+#'   user validates a cut
+#' @param label_angle Angle to draw the cut labels. Must be between 0 and 180,
+#'   and multiple of 10
 #' @param show_label If TRUE, the cut labels will be displayed
-#' @param dyn_range Dynamic range. A vector with two numeric values. Must be between -100 and 10, and multiple of 10
-#' @param wl Window length. Must be one of the alternatives: 128, 256, 512, 1024, 2048, or 4096
-#' @param ovlp Overlap. Must be a numeric value, between 0 and 80, and multiple of 10
+#' @param dyn_range Dynamic range. A vector with two numeric values. Must be
+#'   between -100 and 10, and multiple of 10
+#' @param wl Window length. Must be one of the alternatives: 128, 256, 512,
+#'   1024, 2048, or 4096
+#' @param ovlp Overlap. Must be a numeric value, between 0 and 80, and multiple
+#'   of 10
 #' @param color_scale The color scale for the spectrogram
-#' @param wav_player_type The type of wav player. "R session" for R session-based player, "system" for system player
-#' @param wav_player_path Path to the wav player executable (only for system player)
+#' @param wav_player_type The type of wav player. "R session" for R
+#'   session-based player, "system" for system player
+#' @param wav_player_path Path to the wav player executable (only for system
+#'   player)
 #' @param session_notes Notes related to the analysis session
-#' @param zoom_freq Vector with two numeric values, indicating the frequency range to zoom in the spectrogram
-#' @param nav_autosave If TRUE, the current segmentation is saved when the user navigates to another file
+#' @param zoom_freq Vector with two numeric values, indicating the frequency
+#'   range to zoom in the spectrogram
+#' @param nav_autosave If TRUE, the current segmentation is saved when the user
+#'   navigates to another file
 #' @param sp_list Species list used in the analysis
 #'
 #' @return A list with the segmentation preset parameters
-#' @export An 'rds' file with the segmentation preset parameters for input in the segmentation app.
+#' @export An 'rds' file with the segmentation preset parameters for input in
+#'   the segmentation app.
 #'
 #' @examples
 make_segmentation_preset <- function(
