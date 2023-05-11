@@ -46,10 +46,8 @@
 #' # Match templates
 #' res <- match_n(df_grid, score_method = "cor", ncores = 2, save_res = "res.rds")
 match_n <- function(
-  df_grid, score_method = "cor", save_res = FALSE, par_strat = "future", ncores = 1,
-  backend_type = "async", cluster_type = "psock"
-  ) {
-
+    df_grid, score_method = "cor", save_res = FALSE, par_strat = "future", ncores = 1,
+    backend_type = "async", cluster_type = "psock") {
   grid_list <- group_split(rowwise(df_grid))
 
   if (par_strat %in% c("future", "foreach")) {
@@ -73,7 +71,7 @@ match_n <- function(
           res <- match_i(x, score_method = score_method)
           p(message = "Template matching")
           return(res)
-        } #, .options = furrr_options(scheduling = 2)
+        } # , .options = furrr_options(scheduling = 2)
       ) |>
         list_rbind()
     }
@@ -88,30 +86,30 @@ match_n <- function(
     plan(sequential)
   }
 
-  if (par_strat == "foreach") {
-      if (ncores > 1) {
-        cl <- makeCluster(ncores)
-        plan(cluster, workers = cl)
-        with_progress({
-          p <- progressor(along = 1:length(grid_list)) # iniciando a barra
-          res <- foreach(i = 1:length(grid_list), .combine = rbind) %dopar% {
-            # source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
-            source("C:/R_repos/monitoraSom/R/match_i.R")
-            require(parallel)
-            require(doParallel)
-            require(foreach)
-            require(dplyr)
-            p(message = "Template matching")
-            res <- match_i(grid_list[[i]], score_method = score_method)
-            return(res)
-          }
-        })
-        # todo Adicionar método para parar os clusters no caso de interrupção do processo
-        stopCluster(cl)
-      } else {
-        stop("The number of cores must be greater than 1")
-      }
-  }
+  # if (par_strat == "foreach") {
+  #     if (ncores > 1) {
+  #       cl <- makeCluster(ncores)
+  #       plan(cluster, workers = cl)
+  #       with_progress({
+  #         p <- progressor(along = 1:length(grid_list)) # iniciando a barra
+  #         res <- foreach(i = 1:length(grid_list), .combine = rbind) %dopar% {
+  #           source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
+  #           # source("C:/R_repos/monitoraSom/R/match_i.R")
+  #           require(parallel)
+  #           require(doParallel)
+  #           require(foreach)
+  #           require(dplyr)
+  #           p(message = "Template matching")
+  #           res <- match_i(grid_list[[i]], score_method = score_method)
+  #           return(res)
+  #         }
+  #       })
+  #       # todo Adicionar método para parar os clusters no caso de interrupção do processo
+  #       stopCluster(cl)
+  #     } else {
+  #       stop("The number of cores must be greater than 1")
+  #     }
+  # }
 
   if (par_strat == "pbapply") {
     if (ncores > 1) {
@@ -128,29 +126,35 @@ match_n <- function(
     configure_bar(type = "modern", format = "[:bar] :percent")
     backend <- start_backend(
       cores = ncores, cluster_type = cluster_type, backend_type = backend_type
-      )
+    )
     if (score_method == "cor") {
       res <- par_lapply(
         backend, grid_list,
         function(x) {
-          require(dplyr); require(here); require(collapse); require(dtwclust)
+          require(dplyr)
+          require(here)
+          require(collapse)
+          require(dtwclust)
           require(slider)
           source("/home/grosa/R_repos/monitoraSom/R/match_i.R") # temporário
           res <- match_i(x, score_method = "cor")
           return(res)
-          }
-        ) |> list_rbind()
+        }
+      ) |> list_rbind()
     } else if (score_method == "dtw") {
       res <- par_lapply(
         backend, grid_list,
         function(x) {
-          require(dplyr); require(here); require(collapse); require(dtwclust)
+          require(dplyr)
+          require(here)
+          require(collapse)
+          require(dtwclust)
           require(slider)
           source("/home/grosa/R_repos/monitoraSom/R/match_i.R") # temporário
           res <- match_i(x, score_method = "dtw")
           return(res)
-          }
-        ) |> list_rbind()
+        }
+      ) |> list_rbind()
     }
     stop_backend(backend)
   }
@@ -168,4 +172,3 @@ match_n <- function(
   message("Template matching completed")
   return(res)
 }
-

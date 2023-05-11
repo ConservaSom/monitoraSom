@@ -47,9 +47,69 @@ c(
 # Carregando os scripts necessários
 invisible(
   list.files(path_scripts, full.names = TRUE) %>%
+    .[!grepl("validation", .)] %>%
     gsub("//", "/", .) %>%
     map(~ source(.x))
 )
+
+preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/"
+preset_id = "default_linux2"
+user = "gabriel na função"
+soundscapes_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/soundscapes"
+roi_tables_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_tables"
+cuts_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_cuts"
+labels_file = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/MonitoraSom_UI_label_lists.xlsx"
+fastdisp = TRUE
+label_angle = 90
+show_label = TRUE
+dyn_range = c(-60, 0)
+wl = 1024
+ovlp = 0
+color_scale = "inferno"
+wav_player_type = "HTML player"
+# wav_player_path = "play"
+session_notes = NULL
+zoom_freq = c(0, 10)
+nav_autosave = FALSE
+sp_list = "CBRO-2021 (Brazil)"
+
+paste0(preset_path, "temp/")
+
+
+launch_segmentation_app(
+  preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/",
+  preset_id = "default_linux2",
+  user = "gabriel na função",
+  soundscapes_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/soundscapes",
+  roi_tables_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_tables",
+  cuts_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_cuts",
+  labels_file = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/MonitoraSom_UI_label_lists.xlsx",
+  fastdisp = TRUE,
+  label_angle = 90,
+  show_label = TRUE,
+  dyn_range = c(-60, 0),
+  wl = 1024,
+  ovlp = 0,
+  color_scale = "inferno",
+  wav_player_type = "HTML player",
+  # wav_player_path = "play",
+  session_notes = NULL,
+  zoom_freq = c(0, 10),
+  nav_autosave = FALSE,
+  sp_list = "CBRO-2021 (Brazil)"
+)
+
+session_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/segmentation_preset_default_windows.rds") %>%
+  glimpse()
+
+
+
+
+
+
+
+
+
 
 # 1. Get template metadata
 # 1.a. Get metadata from standalone cuts
@@ -93,13 +153,15 @@ glimpse(df_grid)
 #     "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
 # )
 df_matches_cor <- readRDS(
-  "C:/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
-  # "/home/grosa/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
+  # "C:/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
+  "/home/grosa/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
 )
 glimpse(df_matches_cor)
 
-
 teste <- bench::mark(
+  seq = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 1
+  ),
   future = match_n(
     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "future", ncores = 5
   ),
@@ -138,7 +200,7 @@ invisible(
 
 teste <- match_n(
   df_grid = df_grid[1:10, ], score_method = "cor",
-  par_strat = "parabar", ncores = 5, backend_type = "async", cluster_type = "fork"
+  par_strat = "parabar", ncores = 5, backend_type = "sync", cluster_type = "fork"
   ) %>%
   glimpse()
 

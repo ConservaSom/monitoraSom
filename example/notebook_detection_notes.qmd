@@ -14,3 +14,5 @@ format: pdf
 - Adiconar novamente a coluna template_name
 
 - Adicionar o score no sonograma da detec
+
+- Adicionar contador de tempo para as funções de processamento mais longo
