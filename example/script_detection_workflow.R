@@ -26,6 +26,7 @@ library(doParallel)
 path_base <- here()
 path_soundscapes <- here("example", "soundscapes")
 path_templates <- here("example", "roi_cuts")
+path_roi_tabs <- here("example", "roi_tables")
 path_data <- here("example", "data")
 path_backup <- here("example", "backup")
 path_plots <- here("example", "plots")
@@ -34,7 +35,7 @@ path_scripts <- here("R/")
 # path_scripts <- "C:/Users/grosa/Documents/R/R_repos/monitoraSom/R/"
 
 c(
-  dir.exists(path_soundscapes), dir.exists(path_templates),
+  dir.exists(path_soundscapes), dir.exists(path_templates), dir.exists(path_roi_tabs),
   dir.exists(path_data), dir.exists(path_backup),
   dir.exists(path_plots), dir.exists(path_scripts)
 )
@@ -52,14 +53,14 @@ invisible(
 # 1. Get template metadata
 # 1.a. Get metadata from standalone cuts
 df_templates_A <- fetch_template_metadata(
-  path = "/home/grosa/R_repos/monitoraSom/example/roi_cuts",
+  path = path_templates,
   recursive = TRUE, method = "standalone"
 )
 glimpse(df_templates_A)
 
 # 1.b. Get metadata from ROI tables
 df_templates_B <- fetch_template_metadata(
-  path = "/home/grosa/R_repos/monitoraSom/example/roi_tables",
+  path = path_roi_tabs,
   method = "roi_table"
 )
 # todo Resolver nome de template file aqui
@@ -91,7 +92,8 @@ glimpse(df_grid)
 #     "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
 # )
 df_matches_cor <- readRDS(
-  "/home/grosa/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
+  "C:/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
+  # "/home/grosa/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
 )
 glimpse(df_matches_cor)
 

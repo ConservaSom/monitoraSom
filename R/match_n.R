@@ -90,7 +90,8 @@ match_n <- function(df_grid, score_method = "cor", save_res = FALSE, par_strat =
         with_progress({
           p <- progressor(along = 1:length(grid_list)) # iniciando a barra
           res <- foreach(i = 1:length(grid_list), .combine = rbind) %dopar% {
-            source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
+            # source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
+            source("C:/R_repos/monitoraSom/R/match_i.R")
             require(parallel)
             require(doParallel)
             require(foreach)
