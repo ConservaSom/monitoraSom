@@ -19,6 +19,7 @@ library(ggplot2)
 library(farver)
 library(parallel)
 library(doParallel)
+library(parabar)
 
 # Para o pacote here funcionar corretamente, é necessário que este script esteja
 # em uma sessão baseada no projeto localizado na raiz do repositório
@@ -97,10 +98,84 @@ df_matches_cor <- readRDS(
 )
 glimpse(df_matches_cor)
 
-fetch_score_peaks_i(
-  match_res_i = df_matches_cor[188, ],
-  buffer_size = df_matches_cor[188, ]$score_sliding_window
-) %>% glimpse()
+
+teste <- bench::mark(
+  future = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "future", ncores = 5
+  ),
+  foreach = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "foreach", ncores = 5
+  ),
+  pbapply = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 5
+  ),
+  parabar_async_sock = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+    backend_type = "async", cluster_type = "psock"
+  ),
+  parabar_sync_sock = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+    backend_type = "sync", cluster_type = "psock"
+  ),
+  parabar_async_fork = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+    backend_type = "async", cluster_type = "fork"
+  ),
+  parabar_sync_fork = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+    backend_type = "sync", cluster_type = "fork"
+  ),
+  iterations = 10, check = FALSE, memory = FALSE
+)
+plot(teste)
+
+
+invisible(
+  list.files(path_scripts, full.names = TRUE) %>%
+    gsub("//", "/", .) %>%
+    map(~ source(.x))
+)
+
+teste <- match_n(
+  df_grid = df_grid[1:10, ], score_method = "cor",
+  par_strat = "parabar", ncores = 5, backend_type = "async", cluster_type = "fork"
+  ) %>%
+  glimpse()
+
+
+set_option("progress_track", TRUE)
+configure_bar(type = "modern", format = "[:bar] :percent")
+backend <- start_backend(cores = 4, cluster_type = "psock", backend_type = "async")
+grid_list <- group_split(rowwise(df_grid))
+
+results <- par_lapply(
+  backend, grid_list,
+  function(x, score_method = score_method) {
+    require(dplyr); require(here); require(collapse)
+    require(dtwclust); require(slider)
+    source("/home/grosa/R_repos/monitoraSom/R/match_i.R") # temporário
+    res <- match_i(x, score_method = "cor")
+    return(res)
+    }
+  )
+
+stop_backend(backend)
+results %>% glimpse()
+
+res <- par_lapply(
+  backend = backend,
+  x = grid_list, fun = match_i, score_method = score_method
+) |>
+  list_rbind()
+stop_backend(backend)
+
+
+
+
+# fetch_score_peaks_i(
+#   match_res_i = df_matches_cor[188, ],
+#   buffer_size = df_matches_cor[188, ]$score_sliding_window
+# ) %>% glimpse()
 # todo Adicionar os metadados com os parâmetros do template matching
 # todo Mudar a quantificação do buffer para a % de frames do template
 

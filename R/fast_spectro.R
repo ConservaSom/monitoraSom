@@ -4,7 +4,8 @@
 #'
 #' This function creates a spectrogram plot using ggplot2 nearly ten times
 #' faster by introducing the spectrogram layer with 'annotation_raster' instead
-#' of 'geom_raster' or 'geom_tile'
+#' of 'geom_raster' or 'geom_tile'. Credits to Sergio Oller in
+#' <https://github.com/tidyverse/ggplot2/issues/4989>
 #'
 #' @param rec An object of class "Wave" as implemented in the tuneR package
 #' @param f The sampling frequency of the recording, in Hz
