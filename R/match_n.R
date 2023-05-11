@@ -45,32 +45,38 @@
 #'
 #' # Match templates
 #' res <- match_n(df_grid, score_method = "cor", ncores = 2, save_res = "res.rds")
-match_n <- function(df_grid, score_method = "cor", save_res = FALSE, par_strat = "future", ncores = 1) {
+match_n <- function(
+  df_grid, score_method = "cor", save_res = FALSE, par_strat = "future", ncores = 1,
+  backend_type = "async", cluster_type = "psock"
+  ) {
 
   grid_list <- group_split(rowwise(df_grid))
 
-  handlers(
-    handler_pbcol(
-      adjust = 1.0,
-      complete = function(s) cli::bg_cyan(cli::col_black(s)),
-      incomplete = function(s) cli::bg_red(cli::col_black(s))
+  if (par_strat %in% c("future", "foreach")) {
+    handlers(
+      handler_pbcol(
+        adjust = 1.0,
+        complete = function(s) cli::bg_cyan(cli::col_black(s)),
+        incomplete = function(s) cli::bg_red(cli::col_black(s))
+      )
     )
-  )
-
-  match_i_wrap <- function(grid_list, score_method) {
-    p <- progressor(along = grid_list)
-    res <- future_map(
-      grid_list,
-      function(x) {
-        res <- match_i(x, score_method = score_method)
-        p(message = "Template matching")
-        return(res)
-      } #, .options = furrr_options(scheduling = 2)
-    ) |>
-      list_rbind()
   }
 
+  # todo Adicionar ponto de checagem para a quantidade de nucleos disponíveis quando processamento paralelo for solicitado
+
   if (par_strat == "future") {
+    match_i_wrap <- function(grid_list, score_method) {
+      p <- progressor(along = grid_list)
+      res <- future_map(
+        grid_list,
+        function(x) {
+          res <- match_i(x, score_method = score_method)
+          p(message = "Template matching")
+          return(res)
+        } #, .options = furrr_options(scheduling = 2)
+      ) |>
+        list_rbind()
+    }
     if (ncores > 1) {
       plan(multicore, workers = ncores)
     } else {
@@ -81,7 +87,6 @@ match_n <- function(df_grid, score_method = "cor", save_res = FALSE, par_strat =
     })
     plan(sequential)
   }
-
 
   if (par_strat == "foreach") {
       if (ncores > 1) {
@@ -115,6 +120,38 @@ match_n <- function(df_grid, score_method = "cor", save_res = FALSE, par_strat =
       res <- pbapply::pblapply(grid_list, function(x) match_i(x, score_method = score_method)) |>
         list_rbind()
     }
+  }
+
+  if (par_strat == "parabar") {
+    set_option("progress_track", TRUE)
+    configure_bar(type = "modern", format = "[:bar] :percent")
+    backend <- start_backend(
+      cores = ncores, cluster_type = cluster_type, backend_type = backend_type
+      )
+    if (score_method == "cor") {
+      res <- par_lapply(
+        backend, grid_list,
+        function(x) {
+          require(dplyr); require(here); require(collapse); require(dtwclust)
+          require(slider)
+          source("/home/grosa/R_repos/monitoraSom/R/match_i.R") # temporário
+          res <- match_i(x, score_method = "cor")
+          return(res)
+          }
+        ) |> list_rbind()
+    } else if (score_method == "dtw") {
+      res <- par_lapply(
+        backend, grid_list,
+        function(x) {
+          require(dplyr); require(here); require(collapse); require(dtwclust)
+          require(slider)
+          source("/home/grosa/R_repos/monitoraSom/R/match_i.R") # temporário
+          res <- match_i(x, score_method = "dtw")
+          return(res)
+          }
+        ) |> list_rbind()
+    }
+    stop_backend(backend)
   }
 
   if (save_res != FALSE) {
