@@ -1,48 +1,37 @@
-#' Function to create segmentation presets for soundscape analysis
+#' Function to launch the segmentation app
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' This function creates a list with the segmentation preset parameters for
-#' soundscape analysis, such as soundscapes path, region of interest tables
-#' path, cuts path, fast display, label angle, and dynamic range, among others.
-#' The validation user parameter is mandatory. If the 'soundscapes_path'
-#' parameter is not found locally, a warning message will be shown, and if the
-#' roi_tables_path or cuts_path do not exist, the function will create new
-#' folders.
+#' This function launches the segmentation app, which is a Shiny app for segemntation of WAV recorcings of soundscapes into tables containing regions of interest (ROIs) and audio cuts of the ROIs. The app settings can be imported from presets or set manually.
 #'
-#' @param preset_path Path to save the preset file (optional)
-#' @param preset_id Identification for the preset (optional)
-#' @param user User responsible for the validation of the
-#'   segmentation
-#' @param soundscapes_path Path to soundscapes files
-#' @param roi_tables_path Path to region of interest tables files
-#' @param cuts_path Path to cuts files
-#' @param labels_file
-#' @param fastdisp
-#' @param label_angle Angle to draw the cut labels. Must be between 0 and 180,
-#'   and multiple of 10
-#' @param show_label If TRUE, the cut labels will be displayed
-#' @param dyn_range Dynamic range. A vector with two numeric values. Must be
-#'   between -100 and 10, and multiple of 10
-#' @param wl Window length. Must be one of the alternatives: 128, 256, 512,
-#'   1024, 2048, or 4096
-#' @param ovlp Overlap. Must be a numeric value, between 0 and 80, and multiple
-#'   of 10
-#' @param color_scale The color scale for the spectrogram
+#' @param preset_path Path from which presets can be imported and to which new presets can be exported.
+#' @param preset_id ID of the preset to be imported from the 'preset_path' folder. If export_preset = TRUE, the preset will be exported to the 'preset_path' folder with the name "segmentation_preset_<preset_id>.rds".
+#' @param user Identification of the user of the segmentation app.
+#' @param soundscapes_path Path to soundscapes files.
+#' @param roi_tables_path Path to the folder from which the ROI tables will be imported and to which they will be exported.
+#' @param cuts_path Path to the folder from which the ROI audio cuts will be imported and to which they will be exported.
+#' @param labels_file Path to the file containing the list of labels to be used in the segmentation. This file must be a '.xlsx' spreadsheet in which available lists are stored as columns, identified in the app menu by their titles.
+#' @param sp_list A character string with the available labels to be used in the cuirrent session. The default is "CBRO-2021 (Brazil)".
+#' @param fastdisp If TRUE, the spectrogram will be displayed in a lower quality, but faster.
+#' @param label_angle Angle between 0 and 180 to draw the ROI labels in the spectrogram plot.
+#' @param show_label If TRUE, ROI labels will be displayed alongside ROI selections in the sepctrogram.
+#' @param wl An integer specifying the length of the FFT window used to
+#'   calculate the spectrogram.
+#' @param ovlp A numeric value between 0 and 90 specifying the percentage overlap of windows for computing the spectrogram.
+#' @param dyn_range A numeric vector of length 2 between -100 and 0, specifying the minimum and maximum relative amplitudes to be displayed in the spectrogram
+#' @param color_scale A character string specifying the color scale to be used
+#'   in the spectrogram. Possible values are "viridis", "magma", "inferno",
+#'   "cividis", "greyscale 1", or "greyscale 2".
 #' @param wav_player_type The type of wav player. "R session" for R
-#'   session-based player, "system" for system player
-#' @param wav_player_path Path to the wav player executable (only for system
-#'   player)
-#' @param session_notes Notes related to the analysis session
-#' @param zoom_freq Vector with two numeric values, indicating the frequency
-#'   range to zoom in the spectrogram
-#' @param nav_autosave If TRUE, the current segmentation is saved when the user
-#'   navigates to another file
-#' @param sp_list Species list used in the analysis
+#'   session-based player, "HTML player" for an embedded HTML player in the interface, and "External player" for playing in an external player. The last options becomes available only when a valid path to the player executable is provided in the 'wav_player_path' argument.
+#' @param wav_player_path Path to the wav player executable (only for wav_player_type = "External player")
+#' @param session_notes A single character string with related to the current segmentation session.
+#' @param zoom_freq Vector with two numeric values between 0 and the Nyquist Frequency of the soundscape recording, indicating the frequency values in kHz of the frequency band to be displayed in the spectrogram.
+#' @param nav_autosave If TRUE, navigating between soundscapes will automatically save the ROI table of the active soundscape.
+#' @param export_preset Export the current settings as a preset before launching the app.
 #'
-#' @return A list with the segmentation preset parameters
-#' @export An 'rds' file with the segmentation preset parameters for input in
-#'   the segmentation app.
+#' @return
+#' @export
 #'
 #' @examples
 launch_segmentation_app <- function(
@@ -285,7 +274,7 @@ launch_segmentation_app <- function(
     )
   }
 
-  if (!is.null(preset_path) & !is.null(preset_id)) {
+  if (!is.null(preset_path) & !is.null(preset_id) & export_preset == TRUE) {
     preset_file <- file.path(
       preset_path, paste0("segmentation_preset_", preset_id, ".rds")
     )

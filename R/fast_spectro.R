@@ -11,8 +11,7 @@
 #' @param f The sampling frequency of the recording, in Hz
 #' @param flim A numeric vector of length 2 giving the minimum and maximum
 #'   frequency limits to be displayed in the spectrogram, in kHz.
-#' @param ovlp A numeric value specifying the percentage overlap of windows in
-#'   the spectrogram calculation.
+#' @param ovlp A numeric value specifying the percentage overlap of windows for computing the spectrogram.
 #' @param wl An integer specifying the length of the FFT window used to
 #'   calculate the spectrogram.
 #' @param dyn_range A numeric vector of length 2 giving the minimum and maximum
