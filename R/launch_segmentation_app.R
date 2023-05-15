@@ -28,7 +28,6 @@
 #' @param session_notes A single character string with related to the current segmentation session.
 #' @param zoom_freq Vector with two numeric values between 0 and the Nyquist Frequency of the soundscape recording, indicating the frequency values in kHz of the frequency band to be displayed in the spectrogram.
 #' @param nav_autosave If TRUE, navigating between soundscapes will automatically save the ROI table of the active soundscape.
-#' @param export_preset Export the current settings as a preset before launching the app.
 #'
 #' @return
 #' @export
@@ -274,7 +273,7 @@ launch_segmentation_app <- function(
     )
   }
 
-  if (!is.null(preset_path) & !is.null(preset_id) & export_preset == TRUE) {
+  if (!is.null(preset_path) & !is.null(preset_id)) {
     preset_file <- file.path(
       preset_path, paste0("segmentation_preset_", preset_id, ".rds")
     )

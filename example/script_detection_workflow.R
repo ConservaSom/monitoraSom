@@ -72,7 +72,6 @@ session_notes = NULL
 zoom_freq = c(0, 10)
 nav_autosave = FALSE
 sp_list = "CBRO-2021 (Brazil)"
-
 paste0(preset_path, "temp/")
 
 
