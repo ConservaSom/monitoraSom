@@ -66,6 +66,3 @@ tib_detecs <- fetch_score_peaks_n(tib_match, buffer_size = 25, save_res = "detec
 }
 
 }
-\seealso{
-\code{\link{match_template_n}}, \code{\link{fetch_score_peaks_i}}
-}

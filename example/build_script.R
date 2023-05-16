@@ -18,3 +18,4 @@ lifecycle::badge("deprecated")
 
 
 available("monitoraSom")
+moni

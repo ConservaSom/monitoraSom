@@ -48,4 +48,5 @@ df_detections <- template_matching(
   buffer_size = "template",
   ncores = 4
 )
+
 }

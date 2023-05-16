@@ -41,4 +41,5 @@ coefficient ("cor") or dynamic time warping ("dtw").
 }
 \examples{
 match_i(df_grid_i = my_data_frame, score_method = "cor")
+
 }

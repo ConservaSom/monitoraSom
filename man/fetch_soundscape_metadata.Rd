@@ -26,14 +26,6 @@ and 'pbapply' packages for more details.}
 }
 \value{
 A data frame with the following columns:
-\describe{
-\item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
-\item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
-\item \code{soundscape_duration} {A numeric value specifying the total duration (s) of the WAV file.}
-\item \code{soundscape_sample_rate} {An integer specifying the sample rate of the WAV file in Hz.}
-\item \code{soundscape_codec} {A character string specifying the audio codec used in the WAV file. See the documentation of the 'av' package for more details.}
-\item \code{soundscape_layout} {A character string specifying the audio channel layout of the WAV file. See the documentation of the 'av' package for more details.}
-}
 }
 \description{
 `r lifecycle::badge("experimental")`

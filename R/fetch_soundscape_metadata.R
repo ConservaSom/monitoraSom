@@ -40,9 +40,6 @@ fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
     incomplete = function(s) cli::bg_red(cli::col_black(s))
   ))
 
-  # todo Implementar as outras estraégias de paralelização
-  # todo Parar processos abertos no caso de interrupção do foreach
-
   get_metadata <- function(soundscape_list) {
     p <- progressor(along = 1:length(soundscape_list), auto_finish = FALSE)
     res <- future_map_dfr(

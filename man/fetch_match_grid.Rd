@@ -33,4 +33,5 @@ between the two data sets.
 }
 \examples{
 fetch_match_grid(soundscape_data, template_data)
+
 }

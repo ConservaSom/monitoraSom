@@ -72,6 +72,9 @@ session-based player, "HTML player" for an embedded HTML player in the interface
 
 \item{sp_list}{A character string with the available labels to be used in the cuirrent session. The default is "CBRO-2021 (Brazil)".}
 }
+\value{
+Todo
+}
 \description{
 `r lifecycle::badge("experimental")`
 

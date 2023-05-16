@@ -65,4 +65,5 @@ data("df_grid")
 
 # Match templates
 res <- match_n(df_grid, score_method = "cor", ncores = 2, save_res = "res.rds")
+
 }

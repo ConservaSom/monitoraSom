@@ -53,4 +53,5 @@ A data frame in which each row is a detection and has the follwing
 }
 \examples{
 fetch_score_peaks_i(match_res_i, 10)
+
 }

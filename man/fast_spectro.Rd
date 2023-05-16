@@ -61,4 +61,5 @@ of 'geom_raster' or 'geom_tile'. Credits to Sergio Oller in
 \examples{
 rec <- readWave("path/to/wave/file")
 fast_spectro(rec, rec@samp.rate, flim = c(0, 10))
+
 }

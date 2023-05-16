@@ -122,7 +122,6 @@ fetch_score_peaks_i <- function(
         res_temp <- fsubset(res, peak_score >= min_score) |>
           fmutate(detec_min_score = min_score)
         if (nrow(res) == 0) {
-          # todo Verificar se é essa a solução adequada para o problema
           warning("No detections found with the specified min_score, returning all available detections instead")
           res <- fsubset(res, peak_score >= 0)
         } else {
@@ -139,7 +138,6 @@ fetch_score_peaks_i <- function(
           fmutate(detec_min_quant = min_quant)
         if (nrow(res) == 0) {
           res <- fsubset(res, peak_quant >= 0)
-          # todo Verificar se é essa a solução adequada para o problema
           warning("No detections found with the specified min_quant, returning all available detections instead")
         } else {
           res <- res_temp

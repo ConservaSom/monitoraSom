@@ -42,7 +42,6 @@ fast_spectro <- function(
     f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim,
     norm = TRUE, fftw = TRUE, plot = FALSE, ...
   )
-  # todo Controlar dynamic range quando norm == FALSE
   mat <- spec_raw$amp %>%
     ifelse(. < dyn_range[1], dyn_range[1], .) %>%
     ifelse(. > dyn_range[2], dyn_range[2], .) %>%
