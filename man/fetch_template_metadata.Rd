@@ -29,6 +29,8 @@ A tibble containing the following metadata for each template file:
 }
 }
 \description{
+`r lifecycle::badge("experimental")`
+
 This function extracts metadata from a directory of template waveform files, which can be used for soundscape analysis.
 }
 \examples{

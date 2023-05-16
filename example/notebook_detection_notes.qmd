@@ -22,3 +22,15 @@ format: pdf
 - Verificar se template_name é produzido mesmo quando os templates são baseados em tabelas de rois
 
 - Adicionar o prefixo "validation_preset" no app de validação
+
+- pasta data/ para armazenar os templates e os resultados do template matching
+
+- Um exemplo de três templates e três soundscapes para o template matching
+- uma tabelona com detecções para exemplo de validação
+- link estável para baixar dados de exemplos maiores
+- Ver qual é a licensa dos depends
+- remover as paradas do vs code do repo
+- Fazer um Rdata que exporta os arquivos para um diretório de exemplo
+- Puxar as funções de validação do Juan
+- Puxar a função de validaç~ao por sobreposição
+-

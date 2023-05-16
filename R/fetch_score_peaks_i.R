@@ -1,38 +1,39 @@
-#' Find and filter detections from one score vector
+#'Find and filter detections from one score vector
 #'
-#' @description `r lifecycle::badge("experimental")`
+#'@description `r lifecycle::badge("experimental")`
 #'
-#'   This function detects peaks in the score vector resulting from one
-#'   iteration of template matching, i.e. the output of 'match_i()' or one row
-#'   of the output of 'match_n()' . The peaks represent potential detections of
-#'   a template in a soundscape recording.
+#'  This function detects peaks in the score vector resulting from one iteration
+#'  of template matching, i.e. the output of 'match_i()' or one row of the
+#'  output of 'match_n()' . The peaks represent potential detections of a
+#'  template in a soundscape recording.
 #'
-#' @param match_res_i One row of the output of the function 'match_n()' or the
-#'   output of 'match_i()', which contain score vector the result of a template
-#'   matching operation performed with a specific template and soundscape
-#'   recording.
-#' @param buffer_size A numeric value specifying the number of frames of the
-#'   buffer within which overlap between detections is avoided. Defaults to
-#'   "template", which means that the buffer size equals the number of frames
-#'   present in the template spectrogram. The buffer exclusion is oriented by
-#'   score quantiles, so that the highest scoring detections are always kept.
-#'   Setting the buffer size to 0 disables the exclusion buffer.
-#' @param min_score A numeric value between 0 and 0.99 indicating the minimum
-#'   score of the detections that will be kept. Defaults to NULL, which returns
-#'   all available detections.
-#' @param min_quant A numeric value between 0 and 1 indicating the minimum score
-#'   quantile of the kept detections. Defaults to NULL, which returns all
-#'   available detections.
-#' @param top_n An integer indicating the maximum number of peaks to be
-#'   returned, selected according to the highest scores available. Defaults to
-#'   NULL, which return all available detections. It should be noted that
-#'   because the peak quantiles are callculated within each score vector, the
-#'   top_n parameter is applied to each score vector separately, and not to the
-#'   whole matching grid.
+#'@param match_res_i One row of the output of the function 'match_n()' or the
+#'  output of 'match_i()', which contain score vector the result of a template
+#'  matching operation performed with a specific template and soundscape
+#'  recording.
+#'@param buffer_size A numeric value specifying the number of frames of the
+#'  buffer within which overlap between detections is avoided. Defaults to
+#'  "template", which means that the buffer size equals the number of frames
+#'  present in the template spectrogram. The buffer exclusion is oriented by
+#'  score quantiles, so that the highest scoring detections are always kept.
+#'  Setting the buffer size to 0 disables the exclusion buffer.
+#'@param min_score A numeric value between 0 and 0.99 indicating the minimum
+#'  score of the detections that will be kept. Defaults to NULL, which returns
+#'  all available detections.
+#'@param min_quant A numeric value between 0 and 1 indicating the minimum score
+#'  quantile of the kept detections. Defaults to NULL, which returns all
+#'  available detections.
+#'@param top_n An integer indicating the maximum number of peaks to be returned,
+#'  selected according to the highest scores available. Defaults to NULL, which
+#'  return all available detections. It should be noted that because the peak
+#'  quantiles are callculated within each score vector, the top_n parameter is
+#'  applied to each score vector separately, and not to the whole matching grid.
 #'
-#' @return A data frame in which each row is a detection and has the follwing
-#'   attributes:
-#' \describe{
+#'@return A data frame in which each row is a detection and has the follwing
+#'  attributes:
+#'
+#'@export
+#' \itemize{
 #'   \item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
 #'   \item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
 #'   \item \code{template_path} {A character string specifying the complete path to the soundscape WAV files.}
@@ -52,8 +53,6 @@
 #'   \item \code{peak_cor} {A numeric value between 0 and 1 with the detection score.}
 #'   \item \code{peak_quant} {The quantile of the peak value in the score vector.}
 #' }
-#'
-#' @export
 #'
 #' @examples
 #' fetch_score_peaks_i(match_res_i, 10)

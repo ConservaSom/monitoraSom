@@ -31,7 +31,8 @@ make_segmentation_preset(
 
 \item{preset_id}{Identification for the preset (optional)}
 
-\item{validation_user}{User responsible for the validation of the segmentation}
+\item{validation_user}{User responsible for the validation of the
+segmentation}
 
 \item{soundscapes_path}{Path to soundscapes files}
 
@@ -39,29 +40,38 @@ make_segmentation_preset(
 
 \item{cuts_path}{Path to cuts files}
 
-\item{fastdisp}{If TRUE, the next cut is automatically displayed when the user validates a cut}
+\item{fastdisp}{If TRUE, the next cut is automatically displayed when the
+user validates a cut}
 
-\item{label_angle}{Angle to draw the cut labels. Must be between 0 and 180, and multiple of 10}
+\item{label_angle}{Angle to draw the cut labels. Must be between 0 and 180,
+and multiple of 10}
 
 \item{show_label}{If TRUE, the cut labels will be displayed}
 
-\item{dyn_range}{Dynamic range. A vector with two numeric values. Must be between -100 and 10, and multiple of 10}
+\item{dyn_range}{Dynamic range. A vector with two numeric values. Must be
+between -100 and 10, and multiple of 10}
 
-\item{wl}{Window length. Must be one of the alternatives: 128, 256, 512, 1024, 2048, or 4096}
+\item{wl}{Window length. Must be one of the alternatives: 128, 256, 512,
+1024, 2048, or 4096}
 
-\item{ovlp}{Overlap. Must be a numeric value, between 0 and 80, and multiple of 10}
+\item{ovlp}{Overlap. Must be a numeric value, between 0 and 80, and multiple
+of 10}
 
 \item{color_scale}{The color scale for the spectrogram}
 
-\item{wav_player_type}{The type of wav player. "R session" for R session-based player, "system" for system player}
+\item{wav_player_type}{The type of wav player. "R session" for R
+session-based player, "system" for system player}
 
-\item{wav_player_path}{Path to the wav player executable (only for system player)}
+\item{wav_player_path}{Path to the wav player executable (only for system
+player)}
 
 \item{session_notes}{Notes related to the analysis session}
 
-\item{zoom_freq}{Vector with two numeric values, indicating the frequency range to zoom in the spectrogram}
+\item{zoom_freq}{Vector with two numeric values, indicating the frequency
+range to zoom in the spectrogram}
 
-\item{nav_autosave}{If TRUE, the current segmentation is saved when the user navigates to another file}
+\item{nav_autosave}{If TRUE, the current segmentation is saved when the user
+navigates to another file}
 
 \item{sp_list}{Species list used in the analysis}
 }
@@ -69,5 +79,13 @@ make_segmentation_preset(
 A list with the segmentation preset parameters
 }
 \description{
-This function creates a list with the segmentation preset parameters for soundscape analysis, such as soundscapes path, region of interest tables path, cuts path, fast display, label angle, and dynamic range, among others. The validation user parameter is mandatory. If the 'soundscapes_path' parameter is not found locally, a warning message will be shown, and if the roi_tables_path or cuts_path do not exist, the function will create new folders.
+`r lifecycle::badge("experimental")`
+
+This function creates a list with the segmentation preset parameters for
+soundscape analysis, such as soundscapes path, region of interest tables
+path, cuts path, fast display, label angle, and dynamic range, among others.
+The validation user parameter is mandatory. If the 'soundscapes_path'
+parameter is not found locally, a warning message will be shown, and if the
+roi_tables_path or cuts_path do not exist, the function will create new
+folders.
 }

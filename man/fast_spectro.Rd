@@ -22,27 +22,41 @@ fast_spectro(
 
 \item{f}{The sampling frequency of the recording, in Hz}
 
-\item{flim}{A numeric vector of length 2 giving the minimum and maximum frequency limits to be displayed in the spectrogram, in kHz.}
+\item{flim}{A numeric vector of length 2 giving the minimum and maximum
+frequency limits to be displayed in the spectrogram, in kHz.}
 
-\item{ovlp}{A numeric value specifying the percentage overlap of windows in the spectrogram calculation.}
+\item{ovlp}{A numeric value specifying the percentage overlap of windows for computing the spectrogram.}
 
-\item{wl}{An integer specifying the length of the FFT window used to calculate the spectrogram.}
+\item{wl}{An integer specifying the length of the FFT window used to
+calculate the spectrogram.}
 
-\item{dyn_range}{A numeric vector of length 2 giving the minimum and maximum values of relative amplitude to be displayed in the spectrogram.}
+\item{dyn_range}{A numeric vector of length 2 giving the minimum and maximum
+values of relative amplitude to be displayed in the spectrogram.}
 
-\item{color_scale}{A character string specifying the color scale to be used in the spectrogram. Possible values are "viridis", "magma", "inferno", "cividis", "greyscale 1", or "greyscale 2".}
+\item{color_scale}{A character string specifying the color scale to be used
+in the spectrogram. Possible values are "viridis", "magma", "inferno",
+"cividis", "greyscale 1", or "greyscale 2".}
 
-\item{n_colors}{An integer specifying the number of colors to be used in the color scale. Smaller values will result in lower resolution color scales, but will also result in faster rendering times.}
+\item{n_colors}{An integer specifying the number of colors to be used in the
+color scale. Smaller values will result in lower resolution color scales,
+but will also result in faster rendering times.}
 
-\item{interpolate}{A logical value indicating whether the raster should be interpolated or not.}
+\item{interpolate}{A logical value indicating whether the raster should be
+interpolated or not.}
 
-\item{...}{Additional arguments to be passed internally to the spectro() function.}
+\item{...}{Additional arguments to be passed internally to the 'spectro'
+function.}
 }
 \value{
 This function returns a ggplot2 object.
 }
 \description{
-This function creates a spectrogram plot using ggplot2 nearly ten times faster by introducing the spectrogram layer with `annotation_raster()` instead of `geom_raster()` or `geom_tile()`
+`r lifecycle::badge("experimental")`
+
+This function creates a spectrogram plot using ggplot2 nearly ten times
+faster by introducing the spectrogram layer with 'annotation_raster' instead
+of 'geom_raster' or 'geom_tile'. Credits to Sergio Oller in
+<https://github.com/tidyverse/ggplot2/issues/4989>
 }
 \examples{
 rec <- readWave("path/to/wave/file")

@@ -14,15 +14,19 @@ template_matching(
 )
 }
 \arguments{
-\item{path_soundscapes}{Path to a directory containing the soundscapes to be analyzed.}
+\item{path_soundscapes}{Path to a directory containing the soundscapes to be
+analyzed.}
 
-\item{path_templates}{Path to a directory containing the templates to be used for matching.}
+\item{path_templates}{Path to a directory containing the templates to be used
+for matching.}
 
 \item{template_type}{The type of templates, either "standalone" or "library".}
 
-\item{score_method}{The method used for template matching, either "cor" or "dtw".}
+\item{score_method}{The method used for template matching, either "cor" or
+"dtw".}
 
-\item{buffer_size}{The size of the buffer used to calculate the scores for the template matches, either "template" or "event".}
+\item{buffer_size}{The size of the buffer used to calculate the scores for
+the template matches, either "template" or "event".}
 
 \item{ncores}{The number of cores to be used for parallel processing.}
 }
@@ -30,7 +34,10 @@ template_matching(
 A dataframe with the detected events.
 }
 \description{
-This function performs template matching on a set of soundscapes using a set of templates, and returns a dataframe with the detected events.
+`r lifecycle::badge("experimental")`
+
+This function performs template matching on a set of soundscapes using a set
+of templates, and returns a dataframe with the detected events.
 }
 \examples{
 df_detections <- template_matching(

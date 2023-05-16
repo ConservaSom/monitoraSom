@@ -2,7 +2,7 @@
 % Please edit documentation in R/make_validation_preset.R
 \name{make_validation_preset}
 \alias{make_validation_preset}
-\title{Creates a validation preset for a soundscape dataset.}
+\title{make_validation_preset}
 \usage{
 make_validation_preset(
   preset_path = NULL,
@@ -48,17 +48,21 @@ make_validation_preset(
 
 \item{output_path}{Path to the output file.}
 
-\item{wav_cuts_path}{Path to the directory where the waveform cuts will be saved.}
+\item{wav_cuts_path}{Path to the directory where the waveform cuts will be
+saved.}
 
 \item{spec_path}{Path to the directory where the spectrograms will be saved.}
 
-\item{diag_tab_path}{Path to the directory where the diagnostic tables will be saved.}
+\item{diag_tab_path}{Path to the directory where the diagnostic tables will
+be saved.}
 
-\item{wav_player_path}{Path to the executable of the waveform player. Default is "play".}
+\item{wav_player_path}{Path to the executable of the waveform player. Default
+is "play".}
 
 \item{wav_player_type}{Type of waveform player. Default is "HTML player".}
 
-\item{val_subset}{Vector with the subset of the validation session to be performed.}
+\item{val_subset}{Vector with the subset of the validation session to be
+performed.}
 
 \item{min_score}{Minimum score required to accept a detection. Default is 0.}
 
@@ -78,7 +82,8 @@ make_validation_preset(
 
 \item{seed}{Random seed. Default is 123.}
 
-\item{auto_next}{Automatic transition to the next detection. Default is FALSE.}
+\item{auto_next}{Automatic transition to the next detection. Default is
+FALSE.}
 
 \item{nav_autosave}{Autosave navigation. Default is FALSE.}
 
@@ -90,7 +95,9 @@ make_validation_preset(
 A list with validation session settings.
 }
 \description{
-make_validation_preset
+`r lifecycle::badge("experimental")`
+
+Creates a validation preset for a soundscape dataset.
 }
 \examples{
 make_validation_preset(validation_user = "user", templates_path = "templates", soundscapes_path = "soundscapes", input_path = "input", output_path = "output")

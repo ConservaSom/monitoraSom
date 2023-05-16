@@ -3,10 +3,13 @@ library(devtools)
 library(usethis)
 library(pkgload)
 library(available)
+library(roxygen2)
 
 
 load_all()
 monitoraSom::fast_spectro()
+
+roxygen2::roxygenize()
 
 check()
 devtools::dev_sitrep()

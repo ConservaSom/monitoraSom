@@ -7,13 +7,22 @@
 fetch_soundscape_metadata(path, recursive = TRUE, ncores = 1)
 }
 \arguments{
-\item{path}{A character string specifying the directory path where all WAV files are located.}
+\item{path}{A character string specifying the directory path where all WAV
+files are located.}
 
-\item{recursive}{A logical value indicating whether the search for WAV files should be recursive or not. Default is TRUE.}
+\item{recursive}{A logical value indicating whether the search for WAV files
+should be recursive or not. Default is TRUE.}
 
-\item{ncores}{An integer indicating the number of cores to be used for parallelization. Default is 1.}
+\item{ncores}{An integer indicating the number of cores to be used for
+parallelization. Default is 1.}
 
-\item{par_strat}{A character string indicating the parallelization strategy to be used. The available options are: "foreach" (default), "future" and "pbapply". The 'future' and 'pbapply' strategies do not work on Windows, but are more efficient in linux (especially when running and R session outside of Rstudio). The 'foreach' strategy works on all platforms, but is less efficient than the other two. See the documentation of the 'future' and 'pbapply' packages for more details.}
+\item{par_strat}{A character string indicating the parallelization strategy
+to be used. The available options are: "foreach" (default), "future" and
+"pbapply". The 'future' and 'pbapply' strategies do not work on Windows,
+but are more efficient in linux (especially when running and R session
+outside of Rstudio). The 'foreach' strategy works on all platforms, but is
+less efficient than the other two. See the documentation of the 'future'
+and 'pbapply' packages for more details.}
 }
 \value{
 A data frame with the following columns:
@@ -27,7 +36,10 @@ A data frame with the following columns:
 }
 }
 \description{
-Extracts metadata from all WAV files found in a directory and its subdirectories.
+`r lifecycle::badge("experimental")`
+
+Extracts metadata from all WAV files found in a directory and its
+subdirectories.
 }
 \examples{
 fetch_soundscape_metadata(path = "/path/to/soundscapes", ncores = 4)
