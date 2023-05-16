@@ -41,10 +41,10 @@
 #' @param sp_list Species list used in the analysis
 #'
 #' @return A list with the segmentation preset parameters
-#' @export An 'rds' file with the segmentation preset parameters for input in
-#'   the segmentation app.
 #'
 #' @examples
+#'
+#' @export
 make_segmentation_preset <- function(
     preset_path = NULL, preset_id = NULL,
     validation_user, soundscapes_path,

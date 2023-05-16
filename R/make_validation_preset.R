@@ -37,12 +37,11 @@
 #' @param session_notes Notes about the validation session.
 #'
 #' @return A list with validation session settings.
-#' @export
 #'
 #' @examples
 #' make_validation_preset(validation_user = "user", templates_path = "templates", soundscapes_path = "soundscapes", input_path = "input", output_path = "output")
 #'
-
+#' @export
 make_validation_preset <- function(preset_path = NULL, preset_name = NULL,
                                    validation_user, templates_path, soundscapes_path,
                                    input_path, output_path, wav_cuts_path, spec_path, diag_tab_path,

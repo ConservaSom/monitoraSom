@@ -9,6 +9,7 @@ library(roxygen2)
 load_all()
 monitoraSom::fast_spectro()
 
+
 roxygen2::roxygenize()
 
 check()

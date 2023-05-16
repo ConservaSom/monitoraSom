@@ -20,10 +20,11 @@
 #'   columns with metadata from soundscapes and templates are kept (see the
 #'   documentation of the functions 'fetch_soundscape_metadata()' and
 #'   'fetch_template_metadata()' for more details).
-#' @export
 #'
 #' @examples
 #' fetch_match_grid(soundscape_data, template_data)
+#'
+#' @export
 fetch_match_grid <- function(soundscape_data, template_data) {
   res <- cross_join(soundscape_data, template_data)
 

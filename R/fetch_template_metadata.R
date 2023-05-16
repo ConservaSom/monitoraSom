@@ -10,18 +10,6 @@
 #' @param method The method of metadata extraction. The available Options include "standalone" and "roi_table". See details for more information on the format of the input files for each method.
 #'
 #' @return A tibble containing the following metadata for each template file:
-#' \itemize{
-#' \item \code{template_path} {A character string specifying the complete path to the soundscape WAV files.}
-#' \item \code{template_file} {A character string specifying the name of the soundscape WAV files (without the complete path).}
-#' \item \code{template_label} {A character string specifying the label indicating the origin of the signal represented in the template.}
-#' \item \code{template_start} {A numeric value representing the time (s) in which computation of the spectrogram starts within the template file.}
-#' \item \code{template_end} {A numeric value representing the time (s) in which computation of the spectrogram ends within the template file.}
-#' \item \code{template_sample_rate} {The sample rate of the template file.}
-#' \item \code{template_min_freq} {The minimum frequency (kHz) of the band that will be used to compute the template spectrogram.}
-#' \item \code{template_max_freq} {The maximum frequency (kHz) of the band that will be used to compute the template spectrogram.}
-#' \item \code{template_wl} {The FFT window length used to compute the template spectrogram.}
-#' \item \code{template_ovlp} {The overlap used to compute the template spectrogram.}
-#' }
 #'
 #' @examples
 #' # Extract metadata from standalone waveform files
@@ -29,6 +17,8 @@
 #'
 #' # Extract metadata from a table of ROIs
 #' fetch_template_metadata("/path/to/rois.csv", recursive = TRUE, method = "roi_table")
+#'
+#' @export
 fetch_template_metadata <- function(path, recursive = TRUE, method = c("standalone")) {
   if (method == "standalone") {
     template_list <- list.files(

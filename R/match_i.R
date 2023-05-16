@@ -30,10 +30,11 @@
 #'   half the number of frames from the template are added to the beginning and
 #'   end of the score vector.
 #'
-#' @export
 #'
 #' @examples
 #' match_i(df_grid_i = my_data_frame, score_method = "cor")
+#'
+#' @export
 match_i <- function(df_grid_i, score_method = "cor") {
   wav_query <- tuneR::readWave(df_grid_i$soundscape_path)
   wav_template <- tuneR::readWave(df_grid_i$template_path)

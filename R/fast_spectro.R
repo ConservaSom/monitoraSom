@@ -28,11 +28,12 @@
 #'   function.
 #'
 #' @return This function returns a ggplot2 object.
-#' @export
 #'
 #' @examples
 #' rec <- readWave("path/to/wave/file")
 #' fast_spectro(rec, rec@samp.rate, flim = c(0, 10))
+#'
+#' @export
 fast_spectro <- function(
     rec, f, flim = c(0, 10), ovlp = 50, wl = 1024, dyn_range = c(-60, 0),
     color_scale = "inferno", n_colors = 124, interpolate = FALSE,...) {

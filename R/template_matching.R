@@ -17,7 +17,6 @@
 #' @param ncores The number of cores to be used for parallel processing.
 #'
 #' @return A dataframe with the detected events.
-#' @export
 #'
 #' @examples
 #' df_detections <- template_matching(
@@ -28,6 +27,8 @@
 #'   buffer_size = "template",
 #'   ncores = 4
 #' )
+#'
+#' @export
 template_matching <- function(
     path_soundscapes, path_templates, template_type = "standalone",
     score_method = "cor", buffer_size = "template", ncores = 1

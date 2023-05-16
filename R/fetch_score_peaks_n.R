@@ -33,7 +33,6 @@
 #' @param save_res Character. Path to save the result as an .rds file.
 #'
 #' @return A Tibble containing the detections of all audio scores.
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -44,10 +43,9 @@
 #' tib_detecs <- fetch_score_peaks_n(tib_match, buffer_size = 25, save_res = "detections.rds")
 #' }
 #'
-#' @import dplyr
-#' @import purrr
-#' @importFrom utils saveRDS
-#' @seealso \code{\link{match_template_n}}, \code{\link{fetch_score_peaks_i}}
+#' @import dplyr, purrr
+#' 
+#' @export
 fetch_score_peaks_n <- function(
     tib_match, recursive = FALSE, buffer_size = "template", min_score = NULL,
     min_quant = NULL, top_n = NULL, save_res = NULL) {

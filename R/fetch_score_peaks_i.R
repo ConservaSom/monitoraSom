@@ -32,30 +32,11 @@
 #'@return A data frame in which each row is a detection and has the follwing
 #'  attributes:
 #'
-#'@export
-#' \itemize{
-#'   \item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
-#'   \item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
-#'   \item \code{template_path} {A character string specifying the complete path to the soundscape WAV files.}
-#'   \item \code{template_file} {A character string specifying the name of the soundscape WAV files (without the complete path).}
-#'   \item \code{template_min_freq} {The minimum frequency (kHz) of the band used to compute the template spectrogram.}
-#'   \item \code{template_max_freq} {The maximum frequency (kHz) of the band used to compute the template spectrogram.}
-#'   \item \code{detection_start} {The start time (s) of the detection in the soundscape recording. Based on the template duration.}
-#'   \item \code{detection_end} {The end time (s) of the detection in the soundscape recording. Based on the template duration.}
-#'   \item \code{detec_wl} {The FFT window length used to generate the spectrograms.}
-#'   \item \code{detec_ovlp} {The overlap between windows used generate the spectrograms.}
-#'   \item \code{detec_sample_rate} {The sample rate of the soundscape and template WAV files.}
-#'   \item \code{detec_buffer} {The value of 'buffer_size'.}
-#'   \item \code{detec_min_score} {The value of 'min_score'.}
-#'   \item \code{detec_min_quant} {The value of 'min_quant'.}
-#'   \item \code{detec_top_n} {The value of 'top_n'.}
-#'   \item \code{peak_index} {A numeric value representing the index of the score peak in the original score vector.}
-#'   \item \code{peak_cor} {A numeric value between 0 and 1 with the detection score.}
-#'   \item \code{peak_quant} {The quantile of the peak value in the score vector.}
-#' }
 #'
-#' @examples
+#'@examples
 #' fetch_score_peaks_i(match_res_i, 10)
+#'
+#'@export
 fetch_score_peaks_i <- function(
   match_res_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
   top_n = NULL

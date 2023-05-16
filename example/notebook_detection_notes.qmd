@@ -33,4 +33,56 @@ format: pdf
 - Fazer um Rdata que exporta os arquivos para um diretório de exemplo
 - Puxar as funções de validação do Juan
 - Puxar a função de validaç~ao por sobreposição
--
+
+
+fetch_score_peaks_i()
+```{r}
+#' \itemize{
+#'   \item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
+#'   \item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
+#'   \item \code{template_path} {A character string specifying the complete path to the soundscape WAV files.}
+#'   \item \code{template_file} {A character string specifying the name of the soundscape WAV files (without the complete path).}
+#'   \item \code{template_min_freq} {The minimum frequency (kHz) of the band used to compute the template spectrogram.}
+#'   \item \code{template_max_freq} {The maximum frequency (kHz) of the band used to compute the template spzectrogram.}
+#'   \item \code{detection_start} {The start time (s) of the detection in the soundscape recording. Based on the template duration.}
+#'   \item \code{detection_end} {The end time (s) of the detection in the soundscape recording. Based on the template duration.}
+#'   \item \code{detec_wl} {The FFT window length used to generate the spectrograms.}
+#'   \item \code{detec_ovlp} {The overlap between windows used generate the spectrograms.}
+#'   \item \code{detec_sample_rate} {The sample rate of the soundscape and template WAV files.}
+#'   \item \code{detec_buffer} {The value of 'buffer_size'.}
+#'   \item \code{detec_min_score} {The value of 'min_score'.}
+#'   \item \code{detec_min_quant} {The value of 'min_quant'.}
+#'   \item \code{detec_top_n} {The value of 'top_n'.}
+#'   \item \code{peak_index} {A numeric value representing the index of the score peak in the original score vector.}
+#'   \item \code{peak_cor} {A numeric value between 0 and 1 with the detection score.}
+#'   \item \code{peak_quant} {The quantile of the peak value in the score vector.}
+#' }
+```
+
+fetch_soundscape_metadata
+```{r}
+#' \describe{
+#' \item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
+#' \item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
+#' \item \code{soundscape_duration} {A numeric value specifying the total duration (s) of the WAV file.}
+#' \item \code{soundscape_sample_rate} {An integer specifying the sample rate of the WAV file in Hz.}
+#' \item \code{soundscape_codec} {A character string specifying the audio codec used in the WAV file. See the documentation of the 'av' package for more details.}
+#' \item \code{soundscape_layout} {A character string specifying the audio channel layout of the WAV file. See the documentation of the 'av' package for more details.}
+#' }
+```
+
+fetch_template_metadata
+```{r}
+#' \itemize{
+#' \item \code{template_path} {A character string specifying the complete path to the soundscape WAV files.}
+#' \item \code{template_file} {A character string specifying the name of the soundscape WAV files (without the complete path).}
+#' \item \code{template_label} {A character string specifying the label indicating the origin of the signal represented in the template.}
+#' \item \code{template_start} {A numeric value representing the time (s) in which computation of the spectrogram starts within the template file.}
+#' \item \code{template_end} {A numeric value representing the time (s) in which computation of the spectrogram ends within the template file.}
+#' \item \code{template_sample_rate} {The sample rate of the template file.}
+#' \item \code{template_min_freq} {The minimum frequency (kHz) of the band that will be used to compute the template spectrogram.}
+#' \item \code{template_max_freq} {The maximum frequency (kHz) of the band that will be used to compute the template spectrogram.}
+#' \item \code{template_wl} {The FFT window length used to compute the template spectrogram.}
+#' \item \code{template_ovlp} {The overlap used to compute the template spectrogram.}
+#' }
+```

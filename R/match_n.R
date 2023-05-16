@@ -37,7 +37,6 @@
 #'   dimensions. To produce a score vector with the same number of frames of the
 #'   soundscape spectrogram, pads with length quals half the number of frames
 #'   from the template are added to the beginning and end of the
-#' @export
 #'
 #' @examples
 #' # Load example data
@@ -45,6 +44,8 @@
 #'
 #' # Match templates
 #' res <- match_n(df_grid, score_method = "cor", ncores = 2, save_res = "res.rds")
+#' 
+#' @export
 match_n <- function(
     df_grid, score_method = "cor", save_res = FALSE, par_strat = "future", ncores = 1,
     backend_type = "async", cluster_type = "psock") {

@@ -1,3 +1,36 @@
+#' Title
+#'
+#' @param preset_path
+#' @param preset_name
+#' @param validation_user
+#' @param templates_path
+#' @param soundscapes_path
+#' @param input_path
+#' @param output_path
+#' @param wav_cuts_path
+#' @param spec_path
+#' @param diag_tab_path
+#' @param wav_player_path
+#' @param wav_player_type
+#' @param val_subset
+#' @param min_score
+#' @param time_pads
+#' @param ovlp
+#' @param wl
+#' @param dyn_range
+#' @param color_scale
+#' @param zoom_freq
+#' @param nav_shuffle
+#' @param seed
+#' @param auto_next
+#' @param nav_autosave
+#' @param overwrite
+#' @param session_notes
+#'
+#' @return
+#' @export
+#'
+#' @examples
 launch_validation_app <- function(
   preset_path = NULL, preset_name = NULL,
   validation_user, templates_path, soundscapes_path,

@@ -45,11 +45,11 @@
 #' @param ... Other arguments passed to the seewave::spectro() function
 #'
 #' @return Todo
-#' @export Todo argumento para exportar o plot
 #'
 #' @examples
 #' plot_match_i(match_res_i, corr_cut = 0.4, wl = 2048, flim = c(0, 20),
 #'               dyn.range = c(-100, -20), ovlp = 75)
+#' @export
 plot_match_i <- function(
     match_res_i,
     buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
