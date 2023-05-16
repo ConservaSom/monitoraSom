@@ -43,12 +43,10 @@
 #' @param score_lims A numeric vector of length 2 specifying the score range to
 #'   be displayed.
 #' @param ... Other arguments passed to the seewave::spectro() function
+#' @param flim Set frequency limits for the spectrogram panel
 #'
 #' @return Todo
 #'
-#' @examples
-#' plot_match_i(match_res_i, corr_cut = 0.4, wl = 2048, flim = c(0, 20),
-#'               dyn.range = c(-100, -20), ovlp = 75)
 #' @export
 plot_match_i <- function(
     match_res_i,

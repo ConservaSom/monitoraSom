@@ -32,10 +32,6 @@
 #'@return A data frame in which each row is a detection and has the follwing
 #'  attributes:
 #'
-#'
-#'@examples
-#' fetch_score_peaks_i(match_res_i, 10)
-#'
 #'@export
 fetch_score_peaks_i <- function(
   match_res_i, buffer_size = "template", min_score = NULL, min_quant = NULL,

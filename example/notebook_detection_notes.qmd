@@ -6,25 +6,15 @@ format: pdf
 
 
 - Verificar se `fetch_score_peaks_i()` deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro. Valeria a pena fazer a função retornar um dataframe vazio?
-
 - Adicionar dataframes que possam ser chamados de dentro do pacote pela função `data()`
-
 - Fazer uma terceira função com o split e serialização de betches muito grandes para salvamento em multiplos arquivos rds ou uma alternativa para streaming dos resultados para uma base de dados onde seja possível fazer a consulta de ter ou não sido feito o mesmo template matching antes do processamento para evitar a duplicação de resultados ou processamento desnecessário.
-
 - Adiconar novamente a coluna template_name
-
 - Adicionar o score no sonograma da detec
-
 - Adicionar contador de tempo para as funções de processamento mais longo
-
 - Fazer com que as funções que plotam sonogramas dos apps usem a função fast_spectro()
-
 - Verificar se template_name é produzido mesmo quando os templates são baseados em tabelas de rois
-
 - Adicionar o prefixo "validation_preset" no app de validação
-
 - pasta data/ para armazenar os templates e os resultados do template matching
-
 - Um exemplo de três templates e três soundscapes para o template matching
 - uma tabelona com detecções para exemplo de validação
 - link estável para baixar dados de exemplos maiores
@@ -33,7 +23,7 @@ format: pdf
 - Fazer um Rdata que exporta os arquivos para um diretório de exemplo
 - Puxar as funções de validação do Juan
 - Puxar a função de validaç~ao por sobreposição
-
+- Preencher os dados no formato .RData
 
 fetch_score_peaks_i()
 ```{r}
@@ -46,11 +36,8 @@ fetch_score_peaks_i()
 #'   \item \code{template_max_freq} {The maximum frequency (kHz) of the band used to compute the template spzectrogram.}
 #'   \item \code{detection_start} {The start time (s) of the detection in the soundscape recording. Based on the template duration.}
 #'   \item \code{detection_end} {The end time (s) of the detection in the soundscape recording. Based on the template duration.}
-#'   \item \code{detec_wl} {The FFT window length used to generate the spectrograms.}
-#'   \item \code{detec_ovlp} {The overlap between windows used generate the spectrograms.}
-#'   \item \code{detec_sample_rate} {The sample rate of the soundscape and template WAV files.}
-#'   \item \code{detec_buffer} {The value of 'buffer_size'.}
-#'   \item \code{detec_min_score} {The value of 'min_score'.}
+#'   \item \code{detec_wl} {The F tail temp
+    template_comment template_end template_file templat {The value of 'min_score'.}
 #'   \item \code{detec_min_quant} {The value of 'min_quant'.}
 #'   \item \code{detec_top_n} {The value of 'top_n'.}
 #'   \item \code{peak_index} {A numeric value representing the index of the score peak in the original score vector.}

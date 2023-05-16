@@ -21,11 +21,3 @@ A tibble containing the following metadata for each template file:
 
 This function extracts metadata from a directory of template waveform files, which can be used for soundscape analysis.
 }
-\examples{
-# Extract metadata from standalone waveform files
-fetch_template_metadata("/path/to/templates", recursive = TRUE, method = "standalone")
-
-# Extract metadata from a table of ROIs
-fetch_template_metadata("/path/to/rois.csv", recursive = TRUE, method = "roi_table")
-
-}

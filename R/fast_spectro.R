@@ -27,11 +27,9 @@
 #' @param ... Additional arguments to be passed internally to the 'spectro'
 #'   function.
 #'
+#' @importFrom seewave spectro
+#' @import dplyr
 #' @return This function returns a ggplot2 object.
-#'
-#' @examples
-#' rec <- readWave("path/to/wave/file")
-#' fast_spectro(rec, rec@samp.rate, flim = c(0, 10))
 #'
 #' @export
 fast_spectro <- function(

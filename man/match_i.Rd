@@ -39,7 +39,3 @@ template spectrogram and a portion of the soundscape spectrogram of same
 dimensions. The available matching algorithms are the Pearson correlation
 coefficient ("cor") or dynamic time warping ("dtw").
 }
-\examples{
-match_i(df_grid_i = my_data_frame, score_method = "cor")
-
-}

@@ -42,8 +42,6 @@
 #'
 #' @return A list with the segmentation preset parameters
 #'
-#' @examples
-#'
 #' @export
 make_segmentation_preset <- function(
     preset_path = NULL, preset_id = NULL,

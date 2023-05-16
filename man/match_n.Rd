@@ -34,6 +34,10 @@ and 'pbapply' packages for more details.}
 
 \item{ncores}{An integer indicating the number of cores to be used for
 parallelization. Default is 1.}
+
+\item{backend_type}{For usage when par_strat = "parabar"}
+
+\item{cluster_type}{For usage when par_strat = "parabar"}
 }
 \value{
 A tibble containing input data frame with an additional column
@@ -53,17 +57,10 @@ A tibble containing input data frame with an additional column
 \description{
 `r lifecycle::badge("experimental")`
 
-This function is wrapper of 'match_i()' to perform a batch computation of the
-matching vectors of the template and soundscape matches defined in the
-metadata grid obtained as output of the function 'fetch_match_grid()'. The
-available algorithms to compare spectrograms and compute matching scores are
-the Pearson correlation coefficient ("cor") or dynamic time warping ("dtw").
-}
-\examples{
-# Load example data
-data("df_grid")
-
-# Match templates
-res <- match_n(df_grid, score_method = "cor", ncores = 2, save_res = "res.rds")
-
+  This function is wrapper of 'match_i()' to perform a batch computation of
+  the matching vectors of the template and soundscape matches defined in the
+  metadata grid obtained as output of the function 'fetch_match_grid()'. The
+  available algorithms to compare spectrograms and compute matching scores
+  are the Pearson correlation coefficient ("cor") or dynamic time warping
+  ("dtw").
 }

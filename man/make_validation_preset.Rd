@@ -97,9 +97,5 @@ A list with validation session settings.
 \description{
 `r lifecycle::badge("experimental")`
 
-Creates a validation preset for a soundscape dataset.
-}
-\examples{
-make_validation_preset(validation_user = "user", templates_path = "templates", soundscapes_path = "soundscapes", input_path = "input", output_path = "output")
-
+  Creates a validation preset for a soundscape dataset.
 }

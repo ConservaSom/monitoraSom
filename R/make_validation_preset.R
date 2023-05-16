@@ -2,7 +2,7 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' Creates a validation preset for a soundscape dataset.
+#'   Creates a validation preset for a soundscape dataset.
 #'
 #' @param preset_path Path to save the validation preset. Default is NULL.
 #' @param preset_name Name for the validation preset. Default is NULL.
@@ -38,8 +38,6 @@
 #'
 #' @return A list with validation session settings.
 #'
-#' @examples
-#' make_validation_preset(validation_user = "user", templates_path = "templates", soundscapes_path = "soundscapes", input_path = "input", output_path = "output")
 #'
 #' @export
 make_validation_preset <- function(preset_path = NULL, preset_name = NULL,

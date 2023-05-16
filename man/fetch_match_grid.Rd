@@ -31,7 +31,3 @@ function 'fetch_template_metadata()'), checks their compatibilities, and
 returns a new data frame with a grid of all possible matching combinations
 between the two data sets.
 }
-\examples{
-fetch_match_grid(soundscape_data, template_data)
-
-}

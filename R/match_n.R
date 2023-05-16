@@ -2,11 +2,12 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' This function is wrapper of 'match_i()' to perform a batch computation of the
-#' matching vectors of the template and soundscape matches defined in the
-#' metadata grid obtained as output of the function 'fetch_match_grid()'. The
-#' available algorithms to compare spectrograms and compute matching scores are
-#' the Pearson correlation coefficient ("cor") or dynamic time warping ("dtw").
+#'   This function is wrapper of 'match_i()' to perform a batch computation of
+#'   the matching vectors of the template and soundscape matches defined in the
+#'   metadata grid obtained as output of the function 'fetch_match_grid()'. The
+#'   available algorithms to compare spectrograms and compute matching scores
+#'   are the Pearson correlation coefficient ("cor") or dynamic time warping
+#'   ("dtw").
 #'
 #' @param df_grid The output of the function 'fetch_match_grid()
 #' @param save_res A character string indicating the path to save the results in
@@ -23,6 +24,8 @@
 #'   and 'pbapply' packages for more details.
 #' @param ncores An integer indicating the number of cores to be used for
 #'   parallelization. Default is 1.
+#' @param backend_type For usage when par_strat = "parabar"
+#' @param cluster_type For usage when par_strat = "parabar"
 #'
 #' @return A tibble containing input data frame with an additional column
 #'   "score_vec", which is a list of dataframes with the columns "time_vec" (the
@@ -38,13 +41,6 @@
 #'   soundscape spectrogram, pads with length quals half the number of frames
 #'   from the template are added to the beginning and end of the
 #'
-#' @examples
-#' # Load example data
-#' data("df_grid")
-#'
-#' # Match templates
-#' res <- match_n(df_grid, score_method = "cor", ncores = 2, save_res = "res.rds")
-#' 
 #' @export
 match_n <- function(
     df_grid, score_method = "cor", save_res = FALSE, par_strat = "future", ncores = 1,

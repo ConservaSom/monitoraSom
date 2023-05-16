@@ -58,8 +58,3 @@ faster by introducing the spectrogram layer with 'annotation_raster' instead
 of 'geom_raster' or 'geom_tile'. Credits to Sergio Oller in
 <https://github.com/tidyverse/ggplot2/issues/4989>
 }
-\examples{
-rec <- readWave("path/to/wave/file")
-fast_spectro(rec, rec@samp.rate, flim = c(0, 10))
-
-}

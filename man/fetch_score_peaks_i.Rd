@@ -51,7 +51,3 @@ A data frame in which each row is a detection and has the follwing
  output of 'match_n()' . The peaks represent potential detections of a
  template in a soundscape recording.
 }
-\examples{
-fetch_score_peaks_i(match_res_i, 10)
-
-}

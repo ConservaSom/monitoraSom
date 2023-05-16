@@ -46,6 +46,8 @@ because the peak quantiles are callculated within each score vector, the
 top_n parameter is applied to each score vector separately, and not to the
 whole matching grid.}
 
+\item{flim}{Set frequency limits for the spectrogram panel}
+
 \item{ovlp}{A numeric value specifying the percentage overlap of windows in
 the spectrogram calculation. Defaults to NULL, which uses the value
 obtained from match_res_i, but overrides it if a value is provided.}
@@ -81,8 +83,4 @@ Todo
 
 This function plots a spectrogram of the soundscape and the results of the
 match_i() and fetch_score_peaks_i() functions.
-}
-\examples{
-plot_match_i(match_res_i, corr_cut = 0.4, wl = 2048, flim = c(0, 20),
-              dyn.range = c(-100, -20), ovlp = 75)
 }

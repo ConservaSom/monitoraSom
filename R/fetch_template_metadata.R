@@ -11,13 +11,6 @@
 #'
 #' @return A tibble containing the following metadata for each template file:
 #'
-#' @examples
-#' # Extract metadata from standalone waveform files
-#' fetch_template_metadata("/path/to/templates", recursive = TRUE, method = "standalone")
-#'
-#' # Extract metadata from a table of ROIs
-#' fetch_template_metadata("/path/to/rois.csv", recursive = TRUE, method = "roi_table")
-#'
 #' @export
 fetch_template_metadata <- function(path, recursive = TRUE, method = c("standalone")) {
   if (method == "standalone") {

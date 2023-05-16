@@ -31,7 +31,7 @@
 #'
 #' @return Todo
 #'
-#' @examples
+#' # todo
 #'
 #' @export
 launch_segmentation_app <- function(

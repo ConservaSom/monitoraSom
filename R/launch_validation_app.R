@@ -1,36 +1,36 @@
-#' Title
+#' Launch validation app
 #'
-#' @param preset_path
-#' @param preset_name
-#' @param validation_user
-#' @param templates_path
-#' @param soundscapes_path
-#' @param input_path
-#' @param output_path
-#' @param wav_cuts_path
-#' @param spec_path
-#' @param diag_tab_path
-#' @param wav_player_path
-#' @param wav_player_type
-#' @param val_subset
-#' @param min_score
-#' @param time_pads
-#' @param ovlp
-#' @param wl
-#' @param dyn_range
-#' @param color_scale
-#' @param zoom_freq
-#' @param nav_shuffle
-#' @param seed
-#' @param auto_next
-#' @param nav_autosave
-#' @param overwrite
-#' @param session_notes
+#' @param preset_path Path from which presets can be imported and to which new presets can be exported.
+#' @param preset_name Name of the preset to be exported.
+#' @param validation_user User name.
+#' @param templates_path Path to the template wave files.
+#' @param soundscapes_path Path to the soundscape wave files.
+#' @param input_path Path to the input file containing detections.
+#' @param output_path Path to the output file.
+#' @param wav_cuts_path Path to the folder containing the cut wave files.
+#' @param spec_path Path to the folder containing the spectrogram images.
+#' @param diag_tab_path Path to the folder containing the diagnostic tables.
+#' @param wav_player_path Path to the wav player executable (only for system player).
+#' @param wav_player_type The type of wav player. "R session" for R session-based player, "system" for system player.
+#' @param val_subset Subset of detections to be validated.
+#' @param min_score Minimum score of the detections to be validated.
+#' @param time_pads Time pads to be added to the start and end of the cut wave files.
+#' @param ovlp Overlap between consecutive cuts.
+#' @param wl Window length for the spectrogram.
+#' @param dyn_range Dynamic range for the spectrogram.
+#' @param color_scale Color scale for the spectrogram.
+#' @param zoom_freq Frequency range to zoom in the spectrogram.
+#' @param nav_shuffle If TRUE, the files will be shuffled before navigation.
+#' @param seed Seed for the random shuffling.
+#' @param auto_next If TRUE, the next file is automatically displayed when the user validates a cut.
+#' @param nav_autosave If TRUE, the current validation is saved when the user navigates to another file.
+#' @param overwrite If TRUE, the output file is overwritten.
+#' @param session_notes Notes related to the validation session.
 #'
-#' @return
+#' @return todo
+#'
 #' @export
 #'
-#' @examples
 launch_validation_app <- function(
   preset_path = NULL, preset_name = NULL,
   validation_user, templates_path, soundscapes_path,

@@ -9,21 +9,10 @@
 #'   files are located.
 #' @param recursive A logical value indicating whether the search for WAV files
 #'   should be recursive or not. Default is TRUE.
-#' @param par_strat A character string indicating the parallelization strategy
-#'   to be used. The available options are: "foreach" (default), "future" and
-#'   "pbapply". The 'future' and 'pbapply' strategies do not work on Windows,
-#'   but are more efficient in linux (especially when running and R session
-#'   outside of Rstudio). The 'foreach' strategy works on all platforms, but is
-#'   less efficient than the other two. See the documentation of the 'future'
-#'   and 'pbapply' packages for more details.
 #' @param ncores An integer indicating the number of cores to be used for
 #'   parallelization. Default is 1.
 #'
 #' @return A data frame with the following columns:
-#'
-#'
-#' @examples
-#' fetch_soundscape_metadata(path = "/path/to/soundscapes", ncores = 4)
 #'
 #' @export
 fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {

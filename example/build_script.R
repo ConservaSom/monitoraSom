@@ -7,10 +7,9 @@ library(roxygen2)
 
 
 load_all()
-monitoraSom::fast_spectro()
-
-
 roxygen2::roxygenize()
+# usethis::use_build_ignore("example/")
+# usethis::use_build_ignore(".vscode/")
 
 check()
 devtools::dev_sitrep()
@@ -18,4 +17,4 @@ lifecycle::badge("deprecated")
 
 
 available("monitoraSom")
-moni
+

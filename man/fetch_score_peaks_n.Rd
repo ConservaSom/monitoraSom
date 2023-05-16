@@ -18,8 +18,10 @@ fetch_score_peaks_n(
 \item{tib_match}{A tibble containing the output of 'match_n' or a filtered
 subset of it with at least two rows that is already within the environement
 of the current R session. Alternatively, a path to a folder containing the
-output of 'match_n' as .rds files for importing multiple match objects
-from outside the current R session.}
+output of 'match_n' as .rds files for importing multiple match objects from
+outside the current R session.}
+
+\item{recursive}{Set file search to recursive}
 
 \item{buffer_size}{A numeric value specifying the number of frames of the
 buffer within which overlap between detections is avoided. Defaults to
@@ -51,18 +53,8 @@ A Tibble containing the detections of all audio scores.
 \description{
 `r lifecycle::badge("experimental")`
 
-This function is wrapper of 'fetch_score_peaks_i' for detection of peaks in
-score vectors from matches between multiple templates and soundscapes, i.e.
-the output of 'match_n'. The also allows multiple methods for filtering
-suboptimal detections.
-}
-\examples{
-\dontrun{
-# Load example audio scores
-tib_match <- readRDS(system.file("extdata", "example_audio_scores.rds", package = "my_package"))
-
-# Extract detections from scores
-tib_detecs <- fetch_score_peaks_n(tib_match, buffer_size = 25, save_res = "detections.rds")
-}
-
+  This function is wrapper of 'fetch_score_peaks_i' for detection of peaks in
+  score vectors from matches between multiple templates and soundscapes, i.e.
+  the output of 'match_n'. The also allows multiple methods for filtering
+  suboptimal detections.
 }

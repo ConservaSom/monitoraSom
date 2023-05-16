@@ -18,16 +18,6 @@
 #'
 #' @return A dataframe with the detected events.
 #'
-#' @examples
-#' df_detections <- template_matching(
-#'   path_soundscapes = "soundscapes/",
-#'   path_templates = "templates/",
-#'   template_type = "standalone",
-#'   score_method = "cor",
-#'   buffer_size = "template",
-#'   ncores = 4
-#' )
-#'
 #' @export
 template_matching <- function(
     path_soundscapes, path_templates, template_type = "standalone",

@@ -39,14 +39,3 @@ A dataframe with the detected events.
 This function performs template matching on a set of soundscapes using a set
 of templates, and returns a dataframe with the detected events.
 }
-\examples{
-df_detections <- template_matching(
-  path_soundscapes = "soundscapes/",
-  path_templates = "templates/",
-  template_type = "standalone",
-  score_method = "cor",
-  buffer_size = "template",
-  ncores = 4
-)
-
-}
