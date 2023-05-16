@@ -16,3 +16,9 @@ format: pdf
 - Adicionar o score no sonograma da detec
 
 - Adicionar contador de tempo para as funções de processamento mais longo
+
+- Fazer com que as funções que plotam sonogramas dos apps usem a função fast_spectro()
+
+- Verificar se template_name é produzido mesmo quando os templates são baseados em tabelas de rois
+
+- Adicionar o prefixo "validation_preset" no app de validação

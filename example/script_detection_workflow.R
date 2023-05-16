@@ -52,29 +52,6 @@ invisible(
     map(~ source(.x))
 )
 
-preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/"
-preset_id = "default_linux2"
-user = "gabriel na função"
-soundscapes_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/soundscapes"
-roi_tables_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_tables"
-cuts_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_cuts"
-labels_file = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/MonitoraSom_UI_label_lists.xlsx"
-fastdisp = TRUE
-label_angle = 90
-show_label = TRUE
-dyn_range = c(-60, 0)
-wl = 1024
-ovlp = 0
-color_scale = "inferno"
-wav_player_type = "HTML player"
-# wav_player_path = "play"
-session_notes = NULL
-zoom_freq = c(0, 10)
-nav_autosave = FALSE
-sp_list = "CBRO-2021 (Brazil)"
-paste0(preset_path, "temp/")
-
-
 launch_segmentation_app(
   preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/",
   preset_id = "default_linux2",
@@ -102,11 +79,10 @@ session_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/preset
   glimpse()
 
 
+val_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_val_large/presets/preset_default_linux.rds") %>%
+  glimpse()
 
-
-
-
-
+names(val_preset) %>% dput()
 
 
 
@@ -145,50 +121,50 @@ glimpse(df_grid)
 
 # 4. Match templates to soundscape
 # 4.a. Match templates to soundscape using correlation
-# df_matches_cor <- match_n(
-#   df_grid = df_grid, score_method = "cor",
-#   ncores = 8, par_strat = "future",
-#   save_res =
-#     "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
-# )
+df_matches_cor <- match_n(
+  df_grid = df_grid, score_method = "cor",
+  ncores = 8, par_strat = "pbapply",
+  save_res =
+    "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
+)
 df_matches_cor <- readRDS(
   # "C:/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
   "/home/grosa/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
 )
 glimpse(df_matches_cor)
-
-teste <- bench::mark(
-  seq = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 1
-  ),
-  future = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "future", ncores = 5
-  ),
-  foreach = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "foreach", ncores = 5
-  ),
-  pbapply = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 5
-  ),
-  parabar_async_sock = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-    backend_type = "async", cluster_type = "psock"
-  ),
-  parabar_sync_sock = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-    backend_type = "sync", cluster_type = "psock"
-  ),
-  parabar_async_fork = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-    backend_type = "async", cluster_type = "fork"
-  ),
-  parabar_sync_fork = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-    backend_type = "sync", cluster_type = "fork"
-  ),
-  iterations = 10, check = FALSE, memory = FALSE
-)
-plot(teste)
+glimpse(df_matches_cor$score_vec[[1]])
+# teste <- bench::mark(
+#   seq = match_n(
+#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 1
+#   ),
+#   future = match_n(
+#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "future", ncores = 5
+#   ),
+#   foreach = match_n(
+#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "foreach", ncores = 5
+#   ),
+#   pbapply = match_n(
+#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 5
+#   ),
+#   parabar_async_sock = match_n(
+#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+#     backend_type = "async", cluster_type = "psock"
+#   ),
+#   parabar_sync_sock = match_n(
+#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+#     backend_type = "sync", cluster_type = "psock"
+#   ),
+#   parabar_async_fork = match_n(
+#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+#     backend_type = "async", cluster_type = "fork"
+#   ),
+#   parabar_sync_fork = match_n(
+#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+#     backend_type = "sync", cluster_type = "fork"
+#   ),
+#   iterations = 10, check = FALSE, memory = FALSE
+# )
+# plot(teste)
 
 
 invisible(
@@ -245,6 +221,7 @@ stop_backend(backend)
 df_detectionsA <- fetch_score_peaks_n(
   tib_match = df_matches_cor, buffer_size = "template"
 )
+df_detectionsA %>% glimpse()
 # 5.b. From multiple match objects stored in rds files ouside the session environment
 df_detectionsB <- fetch_score_peaks_n(
   tib_match = "/home/grosa/R_repos/monitoraSom/example/data/matches/",
@@ -266,13 +243,13 @@ df_detections <- fetch_match_grid(
   glimpse()
 
 # # 7. Whole workflow in a single function (detectR)
-# df_detections <- template_matching(
-#   path_soundscapes = here("example", "soundscapes"),
-#   path_templates = here("example", "roi_cuts"),
-#   template_type = "standalone", score_method = "cor",
-#   buffer_size = "template", min_score = NA, min_quant = NA, top_n = NA,
-#   ncores = 8, par_strat = "foreach" # todo Implementação pendente
-# )
+df_detections <- template_matching(
+  path_soundscapes = here("example", "soundscapes"),
+  path_templates = here("example", "roi_cuts"),
+  template_type = "standalone", score_method = "cor",
+  buffer_size = "template", min_score = NA, min_quant = NA, top_n = NA,
+  ncores = 8, par_strat = "foreach" # todo Implementação pendente
+)
 
 
 # 8. Plotting

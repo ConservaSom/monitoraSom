@@ -252,7 +252,7 @@ launch_segmentation_app <- function(
       )
     }
   } else {
-    stop("Error! The 'zoom_freq' must be a numeric vector of length equals 2.")
+    stop("Error! The 'zoom_freq' must be a numeric vector of length 2.")
   }
 
   # check if the variable 'nav_autosave' is a logical variable
