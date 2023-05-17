@@ -133,7 +133,7 @@ match_n <- function(
           require(collapse)
           require(dtwclust)
           require(slider)
-          source("/home/grosa/R_repos/monitoraSom/R/match_i.R") # temporário
+          require(monitoraSom)
           res <- match_i(x, score_method = "cor")
           return(res)
         }
@@ -147,7 +147,7 @@ match_n <- function(
           require(collapse)
           require(dtwclust)
           require(slider)
-          source("/home/grosa/R_repos/monitoraSom/R/match_i.R") # temporário
+          require(monitoraSom)
           res <- match_i(x, score_method = "dtw")
           return(res)
         }

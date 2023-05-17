@@ -20,6 +20,7 @@ library(farver)
 library(parallel)
 library(doParallel)
 library(parabar)
+library(monitoraSom)
 
 # Para o pacote here funcionar corretamente, é necessário que este script esteja
 # em uma sessão baseada no projeto localizado na raiz do repositório
@@ -44,13 +45,13 @@ c(
 # todo Criar a função set_paths() copm checagens para facilitar a definição dos diretórios
 # todo Fazer uma função para cortar rois tables em standalone templates em batch
 
-# Carregando os scripts necessários
-invisible(
-  list.files(path_scripts, full.names = TRUE) %>%
-    .[!grepl("validation", .)] %>%
-    gsub("//", "/", .) %>%
-    map(~ source(.x))
-)
+# # Carregando os scripts necessários
+# invisible(
+#   list.files(path_scripts, full.names = TRUE) %>%
+#     .[!grepl("validation", .)] %>%
+#     gsub("//", "/", .) %>%
+#     map(~ source(.x))
+# )
 
 launch_segmentation_app(
   preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/",
