@@ -33,11 +33,11 @@
 #'
 #' @export
 fast_spectro <- function(
-    rec, f, flim = c(0, 10), ovlp = 50, wl = 1024, dyn_range = c(-60, 0),
-    color_scale = "inferno", n_colors = 124, interpolate = FALSE,...) {
-  spec_raw <- spectro(
-    rec,
-    f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim,
+  rec, f, flim = c(0, 10), ovlp = 50, wl = 1024, dyn_range = c(-60, 0),
+  color_scale = "inferno", n_colors = 124, interpolate = FALSE,...
+  ) {
+  spec_raw <- seewave::spectro(
+    rec, f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim,
     norm = TRUE, fftw = TRUE, plot = FALSE, ...
   )
   mat <- spec_raw$amp %>%

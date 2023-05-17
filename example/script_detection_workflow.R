@@ -42,51 +42,6 @@ c(
   dir.exists(path_plots), dir.exists(path_scripts)
 )
 
-# todo Criar a função set_paths() copm checagens para facilitar a definição dos diretórios
-# todo Fazer uma função para cortar rois tables em standalone templates em batch
-
-# # Carregando os scripts necessários
-# invisible(
-#   list.files(path_scripts, full.names = TRUE) %>%
-#     .[!grepl("validation", .)] %>%
-#     gsub("//", "/", .) %>%
-#     map(~ source(.x))
-# )
-
-launch_segmentation_app(
-  preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/",
-  preset_id = "default_linux2",
-  user = "gabriel na função",
-  soundscapes_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/soundscapes",
-  roi_tables_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_tables",
-  cuts_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_cuts",
-  labels_file = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/MonitoraSom_UI_label_lists.xlsx",
-  fastdisp = TRUE,
-  label_angle = 90,
-  show_label = TRUE,
-  dyn_range = c(-60, 0),
-  wl = 1024,
-  ovlp = 0,
-  color_scale = "inferno",
-  wav_player_type = "HTML player",
-  # wav_player_path = "play",
-  session_notes = NULL,
-  zoom_freq = c(0, 10),
-  nav_autosave = FALSE,
-  sp_list = "CBRO-2021 (Brazil)"
-)
-
-session_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/segmentation_preset_default_windows.rds") %>%
-  glimpse()
-
-
-val_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_val_large/presets/preset_default_linux.rds") %>%
-  glimpse()
-
-names(val_preset) %>% dput()
-
-
-
 # 1. Get template metadata
 # 1.a. Get metadata from standalone cuts
 df_templates_A <- fetch_template_metadata(
@@ -133,87 +88,6 @@ df_matches_cor <- readRDS(
   "/home/grosa/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
 )
 glimpse(df_matches_cor)
-glimpse(df_matches_cor$score_vec[[1]])
-# teste <- bench::mark(
-#   seq = match_n(
-#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 1
-#   ),
-#   future = match_n(
-#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "future", ncores = 5
-#   ),
-#   foreach = match_n(
-#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "foreach", ncores = 5
-#   ),
-#   pbapply = match_n(
-#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 5
-#   ),
-#   parabar_async_sock = match_n(
-#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-#     backend_type = "async", cluster_type = "psock"
-#   ),
-#   parabar_sync_sock = match_n(
-#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-#     backend_type = "sync", cluster_type = "psock"
-#   ),
-#   parabar_async_fork = match_n(
-#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-#     backend_type = "async", cluster_type = "fork"
-#   ),
-#   parabar_sync_fork = match_n(
-#     df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-#     backend_type = "sync", cluster_type = "fork"
-#   ),
-#   iterations = 10, check = FALSE, memory = FALSE
-# )
-# plot(teste)
-
-
-invisible(
-  list.files(path_scripts, full.names = TRUE) %>%
-    gsub("//", "/", .) %>%
-    map(~ source(.x))
-)
-
-teste <- match_n(
-  df_grid = df_grid[1:10, ], score_method = "cor",
-  par_strat = "parabar", ncores = 5, backend_type = "sync", cluster_type = "fork"
-  ) %>%
-  glimpse()
-
-
-set_option("progress_track", TRUE)
-configure_bar(type = "modern", format = "[:bar] :percent")
-backend <- start_backend(cores = 4, cluster_type = "psock", backend_type = "async")
-grid_list <- group_split(rowwise(df_grid))
-
-results <- par_lapply(
-  backend, grid_list,
-  function(x, score_method = score_method) {
-    require(dplyr); require(here); require(collapse)
-    require(dtwclust); require(slider)
-    source("/home/grosa/R_repos/monitoraSom/R/match_i.R") # temporário
-    res <- match_i(x, score_method = "cor")
-    return(res)
-    }
-  )
-
-stop_backend(backend)
-results %>% glimpse()
-
-res <- par_lapply(
-  backend = backend,
-  x = grid_list, fun = match_i, score_method = score_method
-) |>
-  list_rbind()
-stop_backend(backend)
-
-
-
-
-# fetch_score_peaks_i(
-#   match_res_i = df_matches_cor[188, ],
-#   buffer_size = df_matches_cor[188, ]$score_sliding_window
-# ) %>% glimpse()
 # todo Adicionar os metadados com os parâmetros do template matching
 # todo Mudar a quantificação do buffer para a % de frames do template
 
@@ -228,6 +102,7 @@ df_detectionsB <- fetch_score_peaks_n(
   tib_match = "/home/grosa/R_repos/monitoraSom/example/data/matches/",
   buffer_size = "template"
 )
+glimpse(df_detectionsB)
 
 # 6. Whole workflow in a single pipeline
 df_detections <- fetch_match_grid(
@@ -239,19 +114,18 @@ df_detections <- fetch_match_grid(
     path = path_soundscapes, ncores = 6
   )
 ) %>%
-  match_n(score_method = "cor", ncores = 8, par_strat = "foreach") %>%
+  match_n(score_method = "cor", ncores = 8, par_strat = "pbapply") %>%
   fetch_score_peaks_n(buffer_size = "template") %>%
   glimpse()
 
 # # 7. Whole workflow in a single function (detectR)
-df_detections <- template_matching(
-  path_soundscapes = here("example", "soundscapes"),
-  path_templates = here("example", "roi_cuts"),
-  template_type = "standalone", score_method = "cor",
-  buffer_size = "template", min_score = NA, min_quant = NA, top_n = NA,
-  ncores = 8, par_strat = "foreach" # todo Implementação pendente
-)
-
+# df_detections <- template_matching(
+#   path_soundscapes = here("example", "soundscapes"),
+#   path_templates = here("example", "roi_cuts"),
+#   template_type = "standalone", score_method = "cor",
+#   buffer_size = "template", min_score = NA, min_quant = NA, top_n = NA,
+#   ncores = 8, par_strat = "foreach" # todo Implementação pendente
+# )
 
 # 8. Plotting
 # 8.a. Without filters

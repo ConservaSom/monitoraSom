@@ -30,7 +30,6 @@
 #' @return todo
 #'
 #' @export
-#'
 launch_validation_app <- function(
   preset_path = NULL, preset_name = NULL,
   validation_user, templates_path, soundscapes_path,
@@ -40,7 +39,8 @@ launch_validation_app <- function(
   val_subset = c("NA", "TP", "FP", "UN"), min_score = 0,
   time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(-60, 0),
   color_scale = "inferno", zoom_freq = c(0, 4),
-  nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE, overwrite = FALSE, session_notes
+  nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
+  overwrite = FALSE, session_notes
   ) {
   require(dplyr, warn.conflicts = FALSE)
   require(tidyr)
@@ -360,70 +360,70 @@ launch_validation_app <- function(
 
 
   # todo Trocar essa função pelo fast_spectro
-  efficient_spectro <- function(rec, f, flim = c(0, 10), ovlp = 50, wl = 1024, dyn_range = c(-60, 0), color_scale = "inferno", ...) {
-    spec_raw <- spectro(
-      rec,
-      f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim,
-      norm = TRUE, fftw = TRUE, plot = FALSE
-    )
-    mat <- spec_raw$amp %>%
-      ifelse(. < dyn_range[1], dyn_range[1], .) %>%
-      ifelse(. > dyn_range[2], dyn_range[2], .) %>%
-      t()
-    amp_range <- range(mat)
-    n_colors <- 124
-    # colormap <- viridis::inferno(256)
-    if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
-      colormap <- viridis::viridis(n_colors, option = color_scale)
-    } else if (color_scale == "greyscale 1") {
-      colormap <- seewave::reverse.gray.colors.1(n_colors)
-    } else if (color_scale == "greyscale 2") {
-      colormap <- seewave::reverse.gray.colors.2(n_colors)
-    }
+  # efficient_spectro <- function(rec, f, flim = c(0, 10), ovlp = 50, wl = 1024, dyn_range = c(-60, 0), color_scale = "inferno", ...) {
+  #   spec_raw <- spectro(
+  #     rec,
+  #     f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim,
+  #     norm = TRUE, fftw = TRUE, plot = FALSE
+  #   )
+  #   mat <- spec_raw$amp %>%
+  #     ifelse(. < dyn_range[1], dyn_range[1], .) %>%
+  #     ifelse(. > dyn_range[2], dyn_range[2], .) %>%
+  #     t()
+  #   amp_range <- range(mat)
+  #   n_colors <- 124
+  #   # colormap <- viridis::inferno(256)
+  #   if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
+  #     colormap <- viridis::viridis(n_colors, option = color_scale)
+  #   } else if (color_scale == "greyscale 1") {
+  #     colormap <- seewave::reverse.gray.colors.1(n_colors)
+  #   } else if (color_scale == "greyscale 2") {
+  #     colormap <- seewave::reverse.gray.colors.2(n_colors)
+  #   }
 
-    cols_to_ints <- farver::encode_native(colormap)
-    breaks <- seq(
-      from = amp_range[1], to = amp_range[2], length.out = length(colormap)
-    )
-    xdim <- dim(mat)
-    rev_cols <- seq.int(ncol(mat), 1L, by = -1L)
-    mat <- mat[, rev_cols]
-    mat <- findInterval(mat, breaks, rightmost.closed = TRUE)
-    mat <- cols_to_ints[mat]
-    nr <- matrix(mat, nrow = xdim[1], ncol = xdim[2], byrow = FALSE)
-    nr <- structure(
-      nr,
-      dim = c(xdim[2], xdim[1]), class = "nativeRaster", channels = 4L
-    )
+  #   cols_to_ints <- farver::encode_native(colormap)
+  #   breaks <- seq(
+  #     from = amp_range[1], to = amp_range[2], length.out = length(colormap)
+  #   )
+  #   xdim <- dim(mat)
+  #   rev_cols <- seq.int(ncol(mat), 1L, by = -1L)
+  #   mat <- mat[, rev_cols]
+  #   mat <- findInterval(mat, breaks, rightmost.closed = TRUE)
+  #   mat <- cols_to_ints[mat]
+  #   nr <- matrix(mat, nrow = xdim[1], ncol = xdim[2], byrow = FALSE)
+  #   nr <- structure(
+  #     nr,
+  #     dim = c(xdim[2], xdim[1]), class = "nativeRaster", channels = 4L
+  #   )
 
-    xmin <- min(spec_raw$time)
-    xmax <- max(spec_raw$time)
-    ymin <- min(spec_raw$freq)
-    ymax <- max(spec_raw$freq)
+  #   xmin <- min(spec_raw$time)
+  #   xmax <- max(spec_raw$time)
+  #   ymin <- min(spec_raw$freq)
+  #   ymax <- max(spec_raw$freq)
 
-    suppressMessages(
-      ggplot() +
-        geom_rect(
-          data = data.frame(x = NA_real_),
-          mapping = aes(fill = x),
-          xmin = xmin, xmax = xmax,
-          ymin = ymin, ymax = ymax
-        ) +
-        annotation_raster(
-          nr,
-          xmin = xmin, xmax = xmax,
-          ymin = ymin, ymax = ymax, interpolate = FALSE
-        ) +
-        scale_fill_gradient(
-          low = colormap[0], high = colormap[length(colormap)],
-          limits = amp_range, na.value = "#00000000"
-        ) +
-        scale_x_continuous(limits = c(xmin, xmax), expand = c(0, 0)) +
-        scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0)) +
-        labs(x = "seconds", y = "kHz") +
-        theme(legend.position = "none")
-    )
-  }
+  #   suppressMessages(
+  #     ggplot() +
+  #       geom_rect(
+  #         data = data.frame(x = NA_real_),
+  #         mapping = aes(fill = x),
+  #         xmin = xmin, xmax = xmax,
+  #         ymin = ymin, ymax = ymax
+  #       ) +
+  #       annotation_raster(
+  #         nr,
+  #         xmin = xmin, xmax = xmax,
+  #         ymin = ymin, ymax = ymax, interpolate = FALSE
+  #       ) +
+  #       scale_fill_gradient(
+  #         low = colormap[0], high = colormap[length(colormap)],
+  #         limits = amp_range, na.value = "#00000000"
+  #       ) +
+  #       scale_x_continuous(limits = c(xmin, xmax), expand = c(0, 0)) +
+  #       scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0)) +
+  #       labs(x = "seconds", y = "kHz") +
+  #       theme(legend.position = "none")
+  #   )
+  # }
   auc_trap <- function(x, y) {
     res <- sum(
       (rowMeans(cbind(y[-length(y)], y[-1]))) *
@@ -1441,7 +1441,8 @@ launch_validation_app <- function(
           input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
         )
         temp_rec <- rec_template()
-        efficient_spectro(
+        monitoraSom::fast_spectro(
+        # efficient_spectro(
           rec = temp_rec, f = df_template()$sample_rate, wl = input$wl,
           ovlp = input$ovlp, flim = c(input$zoom_freq[1], input$zoom_freq[2]),
           dyn_range = c(input$dyn_range[1], input$dyn_range[2]),
@@ -1545,7 +1546,8 @@ launch_validation_app <- function(
           input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
         )
 
-        efficient_spectro(
+        # efficient_spectro(
+        monitoraSom::fast_spectro(
           rec = rec_detection(), f = det_i()$sample_rate,
           wl = input$wl, ovlp = input$ovlp, fastdisp = TRUE,
           flim = c(input$zoom_freq[1], input$zoom_freq[2]),
@@ -1652,7 +1654,8 @@ launch_validation_app <- function(
 
       spectro_soundscape <- reactive({
         if (input$show_soundscape == TRUE) {
-          efficient_spectro(
+          monitoraSom::fast_spectro(
+          # efficient_spectro(
             rec = rec_soundscape(), f = df_soundscape()$sample_rate,
             wl = input$wl, ovlp = input$ovlp,
             flim = c(input$zoom_freq[1], input$zoom_freq[2]),

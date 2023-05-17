@@ -24,6 +24,74 @@ format: pdf
 - Puxar as funções de validação do Juan
 - Puxar a função de validaç~ao por sobreposição
 - Preencher os dados no formato .RData
+- Criar a função set_paths() copm checagens para facilitar a definição dos diretórios
+- Fazer uma função para cortar rois tables em standalone templates em batch
+
+
+```{r}
+library(monitoraSom)
+launch_segmentation_app(
+  preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/",
+  preset_id = "default_linux2",
+  user = "gabriel na função",
+  soundscapes_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/soundscapes",
+  roi_tables_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_tables",
+  cuts_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_cuts",
+  labels_file = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/MonitoraSom_UI_label_lists.xlsx",
+  fastdisp = TRUE, label_angle = 90, show_label = TRUE, dyn_range = c(-60, 0), wl = 1024,
+  ovlp = 0, color_scale = "inferno", wav_player_type = "HTML player",
+  # wav_player_path = "play",
+  session_notes = NULL, zoom_freq = c(0, 10), nav_autosave = FALSE,
+  sp_list = "CBRO-2021 (Brazil)"
+)
+
+session_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/segmentation_preset_default_windows.rds") %>%
+    glimpse()
+
+val_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_val_large/presets/preset_default_linux.rds") %>%
+    glimpse()
+
+
+# launch_validation_app()
+
+```
+
+Benchmarks
+```{r}
+teste <- bench::mark(
+  seq = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 1
+  ),
+  future = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "future", ncores = 5
+  ),
+  foreach = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "foreach", ncores = 5
+  ),
+  pbapply = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 5
+  ),
+  parabar_async_sock = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+    backend_type = "async", cluster_type = "psock"
+  ),
+  parabar_sync_sock = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+    backend_type = "sync", cluster_type = "psock"
+  ),
+  parabar_async_fork = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+    backend_type = "async", cluster_type = "fork"
+  ),
+  parabar_sync_fork = match_n(
+    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
+    backend_type = "sync", cluster_type = "fork"
+  ),
+  iterations = 10, check = FALSE, memory = FALSE
+)
+plot(teste)
+
+```
 
 fetch_score_peaks_i()
 ```{r}
