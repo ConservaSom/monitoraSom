@@ -26,7 +26,7 @@ format: pdf
 - Preencher os dados no formato .RData
 - Criar a função set_paths() copm checagens para facilitar a definição dos diretórios
 - Fazer uma função para cortar rois tables em standalone templates em batch
-
+- Trabalhar melhor no nome dos templates standalone
 
 ```{r}
 library(monitoraSom)

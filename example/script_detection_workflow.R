@@ -32,30 +32,42 @@ path_roi_tabs <- here("example", "roi_tables")
 path_data <- here("example", "data")
 path_backup <- here("example", "backup")
 path_plots <- here("example", "plots")
-path_scripts <- here("R/")
-# path_scripts <- "C:/R_repos/monitoraSom/R/"
-# path_scripts <- "C:/Users/grosa/Documents/R/R_repos/monitoraSom/R/"
 
 c(
-  dir.exists(path_soundscapes), dir.exists(path_templates), dir.exists(path_roi_tabs),
-  dir.exists(path_data), dir.exists(path_backup),
-  dir.exists(path_plots), dir.exists(path_scripts)
+  dir.exists(path_soundscapes), dir.exists(path_templates),
+  dir.exists(path_roi_tabs), dir.exists(path_data),
+  dir.exists(path_backup), dir.exists(path_plots)
+)
+
+launch_segmentation_app(
+  preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/",
+  preset_id = "default_linux2",
+  user = "gabriel",
+  soundscapes_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/soundscapes",
+  roi_tables_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_tables",
+  cuts_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_cuts",
+  labels_file = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/MonitoraSom_UI_label_lists.xlsx",
+  fastdisp = TRUE, label_angle = 90, show_label = TRUE, dyn_range = c(-60, 0), wl = 1024,
+  ovlp = 0, color_scale = "inferno", wav_player_type = "HTML player",
+  # wav_player_path = "play",
+  session_notes = NULL, zoom_freq = c(0, 10), nav_autosave = FALSE,
+  sp_list = "CBRO-2021 (Brazil)"
 )
 
 # 1. Get template metadata
 # 1.a. Get metadata from standalone cuts
 df_templates_A <- fetch_template_metadata(
-  path = path_templates,
-  recursive = TRUE, method = "standalone"
+  path = path_templates, method = "standalone"
 )
 glimpse(df_templates_A)
 
 # 1.b. Get metadata from ROI tables
 df_templates_B <- fetch_template_metadata(
-  path = path_roi_tabs,
-  method = "roi_table"
+  path = path_roi_tabs, method = "roi_table"
 )
-# todo Resolver nome de template file aqui
+# todo Resolver template file e template_name
+# todo Fazer uma função para adaptar um corte de audio como template
+# todo O nome do template está muito longo e detalhado
 glimpse(df_templates_B)
 
 # 2. Get soundscape metadata
@@ -68,6 +80,7 @@ glimpse(df_soundscapes)
 # todo Adicionar verbose = TRUE pra mostrar um diagnóstico basico
 # todo Fazer a extraçãop de dados espaciais do nome do arquivo como processo opcional
 # todo Arrumar uma alternativa para codificar o ponto da amostra e dar a opção em um argumento para o usuário escolher entre opções disponíveis
+# todo Fazer uma função que cria novas variáveis a partir de campos do nome da soundscape
 
 # 3. Get match grid
 df_grid <- fetch_match_grid(
@@ -75,26 +88,37 @@ df_grid <- fetch_match_grid(
 )
 glimpse(df_grid)
 
+
 # 4. Match templates to soundscape
 # 4.a. Match templates to soundscape using correlation
 df_matches_cor <- match_n(
   df_grid = df_grid, score_method = "cor",
-  ncores = 8, par_strat = "pbapply",
+  ncores = 10, par_strat = "pbapply",
   save_res =
     "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
 )
-df_matches_cor <- readRDS(
-  # "C:/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
-  "/home/grosa/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
+df_matches_cor <- match_n(
+  df_grid = df_grid, score_method = "dtw",
+  ncores = 10, par_strat = "pbapply",
+  save_res =
+    "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_dtw.rds"
 )
+df_matches_cor %>% glimpse()
+# df_matches_cor <- readRDS(
+#   # "C:/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
+#   "/home/grosa/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
+# )
+
 glimpse(df_matches_cor)
 # todo Adicionar os metadados com os parâmetros do template matching
 # todo Mudar a quantificação do buffer para a % de frames do template
+# todo Fazer uma função que segmenta a grade
 
 # 5. Get detections
 # 5.a. From a match oject within the session environment
 df_detectionsA <- fetch_score_peaks_n(
-  tib_match = df_matches_cor, buffer_size = "template"
+  tib_match = df_matches_cor,
+  buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL
 )
 df_detectionsA %>% glimpse()
 # 5.b. From multiple match objects stored in rds files ouside the session environment
@@ -143,3 +167,5 @@ plot_match_i(df_matches_cor[188, ], buffer_size = 0, min_quant = 0.975)
 plot_match_i(df_matches_cor[188, ], buffer_size = "template", min_quant = 0.975)
 
 
+# todo Adicionar variáveis de localidade nas detecções para as análises posteriores
+# todo Fazer o site do monitoraSom
