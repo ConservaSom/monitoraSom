@@ -8,7 +8,7 @@ format: pdf
 
 ### To do now
 
-- Depositar as listas de espécies como um arquivo xlsx na pasta de roi_tables
+
 - Exibir score no sonograma da detecção
 - Atualizar os campos de score na UI
 - next no F e

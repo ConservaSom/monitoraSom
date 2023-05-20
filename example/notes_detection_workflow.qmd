@@ -4,29 +4,58 @@ author: "GLMRosa"
 format: pdf
 ---
 
-- Habilitar o acionamento dos apps por meio de função sem que todos os argumentos precisem ser definidos
-- Verificar se `fetch_score_peaks_i()` deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro. Valeria a pena fazer a função retornar um dataframe vazio?
+Geral
+- Trabalhar melhor no nome dos templates standalone
+- Adiconar novamente a coluna template_name através de todo o fluxo de análise
 - Adicionar dataframes que possam ser chamados de dentro do pacote pela função `data()`
-- Fazer uma terceira função com o split e serialização de betches muito grandes para salvamento em multiplos arquivos rds ou uma alternativa para streaming dos resultados para uma base de dados onde seja possível fazer a consulta de ter ou não sido feito o mesmo template matching antes do processamento para evitar a duplicação de resultados ou processamento desnecessário.
-- Adiconar novamente a coluna template_name
-- Adicionar o score no sonograma da detec
 - Adicionar contador de tempo para as funções de processamento mais longo
 - Fazer com que as funções que plotam sonogramas dos apps usem a função fast_spectro()
-- Verificar se template_name é produzido mesmo quando os templates são baseados em tabelas de rois
-- Adicionar o prefixo "validation_preset" no app de validação
-- pasta data/ para armazenar os templates e os resultados do template matching
-- Um exemplo de três templates e três soundscapes para o template matching
-- uma tabelona com detecções para exemplo de validação
-- link estável para baixar dados de exemplos maiores
-- Ver qual é a licensa dos depends
+- pasta data/ com objetos para exemplos de todas as funções
+  - (Um exemplo de três templates e três soundscapes para o template matching
+  - uma tabelona com detecções para exemplo de validação
+  - link estável para baixar dados de exemplos maiores
+  - Fazer um Rdata que exporta os arquivos para um diretório de exemplo
+- Ver qual é a licensa das dependencias
 - remover as paradas do vs code do repo
-- Fazer um Rdata que exporta os arquivos para um diretório de exemplo
-- Puxar as funções de validação do Juan
-- Puxar a função de validaç~ao por sobreposição
-- Preencher os dados no formato .RData
+
+Apps
+- Habilitar o acionamento dos apps por meio de função sem que todos os argumentos precisem ser definidos
+- Adicionar autoplay onde puder ser necessário
+- Adicionar checkbox para inversão das escalas de cores dos sonogramas]
+- Adicionar filtro de banda e normalização para os sonogramas
+- Controle para evitar que o path selecionado suma ao clicar adicentalmente no botão de load.
+- Simplificar o app por meio de evitar seções duplicadas do código para acesso por diferentes tipos de inputs, como hotkeys e actionButtons ao mesmo tempo.
+- Streaming dos dados em um banco de dados em SQL
+- Validação:
+  - Adicionar o score no sonograma da detec
+  - Adicionar o prefixo "validation_preset" aos presets
+  - Ok do dos warning está apagado
+  - Verificar se o 'play' default para 'R session' funciona em windows
+  - Diferenças no output são detectadas como unsaved rows, controlar quando o que acontece é a comparação de um dataset vazio com um cheio
+  - Fazer um manual de uso da interface
+  - Fazer um segundo conjunto de dados de demonstração, maior para varificar questões de performance
+  - Verificar se funciona com o MonitoraSomAlt e formatos relacionados
+  - Quando possível, mostrar a hora absoluta do sonograma da detecção
+  - Adicionar seed específica para os diagnósticos
+  - Adicionar opção para mostrar a sundscape somente na banda em zoom_freq
+  - Modificar o sistema para que seja possível haver mais de uma validação por detecção, caso seja um usuário diferente.
+  - Habilitar a navegaçao entre soundscapes
+- Segmentação
+  - Depositar as listas de espécies como um arquivo xlsx na pasta de roi_tables
+
+fetch_score_peaks_i()
+- Verificar se `fetch_score_peaks_i()` deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro. Valeria a pena fazer a função retornar um dataframe vazio?
+
+Funções novas
+- Fazer uma terceira função com o split e serialização de betches muito grandes para salvamento em multiplos arquivos rds ou uma alternativa para streaming dos resultados para uma base de dados onde seja possível fazer a consulta de ter ou não sido feito o mesmo template matching antes do processamento para evitar a duplicação de resultados ou processamento desnecessário.
 - Criar a função set_paths() copm checagens para facilitar a definição dos diretórios
+- Adicionar a função de validação por sobreposição temporal
 - Fazer uma função para cortar rois tables em standalone templates em batch
-- Trabalhar melhor no nome dos templates standalone
+
+
+### Perguntas importantes
+- Quais são os efeitos dos filtros de detecções baseados nos scores sobre os diagnosticos?
+- Como lidar com multiplas validações de usuários diferentes para um mesmo conjunto de detecções? Como processar % de TP e FP para os diagnósticos?
 
 
 
