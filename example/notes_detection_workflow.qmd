@@ -4,9 +4,13 @@ author: "GLMRosa"
 format: pdf
 ---
 
+Prioridades
+- Adiconar novamente a coluna template_name através de todo o fluxo de análise
+- Adicionar a função de validação por sobreposição temporal
+- Implementar o restante dos diagnósticos
+
 Geral
 - Trabalhar melhor no nome dos templates standalone
-- Adiconar novamente a coluna template_name através de todo o fluxo de análise
 - Adicionar dataframes que possam ser chamados de dentro do pacote pela função `data()`
 - Adicionar contador de tempo para as funções de processamento mais longo
 - Fazer com que as funções que plotam sonogramas dos apps usem a função fast_spectro()
@@ -17,6 +21,8 @@ Geral
   - Fazer um Rdata que exporta os arquivos para um diretório de exemplo
 - Ver qual é a licensa das dependencias
 - remover as paradas do vs code do repo
+- Adicionar opções gerais para seleção e registro do canal onde cada processo foi feito
+- Criar funções para que sejam convertidas tabelas de seleção do Raven e Audacity para o formato de output do app de segmentação
 
 Apps
 - Habilitar o acionamento dos apps por meio de função sem que todos os argumentos precisem ser definidos
@@ -24,11 +30,12 @@ Apps
 - Adicionar checkbox para inversão das escalas de cores dos sonogramas]
 - Adicionar filtro de banda e normalização para os sonogramas
 - Controle para evitar que o path selecionado suma ao clicar adicentalmente no botão de load.
-- Simplificar o app por meio de evitar seções duplicadas do código para acesso por diferentes tipos de inputs, como hotkeys e actionButtons ao mesmo tempo.
+- Simplificar o app com a remoção de seções duplicadas do código para acesso por diferentes tipos de inputs, como hotkeys e actionButtons ao mesmo tempo.
 - Streaming dos dados em um banco de dados em SQL
+- Adicionar opção para selecionar o canal do sonograma visível
+- Encontrar e resolver o bug de renderização duplicada dos sonogramas
 - Validação:
   - Adicionar o score no sonograma da detec
-  - Adicionar o prefixo "validation_preset" aos presets
   - Ok do dos warning está apagado
   - Verificar se o 'play' default para 'R session' funciona em windows
   - Diferenças no output são detectadas como unsaved rows, controlar quando o que acontece é a comparação de um dataset vazio com um cheio
@@ -42,20 +49,51 @@ Apps
   - Habilitar a navegaçao entre soundscapes
 - Segmentação
   - Depositar as listas de espécies como um arquivo xlsx na pasta de roi_tables
+  - Adicionar hotkeys para:
+    - Hotkeys para next (F) e prev (R) soundscape
+    - Salvar tabela de ROIs
+    - Exportar nova tabela de ROIs
+    - Exportar sonograma da soundscape
+    - Exportar cortes de audio das rois selecionadas
+    - Exportar sonogramas das rois selecionadas (mesmo destino dos audios)
+  - Adicionar referências para os atalhos de teclado nos pop-overs
+  - Adicionar a lista de espécies disponíveis como variável na tabela de ROIs?
+  - Ativar mecanismo de detecção de sistema para os players
+    - Detectar se o sox está disponível?
+    - Pedir caminho para o player quando houver "R session" no windows
+    - Apresentar erro de detecção se o sox não estiver disponível no linux ou no mac
+  - verificar os padrões usados em https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecy.3329
+  - Progresso
+    - Rever o que é informado na barra de progresso
+    - Criar uma tabela a partir da compilação de todas as ROIs disponíveis no diretório
 
 fetch_score_peaks_i()
 - Verificar se `fetch_score_peaks_i()` deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro. Valeria a pena fazer a função retornar um dataframe vazio?
 
 Funções novas
 - Fazer uma terceira função com o split e serialização de betches muito grandes para salvamento em multiplos arquivos rds ou uma alternativa para streaming dos resultados para uma base de dados onde seja possível fazer a consulta de ter ou não sido feito o mesmo template matching antes do processamento para evitar a duplicação de resultados ou processamento desnecessário.
-- Criar a função set_paths() copm checagens para facilitar a definição dos diretórios
-- Adicionar a função de validação por sobreposição temporal
+- Criar a função set_paths() com checagens para facilitar a definição dos diretórios
 - Fazer uma função para cortar rois tables em standalone templates em batch
 
 
 ### Perguntas importantes
 - Quais são os efeitos dos filtros de detecções baseados nos scores sobre os diagnosticos?
 - Como lidar com multiplas validações de usuários diferentes para um mesmo conjunto de detecções? Como processar % de TP e FP para os diagnósticos?
+- Qual é o efeito dos pads de tempo e frequência para a detecção
+
+### Para depois
+- App de segmentação
+  - Player focal
+    - ROIs selecionadas na tabela são concatenadas e tocadas em sequência
+    - Caso não haja nenhuma selecionada, toca a mais recente
+    - Adicionar checkbox para aplicar filtros de banda sobre os sons tocados
+  - Dar ao usuário a possibilidade de editar o nome da tabela de rois?
+  - Escolha entre segmentação com atribuição prévia ou posterior dos metadados de cada roi. No modo de atribuição posterior, inputs são dados em uma pop-up, sendo que o usuário tem a opção de omitir essa pop-up repetindo os metadados atribuídos anteriormente. Isso permitiria um modelo de edição de rois ativas similar à do Raven.
+  - bug das Renderização duplicada de sonograma
+    - O processamento das ROIs disponíveis acaba depois da renderização, fazendo com que seja feita a renderização uma segunda vez para inclui-las
+  - Adicionar um sonograma de panorama para navegar no da soundscape
+  - Usar o file input como alternativa quando o app é usado de forma local, carregando diretamente os múltiplos arquivos que serão segmentados. Talvez seja interessante ter modos remoto e local
+
 
 
 
