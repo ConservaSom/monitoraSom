@@ -2,36 +2,62 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' This function launches the segmentation app, which is a Shiny app for segemntation of WAV recorcings of soundscapes into tables containing regions of interest (ROIs) and audio cuts of the ROIs. The app settings can be imported from presets or set manually.
+#'   This function launches the segmentation app, which is a Shiny app for
+#'   segemntation of WAV recorcings of soundscapes into tables containing
+#'   regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
+#'   be imported from presets or set manually.
 #'
-#' @param preset_path Path from which presets can be imported and to which new presets can be exported.
-#' @param preset_id ID of the preset to be imported from the 'preset_path' folder. If export_preset = TRUE, the preset will be exported to the 'preset_path' folder with the name "segmentation_preset_<preset_id>.rds".
+#' @param preset_path Path from which presets can be imported and to which new
+#'   presets can be exported.
+#' @param preset_id ID of the preset to be imported from the 'preset_path'
+#'   folder. If export_preset = TRUE, the preset will be exported to the
+#'   'preset_path' folder with the name "segmentation_preset_<preset_id>.rds".
 #' @param user Identification of the user of the segmentation app.
 #' @param soundscapes_path Path to soundscapes files.
-#' @param roi_tables_path Path to the folder from which the ROI tables will be imported and to which they will be exported.
-#' @param cuts_path Path to the folder from which the ROI audio cuts will be imported and to which they will be exported.
-#' @param labels_file Path to the file containing the list of labels to be used in the segmentation. This file must be a '.xlsx' spreadsheet in which available lists are stored as columns, identified in the app menu by their titles.
-#' @param sp_list A character string with the available labels to be used in the cuirrent session. The default is "CBRO-2021 (Brazil)".
-#' @param fastdisp If TRUE, the spectrogram will be displayed in a lower quality, but faster.
-#' @param label_angle Angle between 0 and 180 to draw the ROI labels in the spectrogram plot.
-#' @param show_label If TRUE, ROI labels will be displayed alongside ROI selections in the sepctrogram.
+#' @param roi_tables_path Path to the folder from which the ROI tables will be
+#'   imported and to which they will be exported.
+#' @param cuts_path Path to the folder from which the ROI audio cuts will be
+#'   imported and to which they will be exported.
+#' @param labels_file Path to the file containing the list of labels to be used
+#'   in the segmentation. This file must be a '.xlsx' spreadsheet in which
+#'   available lists are stored as columns, identified in the app menu by their
+#'   titles.
+#' @param sp_list A character string with the available labels to be used in the
+#'   cuirrent session. The default is "CBRO-2021 (Brazil)".
+#' @param fastdisp If TRUE, the spectrogram will be displayed in a lower
+#'   quality, but faster.
+#' @param label_angle Angle between 0 and 180 to draw the ROI labels in the
+#'   spectrogram plot.
+#' @param show_label If TRUE, ROI labels will be displayed alongside ROI
+#'   selections in the sepctrogram.
 #' @param wl An integer specifying the length of the FFT window used to
 #'   calculate the spectrogram.
-#' @param ovlp A numeric value between 0 and 90 specifying the percentage overlap of windows for computing the spectrogram.
-#' @param dyn_range A numeric vector of length 2 between -100 and 0, specifying the minimum and maximum relative amplitudes to be displayed in the spectrogram
+#' @param ovlp A numeric value between 0 and 90 specifying the percentage
+#'   overlap of windows for computing the spectrogram.
+#' @param dyn_range A numeric vector of length 2 between -100 and 0, specifying
+#'   the minimum and maximum relative amplitudes to be displayed in the
+#'   spectrogram
 #' @param color_scale A character string specifying the color scale to be used
 #'   in the spectrogram. Possible values are "viridis", "magma", "inferno",
 #'   "cividis", "greyscale 1", or "greyscale 2".
 #' @param wav_player_type The type of wav player. "R session" for R
-#'   session-based player, "HTML player" for an embedded HTML player in the interface, and "External player" for playing in an external player. The last options becomes available only when a valid path to the player executable is provided in the 'wav_player_path' argument.
-#' @param wav_player_path Path to the wav player executable (only for wav_player_type = "External player")
-#' @param session_notes A single character string with related to the current segmentation session.
-#' @param zoom_freq Vector with two numeric values between 0 and the Nyquist Frequency of the soundscape recording, indicating the frequency values in kHz of the frequency band to be displayed in the spectrogram.
-#' @param nav_autosave If TRUE, navigating between soundscapes will automatically save the ROI table of the active soundscape.
+#'   session-based player, "HTML player" for an embedded HTML player in the
+#'   interface, and "External player" for playing in an external player. The
+#'   last options becomes available only when a valid path to the player
+#'   executable is provided in the 'wav_player_path' argument.
+#' @param wav_player_path Path to the wav player executable (only for
+#'   wav_player_type = "External player")
+#' @param session_notes A single character string with related to the current
+#'   segmentation session.
+#' @param zoom_freq Vector with two numeric values between 0 and the Nyquist
+#'   Frequency of the soundscape recording, indicating the frequency values in
+#'   kHz of the frequency band to be displayed in the spectrogram.
+#' @param nav_autosave If TRUE, navigating between soundscapes will
+#'   automatically save the ROI table of the active soundscape.
 #'
 #' @return Todo
 #'
-#' # todo
+#'   # todo
 #'
 #' @export
 launch_segmentation_app <- function(

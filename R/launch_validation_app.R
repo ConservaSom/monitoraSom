@@ -1,6 +1,14 @@
 #' Launch validation app
 #'
-#' @param preset_path Path from which presets can be imported and to which new presets can be exported.
+#' @description `r lifecycle::badge("experimental")`
+#'
+#'   This function launches the validation app, which is a Shiny app to validate
+#'   for segemntation of WAV recorcings of soundscapes into tables containing
+#'   regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
+#'   be imported from presets or set manually.
+#'
+#' @param preset_path Path from which presets can be imported and to which new
+#'   presets can be exported.
 #' @param preset_name Name of the preset to be exported.
 #' @param validation_user User name.
 #' @param templates_path Path to the template wave files.
@@ -10,11 +18,14 @@
 #' @param wav_cuts_path Path to the folder containing the cut wave files.
 #' @param spec_path Path to the folder containing the spectrogram images.
 #' @param diag_tab_path Path to the folder containing the diagnostic tables.
-#' @param wav_player_path Path to the wav player executable (only for system player).
-#' @param wav_player_type The type of wav player. "R session" for R session-based player, "system" for system player.
+#' @param wav_player_path Path to the wav player executable (only for system
+#'   player).
+#' @param wav_player_type The type of wav player. "R session" for R
+#'   session-based player, "system" for system player.
 #' @param val_subset Subset of detections to be validated.
 #' @param min_score Minimum score of the detections to be validated.
-#' @param time_pads Time pads to be added to the start and end of the cut wave files.
+#' @param time_pads Time pads to be added to the start and end of the cut wave
+#'   files.
 #' @param ovlp Overlap between consecutive cuts.
 #' @param wl Window length for the spectrogram.
 #' @param dyn_range Dynamic range for the spectrogram.
@@ -22,8 +33,10 @@
 #' @param zoom_freq Frequency range to zoom in the spectrogram.
 #' @param nav_shuffle If TRUE, the files will be shuffled before navigation.
 #' @param seed Seed for the random shuffling.
-#' @param auto_next If TRUE, the next file is automatically displayed when the user validates a cut.
-#' @param nav_autosave If TRUE, the current validation is saved when the user navigates to another file.
+#' @param auto_next If TRUE, the next file is automatically displayed when the
+#'   user validates a cut.
+#' @param nav_autosave If TRUE, the current validation is saved when the user
+#'   navigates to another file.
 #' @param overwrite If TRUE, the output file is overwritten.
 #' @param session_notes Notes related to the validation session.
 #'
@@ -40,7 +53,10 @@ launch_validation_app <- function(
     time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(-60, 0),
     color_scale = "inferno", zoom_freq = c(0, 4),
     nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
-    overwrite = FALSE, session_notes) {
+    overwrite = FALSE, session_notes
+
+    ) {
+
   require(dplyr, warn.conflicts = FALSE)
   require(tidyr)
   require(ggplot2)

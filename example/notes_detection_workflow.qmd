@@ -83,7 +83,25 @@ val_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_val_large/presets/pr
     glimpse()
 
 
-# launch_validation_app()
+launch_validation_app(
+  preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/presets",
+  preset_name = "launching_linux_default",
+  validation_user = "Rosa G. L. M.",
+  templates_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/templates/",
+  soundscapes_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/soundscapes",
+  input_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/detections/validation_input.csv",
+  output_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/detections/validation_output.csv",
+  wav_cuts_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/detection_cuts/",
+  spec_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/detection_spectrograms/",
+  diag_tab_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/diagnostic_tables/",
+  wav_player_path = "play", wav_player_type = "HTML player",
+  val_subset = c("NA", "TP", "FP", "UN"), min_score = 0,
+  time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(-60, 0),
+  color_scale = "inferno", zoom_freq = c(0, 4),
+  nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
+  overwrite = FALSE,
+  session_notes = "Validation app launching test"
+)
 
 ```
 
