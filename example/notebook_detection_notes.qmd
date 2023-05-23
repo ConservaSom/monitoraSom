@@ -5,28 +5,31 @@ format: pdf
 ---
 
 
-- Verificar se `fetch_score_peaks_i()` deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro. Valeria a pena fazer a função retornar um dataframe vazio?
-- Adicionar dataframes que possam ser chamados de dentro do pacote pela função `data()`
-- Fazer uma terceira função com o split e serialização de betches muito grandes para salvamento em multiplos arquivos rds ou uma alternativa para streaming dos resultados para uma base de dados onde seja possível fazer a consulta de ter ou não sido feito o mesmo template matching antes do processamento para evitar a duplicação de resultados ou processamento desnecessário.
+
+- Puxar a função de validaçao por sobreposição
+
 - Adiconar novamente a coluna template_name
-- Adicionar o score no sonograma da detec
-- Adicionar contador de tempo para as funções de processamento mais longo
-- Fazer com que as funções que plotam sonogramas dos apps usem a função fast_spectro()
 - Verificar se template_name é produzido mesmo quando os templates são baseados em tabelas de rois
-- Adicionar o prefixo "validation_preset" no app de validação
+- Adicionar contador de tempo para as funções de processamento mais longo
 - pasta data/ para armazenar os templates e os resultados do template matching
-- Um exemplo de três templates e três soundscapes para o template matching
-- uma tabelona com detecções para exemplo de validação
-- link estável para baixar dados de exemplos maiores
-- Ver qual é a licensa dos depends
-- remover as paradas do vs code do repo
-- Fazer um Rdata que exporta os arquivos para um diretório de exemplo
+  - Um exemplo de três templates e três soundscapes para o template matching
+  - uma tabelona com detecções para exemplo de validação
+  - link estável para baixar dados de exemplos maiores
+  - Preencher os dados no formato .RData
 - Puxar as funções de validação do Juan
-- Puxar a função de validaç~ao por sobreposição
-- Preencher os dados no formato .RData
 - Criar a função set_paths() copm checagens para facilitar a definição dos diretórios
 - Fazer uma função para cortar rois tables em standalone templates em batch
 - Trabalhar melhor no nome dos templates standalone
+- Ver qual é a licensa dos depends
+
+- Adicionar o prefixo "validation_preset" no app de validação
+- Adicionar dataframes que possam ser chamados de dentro do pacote pela função `data()`
+- Fazer uma terceira função com o split e serialização de betches muito grandes para salvamento em multiplos arquivos rds ou uma alternativa para streaming dos resultados para uma base de dados onde seja possível fazer a consulta de ter ou não sido feito o mesmo template matching antes do processamento para evitar a duplicação de resultados ou processamento desnecessário.
+- Adicionar o score no sonograma da detec
+- Verificar se `fetch_score_peaks_i()` deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro. Valeria a pena fazer a função retornar um dataframe vazio?
+- Fazer com que as funções que plotam sonogramas dos apps usem a função fast_spectro()
+- remover as paradas do vs code do repo
+
 
 ```{r}
 library(monitoraSom)

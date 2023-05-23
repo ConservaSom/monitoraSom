@@ -83,7 +83,7 @@ launch_validation_app <- function(
       session_data$preset_path <- preset_path
       warning("Warning! The selected preset destination folder did not exist. It was created automatically.")
     }
-    temp_path <- paste0(preset_path, "temp/") # tomporary
+    temp_path <- paste0(preset_path, "temp/") # temporary
     if (!dir.exists(temp_path)) {
       dir.create(temp_path)
     }
@@ -111,28 +111,12 @@ launch_validation_app <- function(
   session_data$input_path <- input_path
   if (!file.exists(input_path)) {
     stop("Error! The input file containing detections was not found locally.")
+    # todo Add other checks for the input file
   }
 
   session_data$output_path <- output_path
   if (!file.exists(output_path)) {
     warning("Warning! The output file was not found locally. It will be created automatically.")
-  }
-
-  if (wav_player_type %in% c("HTML player", "R session", "External player")) {
-    if (wav_player_type == "External player") {
-      if (file.exists(wav_player_path)) {
-        session_data$wav_player_path <- wav_player_path
-      } else {
-        stop(
-          "Error! The path informed in 'wav_player_path' was not found locally."
-        )
-      }
-    }
-    session_data$wav_player_type <- wav_player_type
-  } else {
-    stop(
-      "Error! The selected WAV player method is not valid. Select one of the following: 'HTML player', 'R session', 'External player'"
-    )
   }
 
   if (all(val_subset %in% c("NA", "TP", "FP", "UN"))) {
@@ -143,6 +127,7 @@ launch_validation_app <- function(
     )
   }
 
+  # todo Adicionar os outros filtros de detecções
   if (is.numeric(min_score)) {
     if (0 <= min_score & min_score < 1) {
       session_data$min_score <- min_score
@@ -171,18 +156,31 @@ launch_validation_app <- function(
     )
   }
 
-  if (is.numeric(ovlp)) {
-    if (ovlp %in% seq(0, 80, 10)) {
-      session_data$ovlp <- ovlp
+  if (length(dyn_range) == 2) {
+    if (all(is.numeric(dyn_range))) {
+      if (dyn_range[1] < dyn_range[2]) {
+        if (dyn_range[1] >= -100 & dyn_range[2] <= 10) {
+          if (dyn_range[1] %% 10 == 0 & dyn_range[2] %% 10 == 0) {
+            session_data$dyn_range <- dyn_range
+          } else {
+            stop("Error! 'dyn_range' must be a multiple of 10.")
+          }
+        } else {
+          stop("Error! 'dyn_range' must be between -100 and 10.")
+        }
+      } else {
+        session_data$dyn_range <- sort(dyn_range)
+        warning(
+          "Warning! The first value of 'dyn_range' must be smaller than the second. Sorting to match the expected order"
+        )
+      }
     } else {
       stop(
-        "Error! The value assigned to 'ovlp' is outside the expected interval. Provide a numeric value between 0 and 80 in steps of 10."
+        "Error! At least one value of 'dyn_range' is not numeric"
       )
     }
   } else {
-    stop(
-      "Error! The value assigned to 'time_pads' is not numeric. Provide a value between 0 and 80 in steps of 10."
-    )
+    stop("Error! The 'dyn_range' must be a numeric vector of length equals 2.")
   }
 
   if (is.numeric(wl)) {
@@ -199,33 +197,19 @@ launch_validation_app <- function(
     )
   }
 
- if (length(dyn_range) == 2) {
-   if (all(is.numeric(dyn_range))) {
-     if (dyn_range[1] < dyn_range[2]) {
-       if (dyn_range[1] >= -100 & dyn_range[2] <= 10) {
-         if (dyn_range[1] %% 10 == 0 & dyn_range[2] %% 10 == 0) {
-           session_data$dyn_range <- dyn_range
-         } else {
-           stop("Error! 'dyn_range' must be a multiple of 10.")
-         }
-       } else {
-         stop("Error! 'dyn_range' must be between -100 and 10.")
-       }
-     } else {
-       session_data$dyn_range <- sort(dyn_range)
-       warning(
-         "Warning! The first value of 'dyn_range' must be smaller than the second. Sorting to match the expected order"
-       )
-     }
-   } else {
-     stop(
-       "Error! At least one value of 'dyn_range' is not numeric"
-     )
-   }
- } else {
-   stop("Error! The 'dyn_range' must be a numeric vector of length equals 2.")
- }
-  #
+  if (is.numeric(ovlp)) {
+    if (ovlp %in% seq(0, 80, 10)) {
+      session_data$ovlp <- ovlp
+    } else {
+      stop(
+        "Error! The value assigned to 'ovlp' is outside the expected interval. Provide a numeric value between 0 and 80 in steps of 10."
+      )
+    }
+  } else {
+    stop(
+      "Error! The value assigned to 'time_pads' is not numeric. Provide a value between 0 and 80 in steps of 10."
+    )
+  }
 
   if (is.character(color_scale)) {
     if (color_scale %in% c("viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2")) {
@@ -240,7 +224,23 @@ launch_validation_app <- function(
       "Error! The value assigned to 'color_scale' is not among the expected alternatives: 'viridis', 'magma', 'inferno', 'cividis', 'greyscale 1', or 'greyscale 2'."
     )
   }
-  #
+
+  if (wav_player_type %in% c("HTML player", "R session", "External player")) {
+    if (wav_player_type == "External player") {
+      if (file.exists(wav_player_path)) {
+        session_data$wav_player_path <- wav_player_path
+      } else {
+        stop(
+          "Error! The path informed in 'wav_player_path' was not found locally."
+        )
+      }
+    }
+    session_data$wav_player_type <- wav_player_type
+  } else {
+    stop(
+      "Error! The selected WAV player method is not valid. Select one of the following: 'HTML player', 'R session', 'External player'"
+    )
+  }
 
   if (length(zoom_freq) == 2) {
     if (all(is.numeric(zoom_freq))) {
@@ -269,6 +269,8 @@ launch_validation_app <- function(
     stop("Error! The 'zoom_freq' must be a numeric vector of length 2.")
   }
 
+
+
   if (isTRUE(nav_shuffle) | isFALSE(nav_shuffle)) {
     session_data$nav_shuffle <- nav_shuffle
   } else {
@@ -280,6 +282,7 @@ launch_validation_app <- function(
   } else {
     stop("Error! Non-numeric value input provided to 'seed'")
   }
+  # todo Add another seed for the diagnostics
 
   if (isTRUE(auto_next) | isFALSE(auto_next)) {
     session_data$auto_next <- auto_next
@@ -323,7 +326,7 @@ launch_validation_app <- function(
   }
 
   if (!is.null(preset_path) & !is.null(preset_id)) {
-    # todo Adicionar esse prefixo no arquivo   de preset
+    # todo Adicionar esse prefixo no arquivo de preset
     preset_file <- file.path(
       preset_path, paste0("validation_preset_", preset_id, ".rds")
     )
@@ -424,6 +427,7 @@ launch_validation_app <- function(
   #       theme(legend.position = "none")
   #   )
   # }
+
   auc_trap <- function(x, y) {
     res <- sum(
       (rowMeans(cbind(y[-length(y)], y[-1]))) *
@@ -432,17 +436,28 @@ launch_validation_app <- function(
     return(res)
   }
 
+  # This block defines where embedded html wav players will look for the files
   temp_dir <- paste0(getwd(), "/temp/")
   if (!dir.exists(temp_dir)) {
     dir.create(temp_dir)
   }
-  # This function defines where embedded html wav players will look for the files
-  # shiny::addResourcePath("audio", here("temp/"))
   shiny::addResourcePath("audio", temp_dir)
+  # shiny::addResourcePath("audio", here("temp/"))
   # resourcePaths()
+  # todo Clear temp folder when closing the app
 
   hotkeys <- c(
-    "q", "w", "e", "r", "t", "y", "a", "s", "d", "1", "2"
+    "q", #
+    "w", #
+    "e", #
+    "r", #
+    "t", #
+    "y", #
+    "a", #
+    "s", #
+    "d", #
+    "1", #
+    "2"  #
   )
 
   shinyApp(
@@ -473,7 +488,7 @@ launch_validation_app <- function(
                 # path to the soundscape directory
                 textAreaInput(
                   inputId = "preset_path", label = "Path to preset files (.rds)",
-                  value = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/presets", # NULL,
+                  value = session_data$preset_path,
                   placeholder = "Paste or load path here",
                   height = "40px", width = "395px", resize = "vertical"
                 ),
@@ -507,14 +522,15 @@ launch_validation_app <- function(
                 tags$style(type = "text/css", "#import_preset { margin-top: 0px;}")
               ),
               textInput("validation_user", "User name (*):",
-                value = NULL, placeholder = "Identify yourself here",
-                width = "100%"
+                value = session_data$validation_user,
+                placeholder = "Identify yourself here", width = "100%"
               ),
               splitLayout(
                 cellWidths = c("75%", "25%"),
                 icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
                 textAreaInput("templates_path", "Templates path (*)",
-                  value = NULL, placeholder = "Paste or load path here",
+                  value = session_data$templates_path,
+                  placeholder = "Paste or load path here",
                   height = "40px", resize = "vertical", width = "100%"
                 ),
                 shinyDirButton(
@@ -526,7 +542,8 @@ launch_validation_app <- function(
               splitLayout(
                 cellWidths = c("75%", "25%"),
                 textAreaInput("soundscapes_path", "Soundscapes path (*)",
-                  value = NULL, placeholder = "Paste or load path here",
+                  value = session_data$soundscapes_path,
+                  placeholder = "Paste or load path here",
                   height = "40px", width = "395px", resize = "vertical"
                 ),
                 shinyDirButton(
@@ -539,7 +556,8 @@ launch_validation_app <- function(
               splitLayout(
                 cellWidths = c("75%", "25%"),
                 textAreaInput("input_path", "Detections table path (input) (*)",
-                  value = NULL, placeholder = "Paste or load path here",
+                  value = session_data$input_path,
+                  placeholder = "Paste or load path here",
                   height = "40px", width = "395px", resize = "vertical"
                 ),
                 shinyFilesButton(
@@ -548,14 +566,11 @@ launch_validation_app <- function(
                 ),
                 tags$style(type = "text/css", "#input_path_load { margin-top: 40px;}")
               ),
-              # todo Ver se vale a pena implementar isso aqui
-              # checkboxInput(
-              #   "same_detec_file", "Export to input file (overwrite)", value = FALSE
-              #   ),
               splitLayout(
                 cellWidths = c("75%", "25%"),
                 textAreaInput("output_path", "Validated data path (output) (*)",
-                  value = NULL, placeholder = "Paste or load path here",
+                  value = session_data$output_path,
+                  placeholder = "Paste or load path here",
                   height = "40px", width = "395px", resize = "vertical"
                 ),
                 shinyFilesButton(
@@ -574,6 +589,7 @@ launch_validation_app <- function(
                 icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
                 style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
               ),
+              # todo Template name is not among validation presets. Is is a must?
               selectInput(
                 "template_name", "Template file (*)",
                 choices = NULL, width = "100%"
@@ -584,11 +600,12 @@ launch_validation_app <- function(
                   "True positives - TP" = "TP", "False positives - FP" = "FP",
                   "Unknown - UN" = "UN", "Not reviewed - NA" = "NA"
                 ),
-                selected = c("TP", "FP", "UN", "NA"), multiple = TRUE, width = "100%"
+                selected = session_data$val_subset, multiple = TRUE, width = "100%"
               ),
               sliderInput(
                 "min_score", "Minimum correlation (*)",
-                width = "100%", min = 0, max = 1, value = 0, step = 0.01
+                width = "100%", min = 0, max = 1, step = 0.01,
+                value = session_data$min_score
               )
             ),
             menuItem(
@@ -597,35 +614,44 @@ launch_validation_app <- function(
               icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
               sliderInput(
                 "time_pads", "Pad size (s):",
-                min = 0, max = 16, value = 1, width = "100%"
+                min = 0, max = 16, width = "100%",
+                value = session_data$time_pads
               ),
               sliderInput(
                 "dyn_range", "Dynamic range (dB):",
-                min = -100, max = 10, step = 10, value = c(-60, 0), width = "100%"
+                min = -100, max = 10, step = 10, width = "100%",
+                value = session_data$dyn_range
               ),
               sliderTextInput(
                 "wl", "Window length:",
                 choices = c(128, 256, 512, 1024, 2048, 4096),
-                selected = 2048, grid = TRUE, width = "100%"
+                grid = TRUE, width = "100%",
+                selected = session_data$wl
               ),
               sliderInput(
                 "ovlp", "Overlap (%):",
-                min = 0, max = 80, value = 0, step = 10, width = "100%"
+                min = 0, max = 80, step = 10, width = "100%",
+                value = session_data$ovlp
               ),
-              selectInput("color_scale", "Color:",
-                choices = c("viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2"),
-                selected = "inferno", width = "100%"
+              selectInput(
+                "color_scale", "Color:",
+                choices = c(
+                  "viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2"
+                  ),
+                width = "100%", selected = session_data$color_scale
               ),
               radioButtons(
                 "wav_player_type", "Sound player",
-                choices = c("HTML player", "R session", "External player"),
-                selected = "HTML player", inline = TRUE
+                choices = c("HTML player", "R session", "External player"), inline = TRUE,
+                selected = session_data$wav_player_type
               ),
               splitLayout(
                 cellWidths = c("75%", "25%"),
-                textAreaInput("wav_player_path",
-                  value = "play", label = "Path to player executable (default = 'play')",
-                  height = "40px", resize = "vertical"
+                textAreaInput(
+                  "wav_player_path",
+                  label = "Path to player executable (default = 'play')",
+                  height = "40px", resize = "vertical",
+                  value = session_data$wav_player_path
                 ),
                 shinyDirButton(
                   id = "wav_player_path_load", label = "Load", title = "Teste",
@@ -648,9 +674,11 @@ launch_validation_app <- function(
               "Session Notes",
               icon = icon(lib = "glyphicon", "glyphicon glyphicon-pencil"),
               tabName = "tab_notes",
-              textAreaInput("session_notes", "Session notes",
-                value = NULL, placeholder = "Write session notes here", width = "100%",
-                height = "150px", resize = "vertical"
+              textAreaInput(
+                "session_notes", "Session notes",
+                placeholder = "Write session notes here", width = "100%",
+                height = "150px", resize = "vertical",
+                value = session_data$session_notes
               )
             )
           ),
@@ -675,9 +703,11 @@ launch_validation_app <- function(
 
         box(
           width = 1, height = "450px",
-          noUiSliderInput("zoom_freq", "Frequency zoom",
-            min = 0, max = 18, step = 1, value = c(0, 10), direction = "rtl",
-            orientation = "vertical", width = "100px", height = "300px"
+          noUiSliderInput(
+            "zoom_freq", "Frequency zoom",
+            min = 0, max = 18, step = 1, direction = "rtl",
+            orientation = "vertical", width = "100px", height = "300px",
+            value = session_data$zoom_freq
           )
         ),
         box(
@@ -733,13 +763,40 @@ launch_validation_app <- function(
               width = 4,
               selectInput("detec", "Detection ID", choices = NULL, width = "100%")
             ),
-            column(width = 4, numericInput("seed", "Seed", value = 123)),
-            column(width = 4, checkboxInput("nav_shuffle", HTML("<b>Shuffle</b>")))
+            column(
+              width = 4,
+              numericInput("seed", "Seed", value = session_data$seed)
+            ),
+            column(
+              width = 4,
+              checkboxInput(
+                "nav_shuffle", HTML("<b>Shuffle</b>"),
+                value = session_data$nav_shuffle
+              )
+            )
           ),
           fluidRow(
-            column(width = 4, checkboxInput("auto_next", HTML("<b>Autonavigate</b>"))),
-            column(width = 4, checkboxInput("overwrite", HTML("<b>Overwrite</b>"))),
-            column(width = 4, checkboxInput("nav_autosave", HTML("<b>Autosave</b>")))
+            column(
+              width = 4,
+              checkboxInput(
+                "auto_next", HTML("<b>Autonavigate</b>"),
+                value = session_data$auto_next
+              )
+            ),
+            column(
+              width = 4,
+              checkboxInput(
+                "overwrite", HTML("<b>Overwrite</b>"),
+                value = session_data$overwrite
+              )
+            ),
+            column(
+              width = 4,
+              checkboxInput(
+                "nav_autosave", HTML("<b>Autosave</b>"),
+                value = session_data$nav_autosave
+              )
+            )
           ),
 
           actionButton(
@@ -822,8 +879,9 @@ launch_validation_app <- function(
               width = 6,
               splitLayout(
                 cellWidths = c("80%", "20%"),
-                textInput("wav_cuts_path", "Wave cuts path",
-                  value = NULL, width = "100%",
+                textInput(
+                  "wav_cuts_path", "Wave cuts path",
+                  value = session_data$wav_cuts_path, width = "100%",
                   placeholder = "Paste or load here the path to export the wav file"
                 ),
                 shinyDirButton(
@@ -852,8 +910,9 @@ launch_validation_app <- function(
               width = 6,
               splitLayout(
                 cellWidths = c("80%", "20%"),
-                textInput("spec_path", "Spectrogram cuts path",
-                  value = NULL, width = "100%",
+                textInput(
+                  "spec_path", "Spectrogram cuts path",
+                  value = session_data$spec_path, width = "100%",
                   placeholder = "Paste or load here the path to export the spectrogram"
                 ),
                 shinyDirButton(
@@ -901,24 +960,15 @@ launch_validation_app <- function(
               )
             ),
             tableOutput("cut_i_tab"),
-            column(
-              width = 3,
-              plotOutput("plot_binomial", height = "340px")
-            ),
-            column(
-              width = 3,
-              plotOutput("plot_roc", height = "340px")
-            ),
-            column(
-              width = 3,
-              plotOutput("plot_prec_rec", height = "340px")
-            ),
+            column(width = 3, plotOutput("plot_binomial", height = "340px")),
+            column(width = 3, plotOutput("plot_roc", height = "340px")),
+            column(width = 3, plotOutput("plot_prec_rec", height = "340px")),
             column(
               width = 6,
               splitLayout(
                 cellWidths = c("80%", "20%"),
                 textInput("diag_tab_path", "Diagnostics table path",
-                  value = NULL, width = "100%",
+                  value = session_data$diag_tab_path, width = "100%",
                   placeholder = "Paste or load here the path to export the .csv file"
                 ),
                 shinyDirButton(
