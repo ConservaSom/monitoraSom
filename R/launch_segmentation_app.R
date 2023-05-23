@@ -62,14 +62,11 @@
 #' @export
 launch_segmentation_app <- function(
   preset_path = NULL, preset_id = NULL,
-  user, soundscapes_path,
-  roi_tables_path, cuts_path, labels_file,
-  fastdisp = TRUE, label_angle = 90, show_label = TRUE,
-  dyn_range = c(-60, 0), wl = 1024, ovlp = 0,
-  color_scale = "inferno", wav_player_type = "R session",
-  wav_player_path = "play", session_notes = NULL,
-  zoom_freq = c(0, 10), nav_autosave = FALSE,
-  sp_list = "CBRO-2021 (Brazil)"
+  user, soundscapes_path, roi_tables_path, cuts_path, labels_file,
+  fastdisp = TRUE, label_angle = 90, show_label = TRUE, dyn_range = c(-60, 0),
+  wl = 1024, ovlp = 0, color_scale = "inferno", wav_player_type = "R session",
+  wav_player_path = "play", session_notes = NULL, zoom_freq = c(0, 10),
+  nav_autosave = FALSE, sp_list = "CBRO-2021 (Brazil)"
 ) {
 
   require(shiny)

@@ -83,8 +83,9 @@ val_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_val_large/presets/pr
     glimpse()
 
 
+
 launch_validation_app(
-  preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/presets",
+  preset_path = "/home/grosa/R_repos/monitoraSom/example/app_presets/",
   preset_name = "launching_linux_default",
   validation_user = "Rosa G. L. M.",
   templates_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/templates/",

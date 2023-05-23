@@ -9,7 +9,7 @@
 #'
 #' @param preset_path Path from which presets can be imported and to which new
 #'   presets can be exported.
-#' @param preset_name Name of the preset to be exported.
+#' @param preset_id Name of the preset to be exported.
 #' @param validation_user User name.
 #' @param templates_path Path to the template wave files.
 #' @param soundscapes_path Path to the soundscape wave files.
@@ -44,7 +44,7 @@
 #'
 #' @export
 launch_validation_app <- function(
-    preset_path = NULL, preset_name = NULL,
+    preset_path = NULL, preset_id = NULL,
     validation_user, templates_path, soundscapes_path,
     input_path, output_path, wav_cuts_path,
     spec_path, diag_tab_path,
@@ -334,18 +334,11 @@ launch_validation_app <- function(
     warning("Warning! The informed 'diag_tab_path' was not found locally.")
   }
 
-  if (!is.null(preset_path) & !is.null(preset_name)) {
-    preset_file <- file.path(preset_path, paste0("preset_", preset_name, ".rds"))
-    saveRDS(session_data, preset_file)
-    message("Preset sucessfully exported to the selected destination!")
-  }
-
   if (!is.null(preset_path) & !is.null(preset_id)) {
     # todo Adicionar esse prefixo no arquivo de preset
     preset_file <- file.path(
       preset_path, paste0("validation_preset_", preset_id, ".rds")
     )
-
     preset_to_export <- list(
       validation_user = session_data$validation_user,
       templates_path = session_data$templates_path,
