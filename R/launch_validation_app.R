@@ -31,17 +31,16 @@
 #'
 #' @export
 launch_validation_app <- function(
-  preset_path = NULL, preset_name = NULL,
-  validation_user, templates_path, soundscapes_path,
-  input_path, output_path, wav_cuts_path,
-  spec_path, diag_tab_path,
-  wav_player_path = "play", wav_player_type = "HTML player",
-  val_subset = c("NA", "TP", "FP", "UN"), min_score = 0,
-  time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(-60, 0),
-  color_scale = "inferno", zoom_freq = c(0, 4),
-  nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
-  overwrite = FALSE, session_notes
-  ) {
+    preset_path = NULL, preset_name = NULL,
+    validation_user, templates_path, soundscapes_path,
+    input_path, output_path, wav_cuts_path,
+    spec_path, diag_tab_path,
+    wav_player_path = "play", wav_player_type = "HTML player",
+    val_subset = c("NA", "TP", "FP", "UN"), min_score = 0,
+    time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(-60, 0),
+    color_scale = "inferno", zoom_freq = c(0, 4),
+    nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
+    overwrite = FALSE, session_notes) {
   require(dplyr, warn.conflicts = FALSE)
   require(tidyr)
   require(ggplot2)
@@ -457,236 +456,236 @@ launch_validation_app <- function(
     "s", #
     "d", #
     "1", #
-    "2"  #
+    "2" #
   )
 
   shinyApp(
     ui = dashboardPage(
       header = dashboardHeader(title = "MonitoraSom", titleWidth = "400px"),
       sidebar = dashboardSidebar(
-          tags$head(tags$style(HTML(".form-group { margin-bottom: 10px !important; }"))),
-          width = "400px",
-          # Pop up control. Credits to: soundgen::annotation_app()
-          sidebarMenu(
-            menuItem(
-              "User setup",
-              tabName = "user_setup_tab", startExpanded = TRUE,
-              icon = icon(lib = "glyphicon", "glyphicon glyphicon-user"),
-              # todo Mudar de input path para "user_setup"
-              actionButton("input_path_confirm", "Confirm Paths",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
-                style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
-              ),
-              shinyBS::bsTooltip("input_path_confirm",
-                title = "<b>Part 1 of 2 required to start the session</b>. All inputs marked with (*) are required for this step",
-                placement = "right", trigger = "hover",
-                options = list(delay = list(show = 1000, hide = 0))
-              ),
-              tags$style(".tooltip {width: 300px;}"),
-              splitLayout(
-                cellWidths = c("75%", "25%"),
-                # path to the soundscape directory
-                textAreaInput(
-                  inputId = "preset_path", label = "Path to preset files (.rds)",
-                  value = session_data$preset_path,
-                  placeholder = "Paste or load path here",
-                  height = "40px", width = "395px", resize = "vertical"
-                ),
-                shinyDirButton(
-                  id = "preset_path_load", label = "Load", title = "Teste",
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-                ),
-                tags$style(type = "text/css", "#preset_path_load { margin-top: 40px;}")
-              ),
-              selectizeInput("available_presets", "Available presets",
-                choices = "Export new preset file...", width = "100%",
-              ),
-              fluidRow(
-                column(
-                  width = 5, offset = "0px",
-                  actionButton(
-                    "export_preset", "Export preset",
-                    icon = icon(lib = "glyphicon", "glyphicon glyphicon-export"),
-                    width = "170px"
-                  )
-                ),
-                column(
-                  width = 6, offset = "0px",
-                  actionButton(
-                    "import_preset", "Import preset",
-                    icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
-                    width = "170px"
-                  )
-                ),
-                tags$style(type = "text/css", "#export_preset { margin-top: 0px;}"),
-                tags$style(type = "text/css", "#import_preset { margin-top: 0px;}")
-              ),
-              textInput("validation_user", "User name (*):",
-                value = session_data$validation_user,
-                placeholder = "Identify yourself here", width = "100%"
-              ),
-              splitLayout(
-                cellWidths = c("75%", "25%"),
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
-                textAreaInput("templates_path", "Templates path (*)",
-                  value = session_data$templates_path,
-                  placeholder = "Paste or load path here",
-                  height = "40px", resize = "vertical", width = "100%"
-                ),
-                shinyDirButton(
-                  id = "templates_path_load", label = "Load", title = "Teste",
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-                ),
-                tags$style(type = "text/css", "#templates_path_load { margin-top: 40px;}")
-              ),
-              splitLayout(
-                cellWidths = c("75%", "25%"),
-                textAreaInput("soundscapes_path", "Soundscapes path (*)",
-                  value = session_data$soundscapes_path,
-                  placeholder = "Paste or load path here",
-                  height = "40px", width = "395px", resize = "vertical"
-                ),
-                shinyDirButton(
-                  id = "soundscapes_path_load", label = "Load", title = "Teste",
-                  multiple = FALSE,
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-                ),
-                tags$style(type = "text/css", "#soundscapes_path_load { margin-top: 40px;}")
-              ),
-              splitLayout(
-                cellWidths = c("75%", "25%"),
-                textAreaInput("input_path", "Detections table path (input) (*)",
-                  value = session_data$input_path,
-                  placeholder = "Paste or load path here",
-                  height = "40px", width = "395px", resize = "vertical"
-                ),
-                shinyFilesButton(
-                  id = "input_path_load", label = "Load", title = "Teste", multiple = FALSE,
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-                ),
-                tags$style(type = "text/css", "#input_path_load { margin-top: 40px;}")
-              ),
-              splitLayout(
-                cellWidths = c("75%", "25%"),
-                textAreaInput("output_path", "Validated data path (output) (*)",
-                  value = session_data$output_path,
-                  placeholder = "Paste or load path here",
-                  height = "40px", width = "395px", resize = "vertical"
-                ),
-                shinyFilesButton(
-                  id = "output_path_load", label = "Load", title = "Teste", multiple = FALSE,
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-export")
-                ),
-                tags$style(type = "text/css", "#output_path_load { margin-top: 40px;}")
-              )
-            ),
-            menuItem(
-              "Session Setup",
+        tags$head(tags$style(HTML(".form-group { margin-bottom: 10px !important; }"))),
+        width = "400px",
+        # Pop up control. Credits to: soundgen::annotation_app()
+        sidebarMenu(
+          menuItem(
+            "User setup",
+            tabName = "user_setup_tab", startExpanded = TRUE,
+            icon = icon(lib = "glyphicon", "glyphicon glyphicon-user"),
+            # todo Mudar de input path para "user_setup"
+            actionButton("input_path_confirm", "Confirm Paths",
               icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
-              tabName = "sect_setup_tab",
-              actionButton(
-                "confirm_session_setup", "Confirm session setup",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
-                style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
-              ),
-              # todo Template name is not among validation presets. Is is a must?
-              selectInput(
-                "template_name", "Template file (*)",
-                choices = NULL, width = "100%"
-              ),
-              selectizeInput(
-                "val_subset", "Filter validation inputs (*)",
-                choices = c(
-                  "True positives - TP" = "TP", "False positives - FP" = "FP",
-                  "Unknown - UN" = "UN", "Not reviewed - NA" = "NA"
-                ),
-                selected = session_data$val_subset, multiple = TRUE, width = "100%"
-              ),
-              sliderInput(
-                "min_score", "Minimum correlation (*)",
-                width = "100%", min = 0, max = 1, step = 0.01,
-                value = session_data$min_score
-              )
+              style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
             ),
-            menuItem(
-              "Spectrogram Parameters",
-              tabName = "spec_par_tab",
-              icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
-              sliderInput(
-                "time_pads", "Pad size (s):",
-                min = 0, max = 16, width = "100%",
-                value = session_data$time_pads
-              ),
-              sliderInput(
-                "dyn_range", "Dynamic range (dB):",
-                min = -100, max = 10, step = 10, width = "100%",
-                value = session_data$dyn_range
-              ),
-              sliderTextInput(
-                "wl", "Window length:",
-                choices = c(128, 256, 512, 1024, 2048, 4096),
-                grid = TRUE, width = "100%",
-                selected = session_data$wl
-              ),
-              sliderInput(
-                "ovlp", "Overlap (%):",
-                min = 0, max = 80, step = 10, width = "100%",
-                value = session_data$ovlp
-              ),
-              selectInput(
-                "color_scale", "Color:",
-                choices = c(
-                  "viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2"
-                  ),
-                width = "100%", selected = session_data$color_scale
-              ),
-              radioButtons(
-                "wav_player_type", "Sound player",
-                choices = c("HTML player", "R session", "External player"), inline = TRUE,
-                selected = session_data$wav_player_type
-              ),
-              splitLayout(
-                cellWidths = c("75%", "25%"),
-                textAreaInput(
-                  "wav_player_path",
-                  label = "Path to player executable (default = 'play')",
-                  height = "40px", resize = "vertical",
-                  value = session_data$wav_player_path
-                ),
-                shinyDirButton(
-                  id = "wav_player_path_load", label = "Load", title = "Teste",
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-export")
-                ),
-                tags$style(type = "text/css", "#wav_player_path_load { margin-top: 40px;}")
-              ),
-              actionButton(
-                inputId = "get_templ_pars",
-                label = "Get current template parameters", icon = icon("gear"),
-                style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
-              ),
-              actionButton(
-                inputId = "default_pars",
-                label = "Reset to default parameters", icon = icon("gear"),
-                style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
-              )
+            shinyBS::bsTooltip("input_path_confirm",
+              title = "<b>Part 1 of 2 required to start the session</b>. All inputs marked with (*) are required for this step",
+              placement = "right", trigger = "hover",
+              options = list(delay = list(show = 1000, hide = 0))
             ),
-            menuItem(
-              "Session Notes",
-              icon = icon(lib = "glyphicon", "glyphicon glyphicon-pencil"),
-              tabName = "tab_notes",
+            tags$style(".tooltip {width: 300px;}"),
+            splitLayout(
+              cellWidths = c("75%", "25%"),
+              # path to the soundscape directory
               textAreaInput(
-                "session_notes", "Session notes",
-                placeholder = "Write session notes here", width = "100%",
-                height = "150px", resize = "vertical",
-                value = session_data$session_notes
-              )
+                inputId = "preset_path", label = "Path to preset files (.rds)",
+                value = session_data$preset_path,
+                placeholder = "Paste or load path here",
+                height = "40px", width = "395px", resize = "vertical"
+              ),
+              shinyDirButton(
+                id = "preset_path_load", label = "Load", title = "Teste",
+                icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
+              ),
+              tags$style(type = "text/css", "#preset_path_load { margin-top: 40px;}")
+            ),
+            selectizeInput("available_presets", "Available presets",
+              choices = "Export new preset file...", width = "100%",
+            ),
+            fluidRow(
+              column(
+                width = 5, offset = "0px",
+                actionButton(
+                  "export_preset", "Export preset",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-export"),
+                  width = "170px"
+                )
+              ),
+              column(
+                width = 6, offset = "0px",
+                actionButton(
+                  "import_preset", "Import preset",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
+                  width = "170px"
+                )
+              ),
+              tags$style(type = "text/css", "#export_preset { margin-top: 0px;}"),
+              tags$style(type = "text/css", "#import_preset { margin-top: 0px;}")
+            ),
+            textInput("validation_user", "User name (*):",
+              value = session_data$validation_user,
+              placeholder = "Identify yourself here", width = "100%"
+            ),
+            splitLayout(
+              cellWidths = c("75%", "25%"),
+              icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
+              textAreaInput("templates_path", "Templates path (*)",
+                value = session_data$templates_path,
+                placeholder = "Paste or load path here",
+                height = "40px", resize = "vertical", width = "100%"
+              ),
+              shinyDirButton(
+                id = "templates_path_load", label = "Load", title = "Teste",
+                icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
+              ),
+              tags$style(type = "text/css", "#templates_path_load { margin-top: 40px;}")
+            ),
+            splitLayout(
+              cellWidths = c("75%", "25%"),
+              textAreaInput("soundscapes_path", "Soundscapes path (*)",
+                value = session_data$soundscapes_path,
+                placeholder = "Paste or load path here",
+                height = "40px", width = "395px", resize = "vertical"
+              ),
+              shinyDirButton(
+                id = "soundscapes_path_load", label = "Load", title = "Teste",
+                multiple = FALSE,
+                icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
+              ),
+              tags$style(type = "text/css", "#soundscapes_path_load { margin-top: 40px;}")
+            ),
+            splitLayout(
+              cellWidths = c("75%", "25%"),
+              textAreaInput("input_path", "Detections table path (input) (*)",
+                value = session_data$input_path,
+                placeholder = "Paste or load path here",
+                height = "40px", width = "395px", resize = "vertical"
+              ),
+              shinyFilesButton(
+                id = "input_path_load", label = "Load", title = "Teste", multiple = FALSE,
+                icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
+              ),
+              tags$style(type = "text/css", "#input_path_load { margin-top: 40px;}")
+            ),
+            splitLayout(
+              cellWidths = c("75%", "25%"),
+              textAreaInput("output_path", "Validated data path (output) (*)",
+                value = session_data$output_path,
+                placeholder = "Paste or load path here",
+                height = "40px", width = "395px", resize = "vertical"
+              ),
+              shinyFilesButton(
+                id = "output_path_load", label = "Load", title = "Teste", multiple = FALSE,
+                icon = icon(lib = "glyphicon", "glyphicon glyphicon-export")
+              ),
+              tags$style(type = "text/css", "#output_path_load { margin-top: 40px;}")
             )
           ),
-          actionButton(
-            "end_session", "End validation session",
-            icon = icon(lib = "glyphicon", "glyphicon glyphicon-log-out"),
-            style = "color: #fff; background-color: #b73333; border-color: #8d2c2c; width: 370px;"
+          menuItem(
+            "Session Setup",
+            icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
+            tabName = "sect_setup_tab",
+            actionButton(
+              "confirm_session_setup", "Confirm session setup",
+              icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
+              style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
+            ),
+            # todo Template name is not among validation presets. Is is a must?
+            selectInput(
+              "template_name", "Template file (*)",
+              choices = NULL, width = "100%"
+            ),
+            selectizeInput(
+              "val_subset", "Filter validation inputs (*)",
+              choices = c(
+                "True positives - TP" = "TP", "False positives - FP" = "FP",
+                "Unknown - UN" = "UN", "Not reviewed - NA" = "NA"
+              ),
+              selected = session_data$val_subset, multiple = TRUE, width = "100%"
+            ),
+            sliderInput(
+              "min_score", "Minimum correlation (*)",
+              width = "100%", min = 0, max = 1, step = 0.01,
+              value = session_data$min_score
+            )
+          ),
+          menuItem(
+            "Spectrogram Parameters",
+            tabName = "spec_par_tab",
+            icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
+            sliderInput(
+              "time_pads", "Pad size (s):",
+              min = 0, max = 16, width = "100%",
+              value = session_data$time_pads
+            ),
+            sliderInput(
+              "dyn_range", "Dynamic range (dB):",
+              min = -100, max = 10, step = 10, width = "100%",
+              value = session_data$dyn_range
+            ),
+            sliderTextInput(
+              "wl", "Window length:",
+              choices = c(128, 256, 512, 1024, 2048, 4096),
+              grid = TRUE, width = "100%",
+              selected = session_data$wl
+            ),
+            sliderInput(
+              "ovlp", "Overlap (%):",
+              min = 0, max = 80, step = 10, width = "100%",
+              value = session_data$ovlp
+            ),
+            selectInput(
+              "color_scale", "Color:",
+              choices = c(
+                "viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2"
+              ),
+              width = "100%", selected = session_data$color_scale
+            ),
+            radioButtons(
+              "wav_player_type", "Sound player",
+              choices = c("HTML player", "R session", "External player"), inline = TRUE,
+              selected = session_data$wav_player_type
+            ),
+            splitLayout(
+              cellWidths = c("75%", "25%"),
+              textAreaInput(
+                "wav_player_path",
+                label = "Path to player executable (default = 'play')",
+                height = "40px", resize = "vertical",
+                value = session_data$wav_player_path
+              ),
+              shinyDirButton(
+                id = "wav_player_path_load", label = "Load", title = "Teste",
+                icon = icon(lib = "glyphicon", "glyphicon glyphicon-export")
+              ),
+              tags$style(type = "text/css", "#wav_player_path_load { margin-top: 40px;}")
+            ),
+            actionButton(
+              inputId = "get_templ_pars",
+              label = "Get current template parameters", icon = icon("gear"),
+              style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
+            ),
+            actionButton(
+              inputId = "default_pars",
+              label = "Reset to default parameters", icon = icon("gear"),
+              style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
+            )
+          ),
+          menuItem(
+            "Session Notes",
+            icon = icon(lib = "glyphicon", "glyphicon glyphicon-pencil"),
+            tabName = "tab_notes",
+            textAreaInput(
+              "session_notes", "Session notes",
+              placeholder = "Write session notes here", width = "100%",
+              height = "150px", resize = "vertical",
+              value = session_data$session_notes
+            )
           )
+        ),
+        actionButton(
+          "end_session", "End validation session",
+          icon = icon(lib = "glyphicon", "glyphicon glyphicon-log-out"),
+          style = "color: #fff; background-color: #b73333; border-color: #8d2c2c; width: 370px;"
+        )
       ),
       body = dashboardBody(
 
@@ -798,32 +797,31 @@ launch_validation_app <- function(
               )
             )
           ),
-
           actionButton(
             "button_tp",
             HTML("<b>TRUE POSITIVE</b>"),
             icon = icon("check", lib = "font-awesome"),
             width = "100%", style =
-            "color: #000000; background-color: #6ae46a; height: 55px" #
+              "color: #000000; background-color: #6ae46a; height: 55px" #
           ),
           actionButton(
             "button_un", HTML("<b>UNKNOWN</b>"),
             icon = icon("question", lib = "font-awesome"),
             width = "100%", style =
-            "color: #000000; background-color: #ffba52; height: 55px" #
+              "color: #000000; background-color: #ffba52; height: 55px" #
           ),
           actionButton(
             "button_fp",
             HTML("<b>FALSE POSITIVE</b>"),
             icon = icon("x", lib = "font-awesome"),
             width = "100%", style =
-            "color: #000000; background-color: #ff7e7e; height: 55px" #
+              "color: #000000; background-color: #ff7e7e; height: 55px" #
           ),
           actionButton(
             "button_save", HTML("<b>Export output</b>"),
             icon = icon("save", lib = "font-awesome"),
             width = "100%", style =
-            "color: #ffffff; background-color: #000000; height: 55px" #
+              "color: #ffffff; background-color: #000000; height: 55px" #
           )
         ),
         tabBox(
@@ -945,8 +943,8 @@ launch_validation_app <- function(
               selectInput(
                 "diag_balance", "Dataset balance method",
                 choices = c(
-                  "None", "Downsample larger class", "Upsample smaller  class",  "ROSE"
-                  ),
+                  "None", "Downsample larger class", "Upsample smaller  class", "ROSE"
+                ),
                 selected = "None", width = "100%"
               ),
               selectInput(
@@ -980,7 +978,6 @@ launch_validation_app <- function(
                 )
               )
             ),
-
             column(
               width = 6,
               splitLayout(
@@ -996,7 +993,8 @@ launch_validation_app <- function(
                 )
               ),
               actionButton(
-                "confirm_diag_tab_export", "Export table (y)", width = "100%",
+                "confirm_diag_tab_export", "Export table (y)",
+                width = "100%",
                 style = "color: #fff; background-color: #33b76e; border-color: #5da42e;"
               )
             )
@@ -1361,16 +1359,16 @@ launch_validation_app <- function(
         }
       })
 
-    #   # todo select soundscape_name
-    #   # observeEvent(input$soundscape_name, {
-    #   #   req(df_cut(), det_counter(), det_i())
-    #   #   i <- which(df_cut()$soundscape_name == input$soundscape_name)[1]
-    #   #   if (!is.null(i)) det_counter(i)
-    #   #   updateSelectInput(
-    #   #     session, "detec",
-    #   #     selected = isolate(df_cut()$detection_id[det_counter()])
-    #   #     )
-    #   # })
+      #   # todo select soundscape_name
+      #   # observeEvent(input$soundscape_name, {
+      #   #   req(df_cut(), det_counter(), det_i())
+      #   #   i <- which(df_cut()$soundscape_name == input$soundscape_name)[1]
+      #   #   if (!is.null(i)) det_counter(i)
+      #   #   updateSelectInput(
+      #   #     session, "detec",
+      #   #     selected = isolate(df_cut()$detection_id[det_counter()])
+      #   #     )
+      #   # })
 
       # Reactive object containing the wav of the active template
       rec_template <- reactiveVal(NULL)
@@ -1403,7 +1401,7 @@ launch_validation_app <- function(
           if (file.exists(wav_path) & input$wav_player_type == "HTML player") {
             temp_file <- tempfile(
               pattern = "template_", tmpdir = here("temp"), fileext = ".wav"
-              ) %>%
+            ) %>%
               gsub("\\\\", "/", .)
             if (zoom_pad() != 0) {
               res <- cutw(
@@ -1424,8 +1422,9 @@ launch_validation_app <- function(
             )
             unlink("template_.*.wav")
             list.files(
-              here("temp"), pattern = "template_.*.wav", full.names = TRUE
-              ) %>%
+              here("temp"),
+              pattern = "template_.*.wav", full.names = TRUE
+            ) %>%
               .[. != temp_file] %>%
               file.remove()
           } else {
@@ -1492,7 +1491,7 @@ launch_validation_app <- function(
         )
         temp_rec <- rec_template()
         monitoraSom::fast_spectro(
-        # efficient_spectro(
+          # efficient_spectro(
           rec = temp_rec, f = df_template()$sample_rate, wl = input$wl,
           ovlp = input$ovlp, flim = c(input$zoom_freq[1], input$zoom_freq[2]),
           dyn_range = c(input$dyn_range[1], input$dyn_range[2]),
@@ -1580,11 +1579,11 @@ launch_validation_app <- function(
           )
           unlink("detection_.*.wav")
           list.files(
-            here("temp"), pattern = "detection_.*.wav", full.names = TRUE
-            ) %>%
+            here("temp"),
+            pattern = "detection_.*.wav", full.names = TRUE
+          ) %>%
             .[. != temp_file] %>%
             file.remove()
-
         } else {
           removeUI(selector = "#detection_player_selector")
         }
@@ -1610,7 +1609,7 @@ launch_validation_app <- function(
               det_i()$soundscape_file, "\n",
               "Detection ID: '", det_i()$detection_id, "' in '",
               basename(input$output_path), "'"
-              ),
+            ),
             x = -Inf, y = Inf, hjust = 0, vjust = 1,
             color = "white", fill = "black"
           ) +
@@ -1686,8 +1685,9 @@ launch_validation_app <- function(
                 )
                 unlink("soundscape_.*.wav")
                 list.files(
-                  here("temp"), pattern = "soundscape_.*.wav", full.names = TRUE
-                  ) %>%
+                  here("temp"),
+                  pattern = "soundscape_.*.wav", full.names = TRUE
+                ) %>%
                   .[. != temp_file] %>%
                   file.remove()
               } else if (input$wav_player_type != "HTML player") {
@@ -1697,15 +1697,15 @@ launch_validation_app <- function(
             }
           }
         } else {
-            removeUI(selector = "#soundscape_player_selector")
-            hideElement("play_soundscape")
-          }
+          removeUI(selector = "#soundscape_player_selector")
+          hideElement("play_soundscape")
+        }
       })
 
       spectro_soundscape <- reactive({
         if (input$show_soundscape == TRUE) {
           monitoraSom::fast_spectro(
-          # efficient_spectro(
+            # efficient_spectro(
             rec = rec_soundscape(), f = df_soundscape()$sample_rate,
             wl = input$wl, ovlp = input$ovlp,
             flim = c(input$zoom_freq[1], input$zoom_freq[2]),
@@ -1716,43 +1716,43 @@ launch_validation_app <- function(
           return()
         }
       })
-    output$SoundscapeSpectrogram <- renderPlot({
-      req(spectro_soundscape(), df_detections(), det_i())
-      if (input$show_soundscape == TRUE) {
-        inactive_detecs <- df_detections() %>%
-          filter(detection_id != det_i()$detection_id)
+      output$SoundscapeSpectrogram <- renderPlot({
+        req(spectro_soundscape(), df_detections(), det_i())
+        if (input$show_soundscape == TRUE) {
+          inactive_detecs <- df_detections() %>%
+            filter(detection_id != det_i()$detection_id)
 
-        spectro_soundscape() +
-          annotate(
-            "rect",
-            alpha = 0.2, linewidth = 1, color = "yellow",
-            fill = "yellow", color = "yellow",
-            xmin = det_i()$detection_start,
-            xmax = det_i()$detection_end,
-            ymin = det_i()$min_freq, ymax = det_i()$max_freq
-          ) +
-          annotate(
-            "rect",
-            alpha = 0, linewidth = 1, linetype = "dashed", color = "#000000",
-            fill = "#000000", color = "#000000",
-            xmin = inactive_detecs$detection_start,
-            xmax = inactive_detecs$detection_end,
-            ymin = inactive_detecs$min_freq, ymax = inactive_detecs$max_freq
-          ) +
-          annotate(
-            "label",
-            label = paste0(
-              det_i()$soundscape_file, "\n",
-              "Detection ID: '", det_i()$detection_id, "' in '",
-              basename(input$output_path), "'"
-            ),
-            x = -Inf, y = Inf, hjust = 0, vjust = 1,
-            color = "white", fill = "black"
-          )
-      } else {
-        return()
-      }
-    })
+          spectro_soundscape() +
+            annotate(
+              "rect",
+              alpha = 0.2, linewidth = 1, color = "yellow",
+              fill = "yellow", color = "yellow",
+              xmin = det_i()$detection_start,
+              xmax = det_i()$detection_end,
+              ymin = det_i()$min_freq, ymax = det_i()$max_freq
+            ) +
+            annotate(
+              "rect",
+              alpha = 0, linewidth = 1, linetype = "dashed", color = "#000000",
+              fill = "#000000", color = "#000000",
+              xmin = inactive_detecs$detection_start,
+              xmax = inactive_detecs$detection_end,
+              ymin = inactive_detecs$min_freq, ymax = inactive_detecs$max_freq
+            ) +
+            annotate(
+              "label",
+              label = paste0(
+                det_i()$soundscape_file, "\n",
+                "Detection ID: '", det_i()$detection_id, "' in '",
+                basename(input$output_path), "'"
+              ),
+              x = -Inf, y = Inf, hjust = 0, vjust = 1,
+              color = "white", fill = "black"
+            )
+        } else {
+          return()
+        }
+      })
 
       observeEvent(input$show_soundscape, {
         if (input$show_soundscape == TRUE) {
@@ -1762,68 +1762,68 @@ launch_validation_app <- function(
         }
       })
 
-    # in case no wav player is defined, it wil'l use "play", which requires SoX to be instaled in the OS
-    observeEvent(input$wav_player_type, {
-      x <- input$wav_player_type
-      if (x == "R session") {
-        updateTextInput(session, "wav_player_path", value = "play")
-        tuneR::setWavPlayer("play")
-        # todo Adicionar aqui uma opção para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
-        showElement("play_detec")
-        showElement("play_template")
-        # if (input$show_soundscape == TRUE) showElement("play_soundscape")
-      } else if (x == "External player" & !is.null(input$wav_player_path)) {
-        if (file.exists(input$wav_player_path)) {
-          tuneR::setWavPlayer(input$wav_player_path)
+      # in case no wav player is defined, it wil'l use "play", which requires SoX to be instaled in the OS
+      observeEvent(input$wav_player_type, {
+        x <- input$wav_player_type
+        if (x == "R session") {
+          updateTextInput(session, "wav_player_path", value = "play")
+          tuneR::setWavPlayer("play")
+          # todo Adicionar aqui uma opção para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
           showElement("play_detec")
           showElement("play_template")
           # if (input$show_soundscape == TRUE) showElement("play_soundscape")
-        } else {
-          updateRadioButtons(session, "wav_player_type", select = "R session")
+        } else if (x == "External player" & !is.null(input$wav_player_path)) {
+          if (file.exists(input$wav_player_path)) {
+            tuneR::setWavPlayer(input$wav_player_path)
+            showElement("play_detec")
+            showElement("play_template")
+            # if (input$show_soundscape == TRUE) showElement("play_soundscape")
+          } else {
+            updateRadioButtons(session, "wav_player_type", select = "R session")
+          }
         }
-      }
-      if (x == "HTML player") {
-        hideElement("play_detec")
-        hideElement("play_template")
-        hideElement("play_soundscape")
-      }
-    })
+        if (x == "HTML player") {
+          hideElement("play_detec")
+          hideElement("play_template")
+          hideElement("play_soundscape")
+        }
+      })
 
-    # Template player (not HTML)
-    observeEvent(input$play_template, {
-      req(rec_template())
-      tuneR::play(object = rec_template())
-    })
-    observeEvent(input$hotkeys, {
-      req(
-        rec_template(), input$hotkeys == "1",
-        input$wav_player_type %in% c("R session", "External player")
-      )
-      tuneR::play(object = rec_template())
-    })
+      # Template player (not HTML)
+      observeEvent(input$play_template, {
+        req(rec_template())
+        tuneR::play(object = rec_template())
+      })
+      observeEvent(input$hotkeys, {
+        req(
+          rec_template(), input$hotkeys == "1",
+          input$wav_player_type %in% c("R session", "External player")
+        )
+        tuneR::play(object = rec_template())
+      })
 
-    # Soundscape player (not HTML)
-    observeEvent(input$play_soundscape, {
-      req(
-        rec_soundscape(),
-        input$wav_player_type %in% c("R session", "External player")
-      )
-      tuneR::play(object = rec_soundscape())
-    })
+      # Soundscape player (not HTML)
+      observeEvent(input$play_soundscape, {
+        req(
+          rec_soundscape(),
+          input$wav_player_type %in% c("R session", "External player")
+        )
+        tuneR::play(object = rec_soundscape())
+      })
 
-    # Detection player (not HTML)
-    observeEvent(input$play_detec, {
-      req(rec_detection())
-      tuneR::play(object = rec_detection())
-    })
+      # Detection player (not HTML)
+      observeEvent(input$play_detec, {
+        req(rec_detection())
+        tuneR::play(object = rec_detection())
+      })
 
-    observeEvent(input$hotkeys, {
-      req(
-        rec_detection(), input$hotkeys == "2",
-        input$wav_player_type %in% c("R session", "External player")
-      )
-      tuneR::play(object = rec_detection())
-    })
+      observeEvent(input$hotkeys, {
+        req(
+          rec_detection(), input$hotkeys == "2",
+          input$wav_player_type %in% c("R session", "External player")
+        )
+        tuneR::play(object = rec_detection())
+      })
 
       validation_input <- reactiveVal(NULL)
       observeEvent(input$button_tp, validation_input("TP"))
@@ -2056,7 +2056,8 @@ launch_validation_app <- function(
             pivot_wider(names_from = "validation", values_from = "n") %>%
             rename(Template = template_name)
         },
-        width = "100%")
+        width = "100%"
+      )
 
       output$count_full_tab <- renderTable(
         {
@@ -2144,7 +2145,7 @@ launch_validation_app <- function(
 
             mod_plot <- ggplot(
               df_diag_input(), aes(x = detection_score, y = validation_bin)
-              ) +
+            ) +
               geom_point() +
               stat_smooth(
                 formula = y ~ x, method = "glm",
@@ -2273,19 +2274,22 @@ launch_validation_app <- function(
         }
       })
 
-      output$cut_i_tab <- renderTable({
-        req(cut_i_tab())
-        cut_i_tab() %>%
-          mutate(tp = as.integer(tp), fp = as.integer(fp)) %>%
-          select(-tn, -fn, -tnr, -fnr, -selected) %>%
-          setNames(
-            c(
-              "Template", "Threshold", "TP (n)", "FP (n)",
-              "TP Rate", "FP Rate", "Precision", "Recall",
-              "Sensibility", "Specificity"
+      output$cut_i_tab <- renderTable(
+        {
+          req(cut_i_tab())
+          cut_i_tab() %>%
+            mutate(tp = as.integer(tp), fp = as.integer(fp)) %>%
+            select(-tn, -fn, -tnr, -fnr, -selected) %>%
+            setNames(
+              c(
+                "Template", "Threshold", "TP (n)", "FP (n)",
+                "TP Rate", "FP Rate", "Precision", "Recall",
+                "Sensibility", "Specificity"
+              )
             )
-          )
-      }, width = "75%")
+        },
+        width = "75%"
+      )
       output$plot_binomial <- renderPlot({
         req(mod_plot_react())
         mod_plot_react()
@@ -2364,19 +2368,16 @@ launch_validation_app <- function(
         ) %>%
           as.character() %>%
           gsub("//", "/", .)
-        updateTextInput(
-          session,
-          inputId = "preset_path", value = res
-        )
+        updateTextInput(session, inputId = "preset_path", value = res)
       })
 
       # Observe the presets path to update the list of available presets
       # todo Modificar o prefixo dos presets para "validation_preset_"
       observeEvent(input$preset_path, {
         res_list <- list.files(
-          path = input$preset_path, pattern = "^preset_.*\\.rds$"
-          ) %>%
-          str_remove("preset_") %>%
+          path = input$preset_path, pattern = "^validation_preset_.*\\.rds$"
+        ) %>%
+          str_remove("validation_preset_") %>%
           str_remove(".rds")
         if (!is.null(res_list)) {
           updateSelectInput(
@@ -2431,7 +2432,7 @@ launch_validation_app <- function(
         ) {
           preset_file <- file.path(
             input$preset_path,
-            paste0("preset_", input$available_presets, ".rds")
+            paste0("validation_preset_", input$available_presets, ".rds")
           )
           if (file.exists(preset_file)) {
             saved_preset <- readRDS(preset_file)
@@ -2702,7 +2703,7 @@ launch_validation_app <- function(
       observeEvent(input$end_session, {
         req(df_cut(), df_output())
 
-        #! BUG
+        # ! BUG
 
         dfa <- df_cut() %>%
           dplyr::select(tidyr::contains("validation"))
