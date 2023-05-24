@@ -89,6 +89,7 @@ fetch_score_peaks_i <- function(
       soundscape_file = match_res_i$soundscape_file,
       template_path = match_res_i$template_path,
       template_file = match_res_i$template_file,
+      template_name = match_res_i$template_name,
       template_min_freq = match_res_i$template_min_freq,
       template_max_freq = match_res_i$template_max_freq,
       detection_start = as.vector(
@@ -106,9 +107,10 @@ fetch_score_peaks_i <- function(
       detec_top_n = NA
     ) %>%
     fselect(
-      soundscape_path, soundscape_file, template_path, template_file,
-      template_min_freq, template_max_freq, detection_start, detection_end,
-      detection_wl, detection_ovlp, detection_sample_rate, detection_buffer,
+      soundscape_path, soundscape_file,
+      template_path, template_file, template_name, template_min_freq,
+      template_max_freq, detection_start, detection_end, detection_wl,
+      detection_ovlp, detection_sample_rate, detection_buffer,
       detec_min_score, detec_min_quant, detec_top_n, peak_index, peak_score,
       peak_quant
     )

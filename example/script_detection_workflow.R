@@ -65,8 +65,6 @@ glimpse(df_templates_A)
 df_templates_B <- fetch_template_metadata(
   path = path_roi_tabs, method = "roi_table"
 )
-# todo Resolver template file e template_name
-# todo Fazer uma função para adaptar um corte de audio como template
 # todo O nome do template está muito longo e detalhado
 glimpse(df_templates_B)
 
@@ -96,20 +94,13 @@ df_matches_cor <- match_n(
   ncores = 10, par_strat = "pbapply",
   save_res =
     "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_cor.rds"
-)
-df_matches_cor <- match_n(
+) %>% glimpse()
+df_matches_dtw <- match_n(
   df_grid = df_grid, score_method = "dtw",
   ncores = 10, par_strat = "pbapply",
   save_res =
     "/home/grosa/R_repos/MonitoraSomDev/example/data/matches/matches_dtw.rds"
-)
-df_matches_cor %>% glimpse()
-# df_matches_cor <- readRDS(
-#   # "C:/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
-#   "/home/grosa/R_repos/monitoraSom/example/data/matches/matches_cor.rds"
-# )
-
-glimpse(df_matches_cor)
+) %>% glimpse()
 # todo Adicionar os metadados com os parâmetros do template matching
 # todo Mudar a quantificação do buffer para a % de frames do template
 # todo Fazer uma função que segmenta a grade
@@ -119,14 +110,13 @@ glimpse(df_matches_cor)
 df_detectionsA <- fetch_score_peaks_n(
   tib_match = df_matches_cor,
   buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL
-)
-df_detectionsA %>% glimpse()
-# 5.b. From multiple match objects stored in rds files ouside the session environment
-df_detectionsB <- fetch_score_peaks_n(
-  tib_match = "/home/grosa/R_repos/monitoraSom/example/data/matches/",
-  buffer_size = "template"
-)
-glimpse(df_detectionsB)
+) %>% glimpse()
+# # 5.b. From multiple match objects stored in rds files ouside the session environment
+# df_detectionsB <- fetch_score_peaks_n(
+#   tib_match = "/home/grosa/R_repos/monitoraSom/example/data/matches/",
+#   buffer_size = "template"
+# )
+# glimpse(df_detectionsB)
 
 # 6. Whole workflow in a single pipeline
 df_detections <- fetch_match_grid(
@@ -167,5 +157,28 @@ plot_match_i(df_matches_cor[188, ], buffer_size = 0, min_quant = 0.975)
 plot_match_i(df_matches_cor[188, ], buffer_size = "template", min_quant = 0.975)
 
 
-# todo Adicionar variáveis de localidade nas detecções para as análises posteriores
-# todo Fazer o site do monitoraSom
+# 8. Plotting
+# 8.a. Without filters
+plot_match_i(df_matches_dtw[188, ], buffer_size = 0)
+# 8.b. With template buffer
+plot_match_i(df_matches_dtw[188, ], buffer_size = "template")
+# 8.c. With min_score (cutoff) filter
+plot_match_i(df_matches_dtw[188, ], buffer_size = 0, min_score = 0.1)
+# 8.d. With top_n filter
+plot_match_i(df_matches_dtw[188, ], buffer_size = 0, top_n = 4)
+# 8.e. With quantile filter
+# without buffer
+plot_match_i(df_matches_dtw[188, ], buffer_size = 0, min_quant = 0.975)
+# with buffer
+plot_match_i(df_matches_dtw[188, ], buffer_size = "template", min_quant = 0.975)
+
+
+
+
+# A <- df_matches_cor$score_vec[[188]]$score_vec
+# B <- df_matches_dtw$score_vec[[188]]$score_vec
+# AB <- (A + B) / 2
+# x11()
+# plot(A, type = "l", col = "red") +
+#   lines(B, col = "blue") +
+#   lines(AB, col = "green")

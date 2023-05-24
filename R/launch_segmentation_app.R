@@ -1028,8 +1028,7 @@ launch_segmentation_app <- function(
           )
         )
       })
-
-
+      
       # Reactive object with the soundscape recording
       rec_soundscape <- reactiveVal(NULL)
       duration_val <- reactiveVal(NULL)

@@ -9,6 +9,9 @@ Prioridades
 - Adicionar a função de validação por sobreposição temporal
 - Implementar o restante dos diagnósticos
 
+- Fazer uma função para extração dos metadados a partir de nomes de arquivos e metadados de arquivos audiomoths e sm4
+- Fazer uma função para adaptar um corte de audio qualquer como template
+
 Geral
 - Trabalhar melhor no nome dos templates standalone
 - Adicionar dataframes que possam ser chamados de dentro do pacote pela função `data()`

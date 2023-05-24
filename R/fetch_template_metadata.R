@@ -12,7 +12,7 @@
 #' @return A tibble containing the following metadata for each template file:
 #'
 #' @export
-fetch_template_metadata <- function(path, recursive = TRUE, method = c("standalone")) {
+fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone") {
   if (method == "standalone") {
     template_list <- list.files(
       path, pattern = ".wav", full.names = TRUE, ignore.case = TRUE,
@@ -45,19 +45,15 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = c("standalo
       fmutate(
         template_path = template_list,
         template_file = basename(template_list),
+        template_name = basename(template_list),
         template_label =
-          tail(
-            strsplit(
-              gsub(".WAV|.wav", "", template_file),
-              split = "_"
-            )[[1]], 1
-          ),
+          tail(strsplit(gsub(".WAV|.wav", "", template_file), split = "_")[[1]], 1),
         template_start = 0,
         template_end = duration,
         template_sample_rate = sample_rate
       ) |>
       fselect(
-        template_path, template_file, template_label,
+        template_path, template_file, template_name, template_label,
         template_start, template_end, template_sample_rate
       ) |>
       fmutate(
@@ -100,8 +96,23 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = c("standalo
         template_ovlp = roi_ovlp,
         template_comment = roi_comment
       ) %>%
+      fmutate(
+        template_name = paste(
+          stringr::str_replace(
+            soundscape_file, ".wav|.WAV",
+            paste0(
+              "_",
+              stringr::str_pad(sprintf("%.3f", round(roi_start, 3)), 7, pad = "0"), "-",
+              stringr::str_pad(sprintf("%.3f", round(roi_end, 3)), 7, pad = "0"), "s_",
+              stringr::str_pad(sprintf("%.3f", round(roi_min_freq, 3)), 6, pad = "0"), "-",
+              stringr::str_pad(sprintf("%.3f", round(roi_max_freq, 3)), 6, pad = "0"), "kHz_",
+              roi_wl, "wl_", roi_ovlp, "ovlp_", roi_label, ".wav"
+            )
+          )
+        )
+      ) %>%
       fselect(
-        template_path, template_file, template_label,
+        template_path, template_file, template_name, template_label,
         template_start, template_end, template_sample_rate,
         template_min_freq, template_max_freq, template_wl,
         template_ovlp, template_comment
