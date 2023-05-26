@@ -69,6 +69,7 @@ Apps
   - Progresso
     - Rever o que é informado na barra de progresso
     - Criar uma tabela a partir da compilação de todas as ROIs disponíveis no diretório
+  - Adicionar um campo com uma lista em que persistem as tags mais usadas em ordem aflabética que possam ser clicadas facilmente para preencher todos os campos (exceto a observação). Essas opções devem ser clicáveis.
 
 fetch_score_peaks_i()
 - Verificar se `fetch_score_peaks_i()` deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro. Valeria a pena fazer a função retornar um dataframe vazio?
@@ -82,7 +83,8 @@ Funções novas
 ### Perguntas importantes
 - Quais são os efeitos dos filtros de detecções baseados nos scores sobre os diagnosticos?
 - Como lidar com multiplas validações de usuários diferentes para um mesmo conjunto de detecções? Como processar % de TP e FP para os diagnósticos?
-- Qual é o efeito dos pads de tempo e frequência para a detecção
+- Qual é o efeito dos pads de tempo e frequência para a detecção?
+- Quais são as espécies que quando aparecem na gravação fazer o usuário demorar mais pra segmentar?
 
 ### Para depois
 - App de segmentação
