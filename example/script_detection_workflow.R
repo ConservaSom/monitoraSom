@@ -32,25 +32,33 @@ path_roi_tabs <- here("example", "roi_tables")
 path_data <- here("example", "data")
 path_backup <- here("example", "backup")
 path_plots <- here("example", "plots")
+path_presets <- here("example", "presets")
 
 c(
   dir.exists(path_soundscapes), dir.exists(path_templates),
   dir.exists(path_roi_tabs), dir.exists(path_data),
-  dir.exists(path_backup), dir.exists(path_plots)
+  dir.exists(path_backup), dir.exists(path_plots),
+  dir.exists(path_presets)
 )
+source(here("R", "launch_segmentation_app.R"))
+readRDS("example/presets/segmentation_preset_linux_example.rds") %>% glimpse()
+
+# todo Session notes não está recebendo o input adequado. Fazer a checagem entre as opções disponíveis no input. Converter os tipos para não gerar erros posteriores.
+# todo Adicionar um argumento para o usuário escolher se quer salvar o preset ou não
+# todo Adicionar opção de ler presets de um arquivo rds
 
 launch_segmentation_app(
-  preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/",
-  preset_id = "default_linux2",
-  user = "gabriel",
-  soundscapes_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/soundscapes",
-  roi_tables_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_tables",
-  cuts_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_cuts",
-  labels_file = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/MonitoraSom_UI_label_lists.xlsx",
-  fastdisp = TRUE, label_angle = 90, show_label = TRUE, dyn_range = c(-60, 0), wl = 1024,
-  ovlp = 0, color_scale = "inferno", wav_player_type = "HTML player",
-  # wav_player_path = "play",
-  session_notes = NULL, zoom_freq = c(0, 10), nav_autosave = FALSE,
+  preset_path = path_presets,
+  preset_id = "linux_example",
+  user = "Gabriel",
+  soundscapes_path = path_soundscapes,
+  roi_tables_path = path_roi_tabs,
+  cuts_path = path_templates,
+  labels_file = here("example", "presets", "MonitoraSom_UI_label_lists.xlsx"),
+  fastdisp = TRUE, label_angle = 90, show_label = TRUE,
+  dyn_range = c(-60, 0), wl = 1024, ovlp = 0, color_scale = "inferno",
+  wav_player_type = "HTML player", wav_player_path = "play",
+  session_notes = as.character("teste"), zoom_freq = c(0, 10), nav_autosave = FALSE,
   sp_list = "CBRO-2021 (Brazil)"
 )
 

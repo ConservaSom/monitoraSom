@@ -607,6 +607,8 @@ launch_segmentation_app <- function(
         useShinyjs(),
         tags$style(type = "text/css", ".recalculating {opacity: 1.0;}"),
 
+        box(width = 12, verbatimTextOutput("checagem1")),
+
         # Spectrogram box and time zoom slider
         box(
           width = 12, height = "550px",
@@ -1028,7 +1030,7 @@ launch_segmentation_app <- function(
           )
         )
       })
-      
+
       # Reactive object with the soundscape recording
       rec_soundscape <- reactiveVal(NULL)
       duration_val <- reactiveVal(NULL)
@@ -2056,6 +2058,13 @@ launch_segmentation_app <- function(
         # Clear temp folder before stopping the app
         unlink(paste0(getwd(), "/temp/"), recursive = TRUE, force = TRUE)
         stopApp()
+      })
+
+      # teste_val <- reactiveVal(NULL)
+      output$checagem1 <- renderPrint({
+        req(session_settings())
+        list(session_data, session_settings()) %>%
+          glimpse()
       })
 
       # General popover options
