@@ -5,7 +5,6 @@ format: pdf
 ---
 
 Prioridades
-- Adiconar novamente a coluna template_name através de todo o fluxo de análise
 - Adicionar a função de validação por sobreposição temporal
 - Implementar o restante dos diagnósticos
 
