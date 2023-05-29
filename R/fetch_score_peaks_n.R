@@ -35,7 +35,6 @@
 #'
 #' @return A Tibble containing the detections of all audio scores.
 #'
-#'
 #' @export
 fetch_score_peaks_n <- function(
     tib_match, recursive = FALSE, buffer_size = "template", min_score = NULL,
