@@ -607,7 +607,7 @@ launch_segmentation_app <- function(
         useShinyjs(),
         tags$style(type = "text/css", ".recalculating {opacity: 1.0;}"),
 
-        box(width = 12, verbatimTextOutput("checagem1")),
+        # box(width = 12, verbatimTextOutput("checagem1")),
 
         # Spectrogram box and time zoom slider
         box(
@@ -2060,12 +2060,12 @@ launch_segmentation_app <- function(
         stopApp()
       })
 
-      # teste_val <- reactiveVal(NULL)
+      # # teste_val <- reactiveVal(NULL)
       output$checagem1 <- renderPrint({
-        req(session_settings())
-        list(session_data, session_settings()) %>%
-          glimpse()
-      })
+      #   req(session_settings())
+      #   list(session_data, session_settings()) %>%
+      #     glimpse()
+      # })
 
       # General popover options
       pop_up_opt <- list(delay = list(show = 1000, hide = 0))
