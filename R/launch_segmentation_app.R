@@ -2060,8 +2060,8 @@ launch_segmentation_app <- function(
         stopApp()
       })
 
-      # # teste_val <- reactiveVal(NULL)
-      output$checagem1 <- renderPrint({
+      # teste_val <- reactiveVal(NULL)
+      # output$checagem1 <- renderPrint({
       #   req(session_settings())
       #   list(session_data, session_settings()) %>%
       #     glimpse()

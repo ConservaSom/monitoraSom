@@ -40,8 +40,6 @@ c(
   dir.exists(path_backup), dir.exists(path_plots),
   dir.exists(path_presets)
 )
-source(here("R", "launch_segmentation_app.R"))
-readRDS("example/presets/segmentation_preset_linux_example.rds") %>% glimpse()
 
 # todo Session notes não está recebendo o input adequado. Fazer a checagem entre as opções disponíveis no input. Converter os tipos para não gerar erros posteriores.
 # todo Adicionar um argumento para o usuário escolher se quer salvar o preset ou não
@@ -61,6 +59,8 @@ launch_segmentation_app(
   session_notes = as.character("teste"), zoom_freq = c(0, 10), nav_autosave = FALSE,
   sp_list = "CBRO-2021 (Brazil)"
 )
+
+# todo Lançar sem inputs
 
 # 1. Get template metadata
 # 1.a. Get metadata from standalone cuts
