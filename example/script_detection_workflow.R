@@ -55,6 +55,8 @@ c(
 
     input_path, output_path, wav_cuts_path,
     spec_path, diag_tab_path,
+
+
 launch_segmentation_app(
   preset_path = path_presets, # todo substituir pelo caminho do diretório base
   preset_id = "linux_example", # todo não salvar preset se id não for fornecida
@@ -70,7 +72,11 @@ launch_segmentation_app(
   sp_list = "CBRO-2021 (Brazil)"
 )
 
-# todo Lançar sem inputs
+# todo Lançar sem inputs, ou sem a opção de salvar o preset por default
+# todo Converter o input do caminho do preset em um caminho para um diretório geral com a estrutura completa, se ela não existir, definir se vai criar
+# todo Resolver conflito com o formato dos inputs na hora de fechar o app
+
+
 
 # 1. Get template metadata
 # 1.a. Get metadata from standalone cuts
