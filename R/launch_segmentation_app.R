@@ -381,13 +381,9 @@ launch_segmentation_app <- function(
     )
   }
 
-  temp_dir <- paste0(getwd(), "/temp/")
-  if (!dir.exists(temp_dir)) {
-    dir.create(temp_dir)
-  }
   # This function defines where embedded html wav players will look for the files
   # shiny::addResourcePath("audio", here("temp/"))
-  shiny::addResourcePath("audio", temp_dir)
+  shiny::addResourcePath("audio", temp_path)
   # resourcePaths()
 
   # ! Atenção para o funcionamento dessa função quando o pacote estiver montado
@@ -1067,7 +1063,7 @@ launch_segmentation_app <- function(
         wav_path_val(wav_path)
         if (!is.null(wav_path) & length(wav_path) == 1) {
           if (file.exists(wav_path) & input$wav_player_type == "HTML player") {
-            temp_file <- tempfile(tmpdir = here("temp"), fileext = ".wav") %>%
+            temp_file <- tempfile(tmpdir = session_data$temp_path, fileext = ".wav") %>%
               gsub("\\\\", "/", .)
             res_cut <- cutw(
               rec_soundscape(),
@@ -1085,7 +1081,7 @@ launch_segmentation_app <- function(
               )
             )
             unlink("*.wav")
-            to_remove <- list.files(here("temp"), pattern = ".wav", full.names = TRUE)
+            to_remove <- list.files(session_data$temp_path, pattern = ".wav", full.names = TRUE)
             file.remove(to_remove[to_remove != temp_file])
           } else {
             removeUI(selector = "#visible_soundscape_clip_selector")
