@@ -103,7 +103,7 @@ launch_segmentation_app <- function(
       session_data$preset_path <- preset_path
       warning("Warning! The selected preset destination folder did not exist. It was created automatically.")
     }
-    temp_path <- paste0(preset_path, "temp/") # tomporary
+    temp_path <- paste0(preset_path, "/temp/") # tomporary
     if (!dir.exists(temp_path)) {
       dir.create(temp_path)
     }

@@ -45,9 +45,19 @@ c(
 # todo Adicionar um argumento para o usuário escolher se quer salvar o preset ou não
 # todo Adicionar opção de ler presets de um arquivo rds
 
+# base
+#   |- presets
+#   |- cuts
+#   |- roi_tables
+#   |- detections
+#   |- diagnostics
+#   |- plots
+
+    input_path, output_path, wav_cuts_path,
+    spec_path, diag_tab_path,
 launch_segmentation_app(
-  preset_path = path_presets,
-  preset_id = "linux_example",
+  preset_path = path_presets, # todo substituir pelo caminho do diretório base
+  preset_id = "linux_example", # todo não salvar preset se id não for fornecida
   user = "Gabriel",
   soundscapes_path = path_soundscapes,
   roi_tables_path = path_roi_tabs,
