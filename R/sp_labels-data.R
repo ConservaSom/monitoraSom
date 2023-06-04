@@ -1,12 +1,13 @@
 #' Lists of species for labelling regions of interest
 #'
-#' A data frame containing
+#' A data frame containing species names to label regions of interest in the
+#' segmentation app.
 #'
 #' @docType data
 #'
 #' @usage data(sp_lists)
 #'
-#' @format ## `sp_lists`
+#' @format ## `sp_labels`
 #'
 #' A data frame with 7,240 rows and 60 columns:
 #' \describe{
@@ -15,4 +16,4 @@
 #'   ...
 #' }
 #' @source Todo
-"sp_lists"
+"sp_labels"
