@@ -346,7 +346,7 @@ launch_segmentation_app_v2 <- function(
     )
   }
 
-  data("sp_list", package = "monitoraSom")
+  # data("sp_list", package = "monitoraSom")
   if (is.character(sp_list)) {
     session_data$sp_list <- sp_list
   } else {
