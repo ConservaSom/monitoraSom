@@ -61,11 +61,10 @@
 launch_segmentation_app_v2 <- function(
   project_path = NULL, preset_id = NULL, user = NULL, preset_path = NULL,
   soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
-  labels_file = NULL, sp_list = NULL, fastdisp = TRUE, label_angle = 90,
+  labels_file = NULL, sp_list = "CBRO-2021 (Brazil)", fastdisp = TRUE, label_angle = 90,
   show_label = TRUE, dyn_range = c(-60, 0), wl = 1024, ovlp = 0,
   color_scale = "inferno", wav_player_type = "R session", wav_player_path = "play",
   session_notes = NULL, zoom_freq = c(0, 10), nav_autosave = FALSE
-
   ) {
   require(shiny)
   require(dplyr)
@@ -123,13 +122,11 @@ launch_segmentation_app_v2 <- function(
   }
 
   if (is.null(roi_tables_path) && is.null(project_path)) {
-    # if no value is provided for 'roi_tables_path' and 'project_path' variables
     session_data$roi_tables_path <- NA
     warning(
       "Warning! No values were provided for 'roi_tables_path' and 'project_path' variables. Provide and confirm it within the app."
     )
   } else if (is.null(roi_tables_path) & !is.null(project_path)) {
-    # if no value is provided for 'roi_tables_path' variable
     roi_tables_path <- file.path(project_path, "roi_tables/")
     if (!dir.exists(roi_tables_path)) {
       dir.create(roi_tables_path)
@@ -139,26 +136,21 @@ launch_segmentation_app_v2 <- function(
     }
     session_data$roi_tables_path <- roi_tables_path
   } else if (!is.null(roi_tables_path)){
-    # if a value is provided for 'roi_tables_path' variable
     if (!dir.exists(roi_tables_path)) {
-      # if the path does not exist, create it
       stop(
         "Error! The path informed in 'roi_tables_path' was not found locally and no 'project_path' was informed to create it."
       )
     } else {
-      # if the path exists, use it
       session_data$roi_tables_path <- roi_tables_path
     }
   }
 
   if (is.null(cuts_path) && is.null(project_path)) {
-    # if no value is provided for 'cuts_path' and 'project_path' variables
     session_data$cuts_path <- NA
     warning(
       "Warning! No value was provided for 'cuts_path' and 'project_path' variables. Inform the value and confirm within the app."
     )
   } else if (is.null(cuts_path) & !is.null(project_path)) {
-    # if no value is provided for 'cuts_path' variable
     cuts_path <- file.path(project_path, "cuts/")
     if (!dir.exists(cuts_path)) {
       # if the path does not exist, create it
@@ -169,14 +161,11 @@ launch_segmentation_app_v2 <- function(
     }
     session_data$cuts_path <- cuts_path
   } else if (!is.null(cuts_path)) {
-    # if a value is provided for 'cuts_path' variable
     if (!dir.exists(cuts_path)) {
-      # if the path does not exist, create it
       stop(
         "Error! The path informed in 'cuts_path' was not found locally and no 'project_path' was informed to create it."
       )
     } else {
-      # if the path exists, use it
       session_data$cuts_path <- cuts_path
     }
   }
@@ -188,18 +177,14 @@ launch_segmentation_app_v2 <- function(
   }
 
   # check of "label_angle" variable is within 0-180 range and is a multiple of 10
-  if (is.numeric(label_angle)) {
-    if (label_angle >= 0 & label_angle <= 180) {
-      if (label_angle %% 10 == 0) {
-        session_data$label_angle <- label_angle
-      } else {
-        stop("Error! 'label_angle' must be a multiple of 10.")
-      }
-    } else {
-      stop("Error! 'label_angle' must be between 0 and 180.")
-    }
-  } else {
+  if (!is.numeric(label_angle)) {
     stop("Error! 'label_angle' must be numeric.")
+  } else if (label_angle < 0 | label_angle > 180) {
+    stop("Error! 'label_angle' must be between 0 and 180.")
+  } else if (label_angle %% 10 != 0) {
+    stop("Error! 'label_angle' must be a multiple of 10.")
+  } else {
+    session_data$label_angle <- label_angle
   }
 
   if (is.logical(show_label)) {
@@ -346,15 +331,6 @@ launch_segmentation_app_v2 <- function(
     )
   }
 
-  # data("sp_list", package = "monitoraSom")
-  if (is.character(sp_list)) {
-    session_data$sp_list <- sp_list
-  } else {
-    stop(
-      "Error! The value assigned to 'sp_list' is not a character vector."
-    )
-  }
-
   if (!is.null(preset_path)) {
     if (dir.exists(preset_path)) {
       session_data$preset_path <- preset_path
@@ -363,7 +339,8 @@ launch_segmentation_app_v2 <- function(
       if (dir.exists(preset_path)) {
         session_data$preset_path <- preset_path
         warning(
-          "The segmentation preset destination directory was created automatically at '", preset_path, "'"
+          "The segmentation preset destination directory was created automatically at '",
+          preset_path, "'"
         )
       } else {
         stop("Error! The selected preset destination folder does not exist and could not be created.")
@@ -386,6 +363,28 @@ launch_segmentation_app_v2 <- function(
     session_data$preset_path <- preset_path
     session_data$temp_path <- temp_path
   }
+
+  data(sp_labels)
+  sp_labels_default <- sp_labels
+  if (!is.null(labels_file)) {
+    stopifnot(file.exists(labels_file))
+    sp_labels_custom <- readxl::read_xlsx(labels_file)
+  } else if (!is.null(project_path)) {
+    sp_labels_custom <- file.path(project_path, "presets/sp_labels.xlsx")
+    if (file.exists(sp_labels_custom)) {
+      sp_labels_custom <- readxl::read_xlsx(sp_labels_custom)
+    } else {
+      openxlsx::write.xlsx(sp_labels_default, sp_labels_custom)
+      sp_labels_custom <- sp_labels_default
+    }
+  }
+  sp_labels <- dplyr::coalesce(sp_labels_custom, sp_labels_default)
+
+
+  if (!sp_list %in% colnames(sp_labels)) {
+    warning("The selected species list is not among the available species lists. Using the default species list.")
+  }
+  session_data$sp_list <- sp_list
 
   if (!is.null(preset_id)) {
     if (is.character(preset_id) & length(preset_id) == 1) {
@@ -421,10 +420,6 @@ launch_segmentation_app_v2 <- function(
         "Error! The value assigned to 'preset_id' is not a character string of length 1."
       )
     }
-  }
-
-  if (!file.exists(labels_file)) {
-    stop("Error! The informed label list file does not exist.")
   }
 
   roi_razor <- function(wav, rois, path) {
@@ -1107,20 +1102,20 @@ launch_segmentation_app_v2 <- function(
       })
 
       # todo - import labels dataframe from the global environment
-      sp_lists <- reactive({
-        readxl::read_xlsx(labels_file, sheet = 1)
-      })
+      # sp_lists <- reactive({
+      #   readxl::read_xlsx(labels_file, sheet = 1)
+      # })
 
       observe({
         updateSelectizeInput(
           session, "sp_list",
-          choices = colnames(sp_lists()), server = TRUE
+          choices = colnames(sp_labels), server = TRUE
         )
       })
 
       observeEvent(input$sp_list, {
         req(input$sp_list)
-        res <- sp_lists()[, input$sp_list]
+        res <- sp_labels %>% pull(input$sp_list)
         updateSelectizeInput(
           session, "label_name",
           choices = c(NA, res),
