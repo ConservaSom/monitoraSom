@@ -23,6 +23,10 @@
 #'
 #' @export
 fetch_match_grid <- function(soundscape_data, template_data) {
+
+  require(purrr)
+  require(dplyr)
+
   res <- cross_join(soundscape_data, template_data)
 
   # check if files in soundscape_path exist

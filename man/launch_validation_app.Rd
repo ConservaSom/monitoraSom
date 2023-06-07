@@ -6,7 +6,7 @@
 \usage{
 launch_validation_app(
   preset_path = NULL,
-  preset_name = NULL,
+  preset_id = NULL,
   validation_user,
   templates_path,
   soundscapes_path,
@@ -34,9 +34,10 @@ launch_validation_app(
 )
 }
 \arguments{
-\item{preset_path}{Path from which presets can be imported and to which new presets can be exported.}
+\item{preset_path}{Path from which presets can be imported and to which new
+presets can be exported.}
 
-\item{preset_name}{Name of the preset to be exported.}
+\item{preset_id}{Name of the preset to be exported.}
 
 \item{validation_user}{User name.}
 
@@ -54,15 +55,18 @@ launch_validation_app(
 
 \item{diag_tab_path}{Path to the folder containing the diagnostic tables.}
 
-\item{wav_player_path}{Path to the wav player executable (only for system player).}
+\item{wav_player_path}{Path to the wav player executable (only for system
+player).}
 
-\item{wav_player_type}{The type of wav player. "R session" for R session-based player, "system" for system player.}
+\item{wav_player_type}{The type of wav player. "R session" for R
+session-based player, "system" for system player.}
 
 \item{val_subset}{Subset of detections to be validated.}
 
 \item{min_score}{Minimum score of the detections to be validated.}
 
-\item{time_pads}{Time pads to be added to the start and end of the cut wave files.}
+\item{time_pads}{Time pads to be added to the start and end of the cut wave
+files.}
 
 \item{ovlp}{Overlap between consecutive cuts.}
 
@@ -78,9 +82,11 @@ launch_validation_app(
 
 \item{seed}{Seed for the random shuffling.}
 
-\item{auto_next}{If TRUE, the next file is automatically displayed when the user validates a cut.}
+\item{auto_next}{If TRUE, the next file is automatically displayed when the
+user validates a cut.}
 
-\item{nav_autosave}{If TRUE, the current validation is saved when the user navigates to another file.}
+\item{nav_autosave}{If TRUE, the current validation is saved when the user
+navigates to another file.}
 
 \item{overwrite}{If TRUE, the output file is overwritten.}
 
@@ -90,5 +96,10 @@ launch_validation_app(
 todo
 }
 \description{
-Launch validation app
+`r lifecycle::badge("experimental")`
+
+  This function launches the validation app, which is a Shiny app to validate
+  for segemntation of WAV recorcings of soundscapes into tables containing
+  regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
+  be imported from presets or set manually.
 }

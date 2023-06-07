@@ -4,7 +4,7 @@
 \alias{fetch_template_metadata}
 \title{Extract template metadata}
 \usage{
-fetch_template_metadata(path, recursive = TRUE, method = c("standalone"))
+fetch_template_metadata(path, recursive = TRUE, method = "standalone")
 }
 \arguments{
 \item{path}{The directory path containing the template waveform files (for method = "standalone") or CSV files (for method = "roi_table").}

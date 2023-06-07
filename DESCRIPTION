@@ -9,21 +9,7 @@ Description: More about what it does (maybe more than one line)
 License: GPL (>=3)
 Encoding: UTF-8
 LazyData: TRUE
-Imports: dplyr,
-    progressr,
-    here,
-    collapse,
-    purrr,
-    furrr,
-    av,
-    tuneR,
-    seewave,
-    data.table,
-    dtwclust,
-    slider,
-    fftw,
-    viridis,
-    ggplot2
+Imports: dplyr, progressr, here, collapse, purrr, furrr, av, tuneR, seewave, data.table, dtwclust, slider, fftw, viridis, ggplot2, ROSE, caret, cli, cowplot, cutpointr, dtw, farver, openxlsx, pbapply, readxl, shiny, shinyBS, shinyFiles, shinyjs, stringr, tibble, tidyr
 RoxygenNote: 7.2.3
 Suggests:
     testthat (>= 3.0.0)

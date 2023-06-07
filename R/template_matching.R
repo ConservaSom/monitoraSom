@@ -14,10 +14,6 @@
 #'   "dtw".
 #' @param buffer_size The size of the buffer used to calculate the scores for
 #'   the template matches, either "template" or "event".
-#' @param recursive_soundscape Search for soundscape recordings recursively in
-#'   'path_soundscapes'
-#' @param recursive_template Search for template files (ROI tables or standalone
-#'   templates) in 'path_templates'
 #' @param save_res Default to FALSE or provide a path to an rds file where the
 #'   raw template matching results will be stored.
 #' @param min_score A numeric value between 0 and 0.99 indicating the minimum
@@ -43,6 +39,8 @@
 #'   parallelization. Default is 1.
 #' @param backend_type For usage when par_strat = "parabar"
 #' @param cluster_type For usage when par_strat = "parabar"
+#' @param recursive_soundscapes Todo
+#' @param recursive_templates Todo
 #'
 #' @return A dataframe with the detected events.
 #'

@@ -6,29 +6,73 @@
 \usage{
 template_matching(
   path_soundscapes,
+  recursive_soundscapes = TRUE,
   path_templates,
+  recursive_templates = TRUE,
   template_type = "standalone",
   score_method = "cor",
+  save_res = FALSE,
   buffer_size = "template",
-  ncores = 1
+  min_score = NULL,
+  min_quant = NULL,
+  top_n = NULL,
+  ncores = 1,
+  par_strat = "future",
+  backend_type = "async",
+  cluster_type = "psock"
 )
 }
 \arguments{
 \item{path_soundscapes}{Path to a directory containing the soundscapes to be
 analyzed.}
 
+\item{recursive_soundscapes}{Todo}
+
 \item{path_templates}{Path to a directory containing the templates to be used
 for matching.}
+
+\item{recursive_templates}{Todo}
 
 \item{template_type}{The type of templates, either "standalone" or "library".}
 
 \item{score_method}{The method used for template matching, either "cor" or
 "dtw".}
 
+\item{save_res}{Default to FALSE or provide a path to an rds file where the
+raw template matching results will be stored.}
+
 \item{buffer_size}{The size of the buffer used to calculate the scores for
 the template matches, either "template" or "event".}
 
-\item{ncores}{The number of cores to be used for parallel processing.}
+\item{min_score}{A numeric value between 0 and 0.99 indicating the minimum
+score of the detections that will be kept. Defaults to NULL, which returns
+all available detections.}
+
+\item{min_quant}{A numeric value between 0 and 1 indicating the minimum score
+quantile of the kept detections. Defaults to NULL, which returns all
+available detections.}
+
+\item{top_n}{An integer indicating the maximum number of peaks to be
+returned, selected according to the highest scores available. Defaults to
+NULL, which return all available detections. It should be noted that
+because the peak quantiles are callculated within each score vector, the
+top_n parameter is applied to each score vector separately, and not to the
+whole matching grid.}
+
+\item{ncores}{An integer indicating the number of cores to be used for
+parallelization. Default is 1.}
+
+\item{par_strat}{A character string indicating the parallelization strategy
+to be used. The available options are: "foreach" (default), "future" and
+"pbapply". The 'future' and 'pbapply' strategies do not work on Windows,
+but are more efficient in linux (especially when running and R session
+outside of Rstudio). The 'foreach' strategy works on all platforms, but is
+less efficient than the other two. See the documentation of the 'future'
+and 'pbapply' packages for more details.}
+
+\item{backend_type}{For usage when par_strat = "parabar"}
+
+\item{cluster_type}{For usage when par_strat = "parabar"}
 }
 \value{
 A dataframe with the detected events.
@@ -36,6 +80,6 @@ A dataframe with the detected events.
 \description{
 `r lifecycle::badge("experimental")`
 
-This function performs template matching on a set of soundscapes using a set
-of templates, and returns a dataframe with the detected events.
+  This function performs template matching on a set of soundscapes using a
+  set of templates, and returns a dataframe with the detected events.
 }

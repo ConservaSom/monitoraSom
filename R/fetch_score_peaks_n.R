@@ -40,6 +40,8 @@ fetch_score_peaks_n <- function(
     tib_match, recursive = FALSE, buffer_size = "template", min_score = NULL,
     min_quant = NULL, top_n = NULL, save_res = NULL) {
 
+  require(dplyr)
+
   if (is.character(tib_match) & length(tib_match) == 1) {
     if (!dir.exists(tib_match)) {
       stop("The path provided does not exist")

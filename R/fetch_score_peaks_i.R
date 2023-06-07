@@ -38,6 +38,10 @@ fetch_score_peaks_i <- function(
   top_n = NULL
   ) {
 
+  require(dplyr)
+  require(purrr)
+  require(collapse)
+  
   data <- match_res_i$score_vec[[1]]$score_vec
 
   if (buffer_size == "template") {

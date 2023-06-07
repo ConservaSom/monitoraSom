@@ -7,6 +7,7 @@
 #'   regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
 #'   be imported from presets or set manually.
 #'
+#' @param project_path Todo
 #' @param preset_path Path from which presets can be imported and to which new
 #'   presets can be exported.
 #' @param preset_id ID of the preset to be imported from the 'preset_path'
@@ -479,10 +480,10 @@ launch_segmentation_app_v2 <- function(
   shiny::addResourcePath("audio", temp_path)
   # resourcePaths()
 
-  # ! Atenção para o funcionamento dessa função quando o pacote estiver montado
-  # todo Adicionar aqui a definição de settings introduzidos ao ambiente por meio da função que chama o app ou de um preset com caminho especificado
+  # ! Atençao para o funcionamento dessa funçao quando o pacote estiver montado
+  # todo Adicionar aqui a definiçao de settings introduzidos ao ambiente por meio da funçao que chama o app ou de um preset com caminho especificado
 
-  # adicionar botão para deposito direto de paths nos caminhos
+  # adicionar botao para deposito direto de paths nos caminhos
   hotkeys <- c(
     "q", # delete active ROI
     "w", # zoom in time
@@ -1195,7 +1196,7 @@ launch_segmentation_app_v2 <- function(
         if (x == "R session") {
           updateTextInput(session, "wav_player_path", value = "play")
           tuneR::setWavPlayer("play")
-          # todo Adicionar aqui uma opção para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
+          # todo Adicionar aqui uma opçao para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
           showElement("play_soundscape")
         } else if (x == "External player" & !is.null(input$wav_player_path)) {
           if (file.exists(input$wav_player_path)) {
@@ -1571,7 +1572,7 @@ launch_segmentation_app_v2 <- function(
         }
       })
 
-      # todo Adicionar versão para hotkeys no F
+      # todo Adicionar versao para hotkeys no F
 
       observeEvent(input$next_soundscape_noroi, {
         noroi_data <- progress_tracker$df %>%
@@ -1607,7 +1608,7 @@ launch_segmentation_app_v2 <- function(
         }
       })
 
-      # todo Adicionar versão para hotkeys no T
+      # todo Adicionar versao para hotkeys no T
 
       observeEvent(input$prev_soundscape_noroi, {
         noroi_data <- progress_tracker$df %>%
