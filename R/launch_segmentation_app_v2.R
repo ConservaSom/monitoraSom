@@ -1802,11 +1802,17 @@ launch_segmentation_app_v2 <- function(
       )
 
       observeEvent(input$res_table_cell_edit, {
-        req(roi_values())
+        req(roi_values(), roi_tables_path_val(), input$roi_table_name)
         df <- roi_values()
         df[input$res_table_cell_edit$row, input$res_table_cell_edit$col] <-
           input$res_table_cell_edit$value
         roi_values(df)
+        if (input$nav_autosave == TRUE) { # todo - teste it
+          data.table::fwrite(
+            roi_values(), file.path(roi_tables_path_val(), input$roi_table_name),
+            row.names = FALSE
+          )
+        }
       })
 
       observeEvent(input$delete_selected_rois, {
