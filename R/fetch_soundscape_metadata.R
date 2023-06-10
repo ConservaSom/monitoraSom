@@ -18,7 +18,7 @@
 fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
 
   soundscape_list <- list.files(
-    path_soundscapes,
+    path,
     pattern = ".wav", recursive = recursive, ignore.case = TRUE,
     full.names = TRUE
   )
