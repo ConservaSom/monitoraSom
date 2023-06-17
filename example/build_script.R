@@ -5,25 +5,54 @@ library(pkgload)
 library(available)
 library(roxygen2)
 
-
 load_all()
+use_gpl3_license()
+
+use_package("dplyr")
+use_package("progressr")
+use_package("here")
+use_package("collapse")
+use_package("purrr")
+use_package("furrr")
+use_package("av")
+use_package("tuneR")
+use_package("seewave")
+use_package("data.table")
+use_package("dtwclust")
+use_package("slider")
+use_package("fftw")
+use_package("viridis")
+use_package("ggplot2")
+use_package("ROSE")
+use_package("caret")
+use_package("cli")
+use_package("cowplot")
+use_package("cutpointr")
+use_package("dtw")
+use_package("farver")
+use_package("openxlsx")
+use_package("pbapply")
+use_package("readxl")
+use_package("shiny")
+use_package("shinyBS")
+use_package("shinyFiles")
+use_package("shinyjs")
+use_package("stringr")
+use_package("tibble")
+use_package("tidyr")
+
+
 roxygen2::roxygenize()
+document()
+
+
 check()
+
+
+install()
 build()
 
-create_package()
-# usethis::use_build_ignore("example/")
-# usethis::use_build_ignore(".vscode/")
 
-check()
-devtools::dev_sitrep()
-lifecycle::badge("deprecated")
 
 
 available("monitoraSom")
-
-# library(monitoraSom)
-# launch_segmentation_app_v2(
-#   project_path = "teste/", soundscapes_path = "/home/grosa/R_home/20230526_monitoraSom_example/soundscapes/"
-#
-# )

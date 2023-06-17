@@ -6,10 +6,42 @@ Author: Who wrote it
 Maintainer: The package maintainer <yourself@somewhere.net>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
-License: GPL (>=3)
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: TRUE
-Imports: dplyr, progressr, here, collapse, purrr, furrr, av, tuneR, seewave, data.table, dtwclust, slider, fftw, viridis, ggplot2, ROSE, caret, cli, cowplot, cutpointr, dtw, farver, openxlsx, pbapply, readxl, shiny, shinyBS, shinyFiles, shinyjs, stringr, tibble, tidyr
+Imports: 
+    av,
+    caret,
+    cli,
+    collapse,
+    cowplot,
+    cutpointr,
+    data.table,
+    dplyr,
+    dtw,
+    dtwclust,
+    farver,
+    fftw,
+    furrr,
+    ggplot2,
+    here,
+    openxlsx,
+    pbapply,
+    progressr,
+    purrr,
+    readxl,
+    ROSE,
+    seewave,
+    shiny,
+    shinyBS,
+    shinyFiles,
+    shinyjs,
+    slider,
+    stringr,
+    tibble,
+    tidyr,
+    tuneR,
+    viridis
 RoxygenNote: 7.2.3
 Suggests:
     testthat (>= 3.0.0)
