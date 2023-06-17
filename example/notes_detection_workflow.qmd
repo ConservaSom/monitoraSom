@@ -5,6 +5,7 @@ format: pdf
 ---
 
 Prioridades
+- Fazer processo funcionar com o templates standalone 
 - Adicionar a função de validação por sobreposição temporal
 - Implementar o restante dos diagnósticos
 
@@ -25,6 +26,7 @@ Geral
 - remover as paradas do vs code do repo
 - Adicionar opções gerais para seleção e registro do canal onde cada processo foi feito
 - Criar funções para que sejam convertidas tabelas de seleção do Raven e Audacity para o formato de output do app de segmentação
+- Omitir mensagens fo pacote av quando forem feitas as buscas de metadados dos arquivos de audio
 
 Apps
 - Habilitar o acionamento dos apps por meio de função sem que todos os argumentos precisem ser definidos

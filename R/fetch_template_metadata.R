@@ -24,7 +24,9 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
 
     temp_names <- basename(template_list)
     check_1 <- grepl(
-      pattern = "^W\\d+S\\d+_\\d{8}_\\d{6}_\\d{3}\\.\\d{3}-\\d{3}\\.\\d{3}s_\\d{2}\\.\\d{3}-\\d{2}\\.\\d{3}kHz_\\d+wl_\\d+ovlp_.+\\.(wav|WAV)$",
+      pattern =
+      ".+\\d{3}\\.\\d{3}-\\d{3}\\.\\d{3}s_\\d{2}\\.\\d{3}-\\d{2}\\.\\d{3}kHz_\\d+wl_\\d+ovlp_.+\\.(wav|WAV)$",
+      # "^W\\d+S\\d+_\\d{8}_\\d{6}_\\d{3}\\.\\d{3}-\\d{3}\\.\\d{3}s_\\d{2}\\.\\d{3}-\\d{2}\\.\\d{3}kHz_\\d+wl_\\d+ovlp_.+\\.(wav|WAV)$",
       temp_names
     )
     if (any(check_1 == FALSE)) {
@@ -57,20 +59,40 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
         template_start, template_end, template_sample_rate
       ) |>
       fmutate(
-        template_min_freq = strsplit(
-          strsplit(template_file, "_")[[1]][5], "-"
-        )[[1]][1] %>%
-          gsub("kHz", "", .) %>% # str_remove("kHz") %>%
+        template_min_freq = strsplit(template_file, "_")[[1]] %>%
+          .[which(grepl("kHz$", .))] %>%
+          {
+            strsplit(., "-")[[1]][1]
+          } %>%
           as.numeric(),
-        template_max_freq = strsplit(
-          strsplit(template_file, "_")[[1]][5], "-"
-        )[[1]][2] %>%
-          gsub("kHz", "", .) %>% # str_remove("kHz") %>%
+        # strsplit(strsplit(template_file, "_")[[1]][5], "-")[[1]][1] %>%
+        #   gsub("kHz", "", .) %>% # str_remove("kHz") %>%
+        #   as.numeric(),
+
+        template_max_freq = strsplit(template_file, "_")[[1]] %>%
+          .[which(grepl("kHz$", .))] %>%
+          {
+            strsplit(., "-")[[1]][2]
+          } %>%
+          gsub("kHz", "", .) %>%
           as.numeric(),
-        template_wl = strsplit(template_file, "_")[[1]][6] %>%
-          gsub("wl", "", .) %>% as.numeric(),
-        template_ovlp = strsplit(template_file, "_")[[1]][7] %>%
-          gsub("ovlp", "", .) %>% as.numeric()
+        # strsplit(strsplit(template_file, "_")[[1]][5], "-")[[1]][2] %>%
+        #   gsub("kHz", "", .) %>% # str_remove("kHz") %>%
+        #   as.numeric(),
+
+        template_wl = strsplit(template_file, "_")[[1]] %>%
+          .[which(grepl("wl$", .))] %>%
+          gsub("wl", "", .) %>%
+          as.numeric(),
+        # strsplit(template_file, "_")[[1]][6] %>%
+        #   gsub("wl", "", .) %>% as.numeric(),
+
+        template_ovlp = strsplit(template_file, "_")[[1]] %>%
+          .[which(grepl("ovlp$", .))] %>%
+          gsub("ovlp", "", .) %>%
+          as.numeric()
+        # strsplit(template_file, "_")[[1]][7] %>%
+        #   gsub("ovlp", "", .) %>% as.numeric()
       )
   } else if (method == "roi_table") {
     table_list <- list.files(

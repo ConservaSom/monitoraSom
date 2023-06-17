@@ -53,9 +53,11 @@ match_i <- function(df_grid_i, score_method = "cor") {
   mat_soundscape <- t(spectro_soundscape$amp)
   mat_template <- t(spectro_template$amp)
   sliding_window <- nrow(mat_template)
+  sw_start <- sliding_window %/% 2
+  sw_end <- (sliding_window - sw_start) - 1
   ind <- slider::slide(
     1:nrow(mat_soundscape), ~.x,
-    .before = sliding_window %/% 2, .after = (sliding_window %/% 2) - 1,
+    .before = sw_start, .after = sw_end,
     .complete = TRUE
   ) %>%
     base::Filter(base::Negate(is.null), .)
@@ -71,12 +73,7 @@ match_i <- function(df_grid_i, score_method = "cor") {
       }
     ) |>
       unlist() %>%
-      c(
-        rep(min(.), sliding_window %/% 2), ., rep(
-          min(.),
-          (sliding_window %/% 2) - 1
-        )
-      )
+      c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1))
   } else if (score_method == "dtw") {
     stretch <- 0.2
     norm <- "L1"
@@ -93,15 +90,10 @@ match_i <- function(df_grid_i, score_method = "cor") {
       }
     ) %>%
       unlist() %>%
-      {
-        1 - (. / max(.))
-      } %>%
-      c(
-        rep(min(.), sliding_window %/% 2), ., rep(
-          min(.),
-          (sliding_window %/% 2) - 1
-        )
-      )
+        {
+          1 - (. / max(.))
+        } %>%
+        c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1))
   }
 
   if (length(score_vec) > length(spectro_soundscape$time)) {
