@@ -49,7 +49,7 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
         template_file = basename(template_list),
         template_name = basename(template_list),
         template_label =
-          tail(strsplit(gsub(".WAV|.wav", "", template_file), split = "_")[[1]], 1),
+          map_chr(strsplit(gsub(".WAV|.wav", "", template_file), split = "_"), tail, 1),
         template_start = 0,
         template_end = duration,
         template_sample_rate = sample_rate
