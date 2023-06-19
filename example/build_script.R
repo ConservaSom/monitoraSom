@@ -41,16 +41,16 @@ use_package("stringr")
 use_package("tibble")
 use_package("tidyr")
 
+# document()
 
 roxygen2::roxygenize()
-document()
 
 
+library(devtools)
 check()
-
-
-install()
 build()
+load_all()
+devtools::install()
 
 
 
