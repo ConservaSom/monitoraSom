@@ -49,9 +49,9 @@ roxygen2::roxygenize()
 library(devtools)
 check()
 build()
-load_all()
 devtools::install()
 
+# load_all()
 
 
 
