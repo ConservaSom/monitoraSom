@@ -1,4 +1,4 @@
-#' plot_match_i - Plots the results of the match_i function
+#' plot_detecs_i - Plots the results of the match_i function
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
@@ -48,7 +48,7 @@
 #' @return Todo
 #'
 #' @export
-plot_match_i <- function(
+plot_detecs_i <- function(
     match_res_i,
     buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
     flim = c(0, 10), ovlp = NULL, wl = NULL, dyn_range = c(-60, 0),

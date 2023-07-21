@@ -12,6 +12,7 @@ Prioridades
 Funções
 - Fazer uma função para extração dos metadados a partir de nomes de arquivos e metadados de arquivos audiomoths e sm4
 - Fazer uma função para adaptar um corte de audio qualquer como template
+- Função de match_n tem que checar o caminh para o salvamento antes de processar tudo
 
 Geral
 - Fazer com que as funções que plotam sonogramas dos apps usem a função fast_spectro()

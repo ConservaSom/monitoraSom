@@ -2118,6 +2118,8 @@ launch_validation_app <- function(
       cut_full_tab <- reactiveVal(NULL)
       cut_i_tab <- reactiveVal(NULL)
 
+      # JUAMPY LOOK HERE
+
       observe({
         req(df_diag_input())
         if (nrow(df_diag_input()) > 2) {
