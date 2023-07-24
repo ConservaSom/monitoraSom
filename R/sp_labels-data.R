@@ -5,7 +5,7 @@
 #'
 #' @docType data
 #'
-#' @usage data(sp_lists)
+#' @usage data(sp_labels)
 #'
 #' @format ## `sp_labels`
 #'

@@ -31,10 +31,15 @@
 #'   end of the score vector.
 #'
 #' @export
+#' @import purrr
+#' @importFrom tuneR readWave
+#' @importFrom seewave spectro
+#' @importFrom dtwclust dtw_basic
+#' @importFrom slider slide
 match_i <- function(df_grid_i, score_method = "cor") {
 
-  wav_query <- tuneR::readWave(df_grid_i$soundscape_path)
-  wav_template <- tuneR::readWave(df_grid_i$template_path)
+  wav_query <- readWave(df_grid_i$soundscape_path)
+  wav_template <- readWave(df_grid_i$template_path)
 
   spectro_template <- seewave::spectro(
     wav_template,

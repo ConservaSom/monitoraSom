@@ -43,6 +43,14 @@
 #' @return todo
 #'
 #' @export
+#' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR
+#'   collapse DT shinyWidgets shinydashboard shinyFiles shinyalert
+#'   keys shinyjs shinyBS cutpointr kableExtra
+#' @importFrom caret downSample upSample
+#' @importFrom ROSE ROSE
+#' @importFrom data.table fread fwrite
+#' @importFrom farver encode_native
+#' @importFrom tuneR play setWavPlayer readWave
 launch_validation_app <- function(
     preset_path = NULL, preset_id = NULL,
     validation_user, templates_path, soundscapes_path,
@@ -57,33 +65,31 @@ launch_validation_app <- function(
 
     ) {
 
-  require(dplyr, warn.conflicts = FALSE)
-  require(tidyr)
-  require(ggplot2)
-  require(lubridate)
-  require(seewave)
-  require(stringr)
-  require(tuneR)
-  require(purrr)
-  require(collapse)
-  require(DT)
-  require(data.table)
-  require(cutpointr)
-  require(caret)
-  require(ROSE)
-  require(here)
-  require(viridis)
-  require(farver)
-
-  require(shiny)
-  require(shinyWidgets)
-  require(shinyjs)
-  require(kableExtra)
-  require(keys)
-  require(shinyFiles)
-  require(shinydashboard)
-  require(shinyalert)
-  require(shinyBS)
+  library(dplyr, warn.conflicts = FALSE)
+  # require(tidyr)
+  # require(ggplot2)
+  # require(lubridate)
+  # require(seewave)
+  # require(stringr)
+  # require(tuneR)
+  # require(purrr)
+  # require(collapse)
+  # require(DT)
+  # require(data.table)
+  # require(cutpointr)
+  # require(caret)
+  # require(ROSE)
+  # require(viridis)
+  # require(farver)
+  # require(shiny)
+  # require(shinyWidgets)
+  # require(shinyjs)
+  # require(kableExtra)
+  # require(keys)
+  # require(shinyFiles)
+  # require(shinydashboard)
+  # require(shinyalert)
+  # require(shinyBS)
 
   options(dplyr.summarise.inform = FALSE)
 
@@ -445,6 +451,7 @@ launch_validation_app <- function(
   }
 
   # This block defines where embedded html wav players will look for the files
+  # todo Ajustar esse caminho ao longo do app para remover dependecia de here()
   temp_dir <- paste0(getwd(), "/temp/")
   if (!dir.exists(temp_dir)) {
     dir.create(temp_dir)
@@ -1788,7 +1795,7 @@ launch_validation_app <- function(
             showElement("play_template")
             # if (input$show_soundscape == TRUE) showElement("play_soundscape")
           } else {
-            updateRadioButtons(session, "wav_player_type", select = "R session")
+            updateRadioButtons(session, "wav_player_type", selected = "R session")
           }
         }
         if (x == "HTML player") {
@@ -2203,7 +2210,7 @@ launch_validation_app <- function(
 
             cut_full_tab(diag_out)
 
-            roc_plot <- plot_roc(cutpointr_raw) +
+            roc_plot <- cutpointr::plot_roc(cutpointr_raw) +
               geom_segment(
                 aes(x = 0, y = 0, xend = 1, yend = 1),
                 linetype = "dashed", color = "grey40"

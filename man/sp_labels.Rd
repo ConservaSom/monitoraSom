@@ -18,7 +18,7 @@ A data frame with 7,240 rows and 60 columns:
 Todo
 }
 \usage{
-data(sp_lists)
+data(sp_labels)
 }
 \description{
 A data frame containing species names to label regions of interest in the

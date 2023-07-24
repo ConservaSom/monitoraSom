@@ -36,6 +36,7 @@
 #' @return A Tibble containing the detections of all audio scores.
 #'
 #' @export
+#' @import tibble dplyr purrr
 fetch_score_peaks_n <- function(
     tib_match, recursive = FALSE, buffer_size = "template", min_score = NULL,
     min_quant = NULL, top_n = NULL, save_res = NULL) {

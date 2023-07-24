@@ -5,13 +5,15 @@
 \title{Function to launch the segmentation app}
 \usage{
 launch_segmentation_app(
-  preset_path = NULL,
+  project_path = NULL,
   preset_id = NULL,
-  user,
-  soundscapes_path,
-  roi_tables_path,
-  cuts_path,
-  labels_file,
+  user = NULL,
+  preset_path = NULL,
+  soundscapes_path = NULL,
+  roi_tables_path = NULL,
+  cuts_path = NULL,
+  labels_file = NULL,
+  sp_list = "CBRO-2021 (Brazil)",
   fastdisp = TRUE,
   label_angle = 90,
   show_label = TRUE,
@@ -23,19 +25,20 @@ launch_segmentation_app(
   wav_player_path = "play",
   session_notes = NULL,
   zoom_freq = c(0, 10),
-  nav_autosave = FALSE,
-  sp_list = "CBRO-2021 (Brazil)"
+  nav_autosave = FALSE
 )
 }
 \arguments{
-\item{preset_path}{Path from which presets can be imported and to which new
-presets can be exported.}
+\item{project_path}{Todo}
 
 \item{preset_id}{ID of the preset to be imported from the 'preset_path'
 folder. If export_preset = TRUE, the preset will be exported to the
 'preset_path' folder with the name "segmentation_preset_<preset_id>.rds".}
 
 \item{user}{Identification of the user of the segmentation app.}
+
+\item{preset_path}{Path from which presets can be imported and to which new
+presets can be exported.}
 
 \item{soundscapes_path}{Path to soundscapes files.}
 
@@ -49,6 +52,9 @@ imported and to which they will be exported.}
 in the segmentation. This file must be a '.xlsx' spreadsheet in which
 available lists are stored as columns, identified in the app menu by their
 titles.}
+
+\item{sp_list}{A character string with the available labels to be used in the
+cuirrent session. The default is "CBRO-2021 (Brazil)".}
 
 \item{fastdisp}{If TRUE, the spectrogram will be displayed in a lower
 quality, but faster.}
@@ -91,9 +97,6 @@ kHz of the frequency band to be displayed in the spectrogram.}
 
 \item{nav_autosave}{If TRUE, navigating between soundscapes will
 automatically save the ROI table of the active soundscape.}
-
-\item{sp_list}{A character string with the available labels to be used in the
-cuirrent session. The default is "CBRO-2021 (Brazil)".}
 }
 \value{
 Todo

@@ -27,27 +27,25 @@
 #' @param ... Additional arguments to be passed internally to the 'spectro'
 #'   function.
 #'
+#' @import dplyr viridis farver ggplot2
 #' @importFrom seewave spectro
-#' @import dplyr
 #' @return This function returns a ggplot2 object.
 #'
 #' @export
 fast_spectro <- function(
-  rec, f, flim = c(0, 10), ovlp = 50, wl = 1024, dyn_range = c(-60, 0),
-  color_scale = "inferno", n_colors = 124, interpolate = FALSE,...
-  ) {
-  require(viridis)
-  require(farver)
-  require(ggplot2)
+    rec, f, flim = c(0, 10), ovlp = 50, wl = 1024, dyn_range = c(-60, 0),
+    color_scale = "inferno", n_colors = 124, interpolate = FALSE, ...) {
 
   spec_raw <- seewave::spectro(
-    rec, f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim,
+    rec,
+    f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim,
     norm = TRUE, fftw = TRUE, plot = FALSE, ...
   )
-  mat <- spec_raw$amp %>%
-    ifelse(. < dyn_range[1], dyn_range[1], .) %>%
-    ifelse(. > dyn_range[2], dyn_range[2], .) %>%
-    t()
+  mat <- spec_raw$amp
+  mat[mat < dyn_range[1]] <- dyn_range[1]
+  mat[mat > dyn_range[2]] <- dyn_range[2]
+  mat <- t(mat)
+
   amp_range <- range(mat)
   if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
     colormap <- viridis::viridis(n_colors, option = color_scale)
@@ -76,6 +74,7 @@ fast_spectro <- function(
   xmax <- max(spec_raw$time)
   ymin <- min(spec_raw$freq)
   ymax <- max(spec_raw$freq)
+  x <- NULL
 
   suppressMessages(
     ggplot() +
@@ -86,7 +85,8 @@ fast_spectro <- function(
         ymin = ymin, ymax = ymax
       ) +
       annotation_raster(
-        nr, interpolate = interpolate,
+        nr,
+        interpolate = interpolate,
         xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax
       ) +
       scale_fill_gradientn(

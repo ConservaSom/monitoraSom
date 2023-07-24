@@ -5,6 +5,35 @@ library(pkgload)
 library(available)
 library(roxygen2)
 
+roxygen2::roxygenize()
+check()
+document()
+build()
+devtools::install()
+
+
+‘dplyr::group_rows’ by ‘kableExtra::group_rows’
+‘collapse::is.Date’ by ‘lubridate::is.Date’
+‘foreach::when’ by ‘purrr::when’
+‘foreach::accumulate’ by ‘purrr::accumulate’
+‘parabar::export’ by ‘seewave::export’
+‘lubridate::duration’ by ‘seewave::duration’
+‘DT::dataTableOutput’ by ‘shiny::dataTableOutput’
+‘DT::renderDataTable’ by ‘shiny::renderDataTable’
+‘shiny::runExample’ by ‘shinyalert::runExample’
+‘shinyBS::closeAlert’ by ‘shinyalert::closeAlert’
+‘shinyWidgets::alert’ by ‘shinyjs::alert’
+‘shinyalert::runExample’ by ‘shinyjs::runExample’
+‘lubridate::show’ by ‘shinyjs::show’
+‘shinyjs::show’ by ‘tuneR::show’
+
+
+# # https://uptake.github.io/pkgnet/articles/pkgnet-intro.html
+# library(pkgnet)
+# report2 <- CreatePackageReport(
+#   pkg_name = "monitoraSom", pkg_path = "/"
+# )
+
 load_all()
 use_gpl3_license()
 
@@ -43,16 +72,20 @@ use_package("tidyr")
 
 # document()
 
-roxygen2::roxygenize()
 
-
-library(devtools)
-check()
-build()
-devtools::install()
 
 # load_all()
 
 
 
 available("monitoraSom")
+
+
+
+
+# dependencias ------------------------------------------------------------
+
+pak::pkg_deps_tree("progressr")
+pak::pkg_deps_tree("here")
+pak::pkg_deps_tree("collapse")
+

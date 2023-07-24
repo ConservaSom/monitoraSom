@@ -13,7 +13,8 @@
 #'   parallelization. Default is 1.
 #'
 #' @return A data frame with the following columns:
-#'
+#' @import progressr future furrr
+#' @importFrom av av_media_info
 #' @export
 fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
 
@@ -23,11 +24,13 @@ fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
     full.names = TRUE
   )
 
-  handlers(handler_pbcol(
-    adjust = 1.0,
-    complete = function(s) cli::bg_cyan(cli::col_black(s)),
-    incomplete = function(s) cli::bg_red(cli::col_black(s))
-  ))
+  handlers(
+    handler_pbcol(
+      adjust = 1.0,
+      complete = function(s) cli::bg_cyan(cli::col_black(s)),
+      incomplete = function(s) cli::bg_red(cli::col_black(s))
+    )
+  )
 
   get_metadata <- function(soundscape_list) {
     p <- progressor(along = 1:length(soundscape_list), auto_finish = FALSE)
@@ -42,15 +45,15 @@ fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
   }
 
   if (ncores > 1) {
-    plan(multicore, workers = ncores)
+    future::plan(multicore, workers = ncores)
   } else {
-    plan(sequential)
+    future::plan(sequential)
   }
 
   with_progress({
     res_raw <- get_metadata(soundscape_list)
   })
-  plan(sequential)
+  future::plan(sequential)
 
   names(res_raw) <- gsub("audio\\.", "", names(res_raw))
   res_raw$soundscape_path <- soundscape_list

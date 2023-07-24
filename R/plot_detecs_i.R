@@ -48,6 +48,9 @@
 #' @return Todo
 #'
 #' @export
+#' @import ggplot2 patchwork viridis
+#' @importFrom tuneR readWave
+#' @importFrom seewave spectro reverse.gray.colors.1 reverse.gray.colors.2
 plot_detecs_i <- function(
     match_res_i,
     buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,

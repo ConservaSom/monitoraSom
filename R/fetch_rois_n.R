@@ -2,6 +2,7 @@
 #'
 #' @param path Path to directory containing ROI tables
 #' @param roi_filter Filter ROI tables by comment, default is FALSE
+#' @param recursive Search recursively for roi tables, default is FALSE
 #'
 #' @return A data frame with ROI tables
 #' @export

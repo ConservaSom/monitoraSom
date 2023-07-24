@@ -7,6 +7,7 @@
 #'   regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
 #'   be imported from presets or set manually.
 #'
+#' @param project_path Todo
 #' @param preset_path Path from which presets can be imported and to which new
 #'   presets can be exported.
 #' @param preset_id ID of the preset to be imported from the 'preset_path'
@@ -58,79 +59,119 @@
 #' @return Todo
 #'
 #' @export
+#' @import shiny dplyr ggplot2 lubridate seewave stringr tuneR collapse DT
+#'  shinyWidgets shinydashboard shinyFiles shinyalert keys shinyjs shinyBS
+#' @importFrom data.table fread fwrite
 launch_segmentation_app <- function(
-  preset_path = NULL, preset_id = NULL,
-  user, soundscapes_path, roi_tables_path, cuts_path, labels_file,
-  fastdisp = TRUE, label_angle = 90, show_label = TRUE, dyn_range = c(-60, 0),
-  wl = 1024, ovlp = 0, color_scale = "inferno", wav_player_type = "R session",
-  wav_player_path = "play", session_notes = NULL, zoom_freq = c(0, 10),
-  nav_autosave = FALSE, sp_list = "CBRO-2021 (Brazil)"
-) {
-
-  require(shiny)
-  require(dplyr)
-  require(here)
-  require(ggplot2)
-  require(lubridate)
-  require(seewave)
-  require(stringr)
-  require(tuneR)
-  require(collapse)
-  require(knitr)
-  require(rmarkdown)
-  require(beepr)
-  require(DT)
-  require(data.table)
-  require(shinyWidgets)
-  require(shinydashboard)
-  require(shinyFiles)
-  require(shinyalert)
-  require(shiny)
-  require(keys)
-  require(shinyjs)
-  require(shinyBS)
+  project_path = NULL, preset_id = NULL, user = NULL, preset_path = NULL,
+  soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
+  labels_file = NULL, sp_list = "CBRO-2021 (Brazil)", fastdisp = TRUE, label_angle = 90,
+  show_label = TRUE, dyn_range = c(-60, 0), wl = 1024, ovlp = 0,
+  color_scale = "inferno", wav_player_type = "R session", wav_player_path = "play",
+  session_notes = NULL, zoom_freq = c(0, 10), nav_autosave = FALSE
+  ) {
+  # require(shiny)
+  # require(dplyr)
+  # require(ggplot2)
+  # require(lubridate)
+  # require(seewave)
+  # require(stringr)
+  # require(tuneR)
+  # require(collapse)
+  # require(knitr)
+  # require(rmarkdown)
+  # require(beepr)
+  # require(DT)
+  # require(data.table)
+  # require(shinyWidgets)
+  # require(shinydashboard)
+  # require(shinyFiles)
+  # require(shinyalert)
+  # require(shiny)
+  # require(keys)
+  # require(shinyjs)
+  # require(shinyBS)
 
   session_data <- list()
 
-  # check if the 'preset_path' is a valid path
-  if (!is.null(preset_path)) {
-    if (dir.exists(preset_path)) {
-      session_data$preset_path <- preset_path
+  if (!is.null(project_path)) {
+    if (dir.exists(project_path)) {
+      session_data$project_path <- project_path
     } else {
-      dir.create(preset_path)
-      session_data$preset_path <- preset_path
-      warning("Warning! The selected preset destination folder did not exist. It was created automatically.")
+      dir.create(project_path)
+      if (dir.exists(project_path)) {
+        session_data$project_path <- project_path
+        warning(
+          paste0("The segmentation project destination directory was sucessfully created at '", project_path, "'")
+        )
+      } else {
+        stop("Error! Tried to create the segmentation project directory at '", project_path, "' but failed.")
+      }
     }
-    temp_path <- paste0(preset_path, "/temp/") # tomporary
-    if (!dir.exists(temp_path)) {
-      dir.create(temp_path)
-    }
-    session_data$temp_path <- temp_path
   }
 
   if (!is.null(user)) {
     session_data$user <- as.character(gsub(",", "", user))
-  } else {
-    stop("Error! Inform the user name")
+  } else if (is.null(preset_id) | is.null(preset_path)) {
+    session_data$user <- as.character(NA)
+    warning("Warning! A value was not provided for 'user' variable. Inform the correct value and confirm within the app.")
   }
 
   if (!dir.exists(soundscapes_path)) {
-    stop("Warning! The path informed in 'soundscapes_path' was not found locally.")
+    session_data$soundscapes_path <- NA
+    warning("Warning! The path informed in 'soundscapes_path' was not found locally. Inform the correct value and confirm within the app.")
   } else {
     session_data$soundscapes_path <- soundscapes_path
   }
 
-  if (!dir.exists(roi_tables_path)) {
-    dir.create(roi_tables_path)
-    warning("Warning! The path informed in 'roi_tables_path' was not found locally. A new folder was created.")
+  if (is.null(roi_tables_path) && is.null(project_path)) {
+    session_data$roi_tables_path <- NA
+    warning(
+      "Warning! No values were provided for 'roi_tables_path' and 'project_path' variables. Provide and confirm it within the app."
+    )
+  } else if (is.null(roi_tables_path) & !is.null(project_path)) {
+    roi_tables_path <- file.path(project_path, "roi_tables/")
+    if (!dir.exists(roi_tables_path)) {
+      dir.create(roi_tables_path)
+      warning(
+        "Warning! The path informed in 'roi_tables_path' was not found locally. A new 'roi_tables' directory was sucessfully created at '", roi_tables_path, "'"
+      )
+    }
+    session_data$roi_tables_path <- roi_tables_path
+  } else if (!is.null(roi_tables_path)){
+    if (!dir.exists(roi_tables_path)) {
+      stop(
+        "Error! The path informed in 'roi_tables_path' was not found locally and no 'project_path' was informed to create it."
+      )
+    } else {
+      session_data$roi_tables_path <- roi_tables_path
+    }
   }
-  session_data$roi_tables_path <- roi_tables_path
 
-  if (!dir.exists(cuts_path)) {
-    dir.create(cuts_path)
-    warning("Warning! The path informed in 'cuts_path' was not found locally. A new folder was created.")
+  if (is.null(cuts_path) && is.null(project_path)) {
+    session_data$cuts_path <- NA
+    warning(
+      "Warning! No value was provided for 'cuts_path' and 'project_path' variables. Inform the value and confirm within the app."
+    )
+  } else if (is.null(cuts_path) & !is.null(project_path)) {
+    cuts_path <- file.path(project_path, "cuts/")
+    if (!dir.exists(cuts_path)) {
+      # if the path does not exist, create it
+      dir.create(cuts_path)
+      warning(
+        "Warning! The path informed in 'cuts_path' was not found locally. A new 'cuts' directory was sucessfully created within the informed 'project_path', at '", cuts_path, "'"
+      )
+    }
+    session_data$cuts_path <- cuts_path
+  } else if (!is.null(cuts_path)) {
+    if (!dir.exists(cuts_path)) {
+      stop(
+        "Error! The path informed in 'cuts_path' was not found locally and no 'project_path' was informed to create it."
+      )
+    } else {
+      session_data$cuts_path <- cuts_path
+    }
   }
-  session_data$cuts_path <- cuts_path
 
   if (is.logical(fastdisp)) {
     session_data$fastdisp <- fastdisp
@@ -139,18 +180,14 @@ launch_segmentation_app <- function(
   }
 
   # check of "label_angle" variable is within 0-180 range and is a multiple of 10
-  if (is.numeric(label_angle)) {
-    if (label_angle >= 0 & label_angle <= 180) {
-      if (label_angle %% 10 == 0) {
-        session_data$label_angle <- label_angle
-      } else {
-        stop("Error! 'label_angle' must be a multiple of 10.")
-      }
-    } else {
-      stop("Error! 'label_angle' must be between 0 and 180.")
-    }
-  } else {
+  if (!is.numeric(label_angle)) {
     stop("Error! 'label_angle' must be numeric.")
+  } else if (label_angle < 0 | label_angle > 180) {
+    stop("Error! 'label_angle' must be between 0 and 180.")
+  } else if (label_angle %% 10 != 0) {
+    stop("Error! 'label_angle' must be a multiple of 10.")
+  } else {
+    session_data$label_angle <- label_angle
   }
 
   if (is.logical(show_label)) {
@@ -247,7 +284,18 @@ launch_segmentation_app <- function(
     )
   }
 
-  session_data$session_notes <- NA # todo
+  if (is.null(session_notes)) {
+    session_data$session_notes <- NA
+  } else {
+    session_notes <- as.character(session_notes)
+    if (is.character(session_notes)) {
+      session_data$session_notes <- session_notes
+    } else {
+      stop(
+        "Error! The value assigned to 'session_notes' cannot be coerced to a character string."
+      )
+    }
+  }
 
   # check if the variable 'zoom_freq' is an integer vector of length equals 2, is between 0 and 10 and the first value is smaller than the second
   if (length(zoom_freq) == 2) {
@@ -286,45 +334,95 @@ launch_segmentation_app <- function(
     )
   }
 
-  # check if the variable 'sp_list' is a character vector
-  if (is.character(sp_list)) {
-    session_data$sp_list <- sp_list
-  } else {
-    stop(
-      "Error! The value assigned to 'sp_list' is not a character vector."
-    )
+  if (!is.null(preset_path)) {
+    if (dir.exists(preset_path)) {
+      session_data$preset_path <- preset_path
+    } else {
+      dir.create(preset_path)
+      if (dir.exists(preset_path)) {
+        session_data$preset_path <- preset_path
+        warning(
+          "The segmentation preset destination directory was created automatically at '",
+          preset_path, "'"
+        )
+      } else {
+        stop("Error! The selected preset destination folder does not exist and could not be created.")
+      }
+    }
+    # The creation of the temp directory assumes that the preset directory exists
+    temp_path <- file.path(preset_path, "temp/")
+    if (!dir.exists(temp_path)) {
+      dir.create(temp_path)
+    }
+    session_data$temp_path <- temp_path
+  } else if (!is.null(project_path)) {
+    # If a project path is defined,
+    preset_path <- file.path(project_path, "presets/")
+    temp_path <- file.path(project_path, "presets/temp/")
+    if (!dir.exists(preset_path)) {
+      dir.create(preset_path)
+      dir.create(temp_path)
+    }
+    session_data$preset_path <- preset_path
+    session_data$temp_path <- temp_path
   }
 
-  if (!is.null(preset_path) & !is.null(preset_id)) {
-    preset_file <- file.path(
-      preset_path, paste0("segmentation_preset_", preset_id, ".rds")
-    )
-    preset_to_export <- list(
-      user = session_data$user,
-      soundscapes_path = session_data$soundscapes_path,
-      roi_tables_path = session_data$roi_tables_path,
-      cuts_path = session_data$cuts_path,
-      fastdisp = session_data$fastdisp,
-      label_angle = session_data$label_angle,
-      show_label = session_data$show_label,
-      dyn_range = session_data$dyn_range,
-      wl = session_data$wl,
-      ovlp = session_data$ovlp,
-      color_scale = session_data$color_scale,
-      wav_player_type = session_data$wav_player_type,
-      wav_player_path = session_data$wav_player_path,
-      session_notes = session_data$session_notes,
-      zoom_freq = session_data$zoom_freq,
-      nav_autosave = session_data$nav_autosave,
-      sp_list = session_data$sp_list
-    )
-    saveRDS(object = preset_to_export, file = preset_file)
-    message("Preset sucessfully exported to the selected destination!")
+  data(sp_labels)
+  sp_labels_default <- sp_labels
+  if (!is.null(labels_file)) {
+    stopifnot(file.exists(labels_file))
+    sp_labels_custom <- readxl::read_xlsx(labels_file)
+  } else if (!is.null(project_path)) {
+    sp_labels_custom <- file.path(project_path, "presets/sp_labels.xlsx")
+    if (file.exists(sp_labels_custom)) {
+      sp_labels_custom <- readxl::read_xlsx(sp_labels_custom)
+    } else {
+      openxlsx::write.xlsx(sp_labels_default, sp_labels_custom)
+      sp_labels_custom <- sp_labels_default
+    }
   }
+  sp_labels <- dplyr::coalesce(sp_labels_custom, sp_labels_default)
 
-  # check of labels_file exists
-  if (!file.exists(labels_file)) {
-    stop("Error! The informed label list file does not exist.")
+
+  if (!sp_list %in% colnames(sp_labels)) {
+    warning("The selected species list is not among the available species lists. Using the default species list.")
+  }
+  session_data$sp_list <- sp_list
+
+  if (!is.null(preset_id)) {
+    if (is.character(preset_id) & length(preset_id) == 1) {
+      session_data$preset_id <- preset_id
+      if (!is.null(preset_path)) {
+        preset_file <- file.path(
+          preset_path, paste0("segmentation_preset_", preset_id, ".rds")
+        )
+        preset_to_export <- list(
+          user = session_data$user,
+          soundscapes_path = session_data$soundscapes_path,
+          roi_tables_path = session_data$roi_tables_path,
+          cuts_path = session_data$cuts_path,
+          fastdisp = session_data$fastdisp,
+          label_angle = session_data$label_angle,
+          show_label = session_data$show_label,
+          dyn_range = session_data$dyn_range,
+          wl = session_data$wl,
+          ovlp = session_data$ovlp,
+          color_scale = session_data$color_scale,
+          wav_player_type = session_data$wav_player_type,
+          wav_player_path = session_data$wav_player_path,
+          session_notes = session_data$session_notes,
+          zoom_freq = session_data$zoom_freq,
+          nav_autosave = session_data$nav_autosave,
+          sp_list = session_data$sp_list
+        )
+        saveRDS(object = preset_to_export, file = preset_file)
+        message("Preset sucessfully exported to the selected destination!")
+      }
+    } else {
+      stop(
+        "Error! The value assigned to 'preset_id' is not a character string of length 1."
+      )
+    }
   }
 
   roi_razor <- function(wav, rois, path) {
@@ -380,7 +478,6 @@ launch_segmentation_app <- function(
   }
 
   # This function defines where embedded html wav players will look for the files
-  # shiny::addResourcePath("audio", here("temp/"))
   shiny::addResourcePath("audio", temp_path)
   # resourcePaths()
 
@@ -534,7 +631,7 @@ launch_segmentation_app <- function(
             ),
             sliderInput(
               "dyn_range", "Dynamic range (dB)",
-              min = -100, max = 10, step = 10, value = session_data$dyn_range , width = "100%"
+              min = -100, max = 10, step = 10, value = session_data$dyn_range, width = "100%"
             ),
             sliderTextInput(
               "wl", "Window length",
@@ -614,7 +711,8 @@ launch_segmentation_app <- function(
             column(
               width = 11,
               noUiSliderInput(
-                "zoom_time", label = NULL, min = 0, max = 0.1, step = 0.05,
+                "zoom_time",
+                label = NULL, min = 0, max = 0.1, step = 0.05,
                 value = c(0, 0.1), width = "100%", behaviour = "drag",
                 update_on = "end"
               )
@@ -831,12 +929,18 @@ launch_segmentation_app <- function(
           ),
           tabPanel(
             "User Manual",
-            p("1 - Register selected area as a region of interest (ROI)"),
-            p("2 - Undo the last registered ROI"),
-            p("Alt + Up - Zoom in on the time axis"),
-            p("Alt + Down - Zoom out in the time axis"),
-            p("Alt + Left - Navigate forward in the time axis"),
-            p("Alt + Right - Navigate back in the time axis")
+            p("Q - delete active ROI"),
+            p("W - zoom in time"),
+            # p("Alt+W - (inactive) zoom out to full soundscape duration and frequency band"),
+            p("E - store corrent selection as a ROI"),
+            p("A - navigate backwards in in time within a sounscape"),
+            # p("Alt+A - (inactive) navigate to the previous soundscape"),
+            p("S - zoom out in time"),
+            # p("Alt+S - (inactive) zoom out to full soundscape duration"),
+            p("D - navigate forward in in time within a sounscape"),
+            # p("Alt+D - (inactive) navigate to the next soudnscape"),
+            p("1 - play audio of visible soundscape spectrogram")
+            # p("2 - (inactive) play concatenated audio of all selected rois (default to all if none selected)")
           )
         )
       ),
@@ -999,20 +1103,21 @@ launch_segmentation_app <- function(
         }
       })
 
-      sp_lists <- reactive({
-        readxl::read_xlsx(labels_file, sheet = 1)
-      })
+      # todo - import labels dataframe from the global environment
+      # sp_lists <- reactive({
+      #   readxl::read_xlsx(labels_file, sheet = 1)
+      # })
 
       observe({
         updateSelectizeInput(
           session, "sp_list",
-          choices = colnames(sp_lists()), server = TRUE
+          choices = colnames(sp_labels), server = TRUE
         )
       })
 
       observeEvent(input$sp_list, {
         req(input$sp_list)
-        res <- sp_lists()[, input$sp_list]
+        res <- sp_labels %>% pull(input$sp_list)
         updateSelectizeInput(
           session, "label_name",
           choices = c(NA, res),
@@ -1099,7 +1204,7 @@ launch_segmentation_app <- function(
             tuneR::setWavPlayer(input$wav_player_path)
             showElement("play_soundscape")
           } else {
-            updateRadioButtons(session, "wav_player_type", select = "R session")
+            updateRadioButtons(session, "wav_player_type", selected = "R session")
           }
         }
         if (x == "HTML player") {
@@ -1698,11 +1803,17 @@ launch_segmentation_app <- function(
       )
 
       observeEvent(input$res_table_cell_edit, {
-        req(roi_values())
+        req(roi_values(), roi_tables_path_val(), input$roi_table_name)
         df <- roi_values()
         df[input$res_table_cell_edit$row, input$res_table_cell_edit$col] <-
           input$res_table_cell_edit$value
         roi_values(df)
+        if (input$nav_autosave == TRUE) { # todo - teste it
+          data.table::fwrite(
+            roi_values(), file.path(roi_tables_path_val(), input$roi_table_name),
+            row.names = FALSE
+          )
+        }
       })
 
       observeEvent(input$delete_selected_rois, {
@@ -2268,20 +2379,3 @@ launch_segmentation_app <- function(
     },
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -16,8 +16,15 @@
 #' @return A data frame with the validated detections.
 #' @export
 #'
-#' @examples
 validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
+
+  # todo Acicionar controle de caixa alta nas extensões dos arquivos
+
+  # todo Preencher nome e caminhos de templates automaticamente para admitir
+  # birdnet
+
+  # todo Adicionar uma rodada de template matching entre as rois FN e os
+  # templates para completar os scores
 
   df_rois <- df_rois %>%
     mutate(

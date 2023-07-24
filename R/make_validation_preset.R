@@ -38,7 +38,6 @@
 #'
 #' @return A list with validation session settings.
 #'
-#'
 #' @export
 make_validation_preset <- function(preset_path = NULL, preset_name = NULL,
                                    validation_user, templates_path, soundscapes_path,

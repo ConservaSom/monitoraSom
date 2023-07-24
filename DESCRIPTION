@@ -9,40 +9,14 @@ Description: More about what it does (maybe more than one line)
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: TRUE
-Imports: 
-    av,
-    caret,
-    cli,
-    collapse,
-    cowplot,
-    cutpointr,
-    data.table,
-    dplyr,
-    dtw,
-    dtwclust,
-    farver,
-    fftw,
-    furrr,
-    ggplot2,
-    here,
-    openxlsx,
-    pbapply,
-    progressr,
-    purrr,
-    readxl,
-    ROSE,
-    seewave,
-    shiny,
-    shinyBS,
-    shinyFiles,
-    shinyjs,
-    slider,
-    stringr,
-    tibble,
-    tidyr,
-    tuneR,
-    viridis
+Imports:
+    av,  caret, cli, collapse, cowplot, cutpointr, data.table, dplyr, DT, dtw,
+    dtwclust, farver, fftw, furrr, future, foreach, parabar, ggplot2, here,
+    keys, lubridate, openxlsx, pbapply, progressr, purrr, readxl,
+    ROSE, seewave, shiny, shinyBS, shinyFiles, shinyWidgets, shinyalert,
+    shinydashboard, shinyjs, slider, stringr, tibble, tidyr, tuneR, viridis,
+    patchwork
 RoxygenNote: 7.2.3
 Suggests:
-    testthat (>= 3.0.0)
+    testthat
 Config/testthat/edition: 3

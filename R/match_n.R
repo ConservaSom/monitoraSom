@@ -42,6 +42,9 @@
 #'   from the template are added to the beginning and end of the
 #'
 #' @export
+#' @import dplyr future pbapply foreach parabar progressr
+#' @importFrom furrr future_map
+#' @importFrom purrr list_rbind
 match_n <- function(
     df_grid, score_method = "cor", save_res = FALSE, par_strat = "future", ncores = 1,
     backend_type = "async", cluster_type = "psock") {
@@ -128,11 +131,11 @@ match_n <- function(
       res <- par_lapply(
         backend, grid_list,
         function(x) {
-          require(dplyr)
-          require(here)
-          require(collapse)
-          require(dtwclust)
-          require(slider)
+          # require(dplyr)
+          # require(here)
+          # require(collapse)
+          # require(dtwclust)
+          # require(slider)
           require(monitoraSom)
           res <- match_i(x, score_method = "cor")
           return(res)
@@ -142,11 +145,11 @@ match_n <- function(
       res <- par_lapply(
         backend, grid_list,
         function(x) {
-          require(dplyr)
-          require(here)
-          require(collapse)
-          require(dtwclust)
-          require(slider)
+          # require(dplyr)
+          # require(here)
+          # require(collapse)
+          # require(dtwclust)
+          # require(slider)
           require(monitoraSom)
           res <- match_i(x, score_method = "dtw")
           return(res)

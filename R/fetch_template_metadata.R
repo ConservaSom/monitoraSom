@@ -10,14 +10,19 @@
 #' @param method The method of metadata extraction. The available Options include "standalone" and "roi_table". See details for more information on the format of the input files for each method.
 #'
 #' @return A tibble containing the following metadata for each template file:
-#'
+#' @import dplyr purrr
+#' @importFrom data.table fread
+#' @importFrom stringr str_replace str_pad
+#' @importFrom collapse fmutate fselect fsubset
 #' @export
 fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone") {
+
   if (method == "standalone") {
     template_list <- list.files(
       path, pattern = ".wav", full.names = TRUE, ignore.case = TRUE,
       recursive = recursive
     )
+
     if (length(template_list) == 0) {
       stop("No template files found in the specified directory")
     }
@@ -44,7 +49,7 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
       template_list, ~ unlist(av_media_info(.x), recursive = FALSE)
     ) %>%
       rename_with(~ gsub("audio.", "", .x)) |>
-      fmutate(
+      collapse::fmutate(
         template_path = template_list,
         template_file = basename(template_list),
         template_name = basename(template_list),
@@ -55,11 +60,11 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
         template_end = duration,
         template_sample_rate = sample_rate
       ) |>
-      fselect(
+      collapse::fselect(
         template_path, template_file, template_name, template_label,
         template_start, template_end, template_sample_rate
       ) |>
-      fmutate(
+      collapse::fmutate(
         template_min_freq = strsplit(template_file, "_")[[1]] %>%
           .[which(grepl("kHz$", .))] %>%
           {
@@ -70,10 +75,10 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
         #   gsub("kHz", "", .) %>% # str_remove("kHz") %>%
         #   as.numeric(),
 
-        template_max_freq = strsplit(template_file, "_")[[1]] %>%
+        template_max_freq = base::strsplit(template_file, "_")[[1]] %>%
           .[which(grepl("kHz$", .))] %>%
           {
-            strsplit(., "-")[[1]][2]
+            base::strsplit(., "-")[[1]][2]
           } %>%
           gsub("kHz", "", .) %>%
           as.numeric(),
@@ -81,7 +86,7 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
         #   gsub("kHz", "", .) %>% # str_remove("kHz") %>%
         #   as.numeric(),
 
-        template_wl = strsplit(template_file, "_")[[1]] %>%
+        template_wl = base::strsplit(template_file, "_")[[1]] %>%
           .[which(grepl("wl$", .))] %>%
           gsub("wl", "", .) %>%
           as.numeric(),
@@ -106,7 +111,7 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
     }
     res <- map(table_list, ~ fread(.x)) |>
       list_rbind() |>
-      fmutate(
+      collapse::fmutate(
         template_path = soundscape_path,
         template_file = soundscape_file,
         template_label = roi_label,
@@ -119,7 +124,7 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
         template_ovlp = roi_ovlp,
         template_comment = roi_comment
       ) %>%
-      fmutate(
+      collapse::fmutate(
         template_name = paste(
           stringr::str_replace(
             soundscape_file, ".wav|.WAV",
@@ -134,14 +139,14 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
           )
         )
       ) %>%
-      fselect(
+      collapse::fselect(
         template_path, template_file, template_name, template_label,
         template_start, template_end, template_sample_rate,
         template_min_freq, template_max_freq, template_wl,
         template_ovlp, template_comment
       ) %>%
-      fsubset(grepl("template", template_comment)) %>%
-      fselect(-template_comment)
+      collapse::fsubset(grepl("template", template_comment)) %>%
+      collapse::fselect(-template_comment)
   }
   message("Template metadata successfully extracted")
   return(res)
