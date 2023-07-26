@@ -45,7 +45,7 @@
 #' @export
 #' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR
 #'   collapse DT shinyWidgets shinydashboard shinyFiles shinyalert
-#'   keys shinyjs shinyBS cutpointr kableExtra
+#'   keys shinyjs shinyBS cutpointr
 #' @importFrom caret downSample upSample
 #' @importFrom ROSE ROSE
 #' @importFrom data.table fread fwrite

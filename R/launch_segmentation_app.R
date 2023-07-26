@@ -154,7 +154,7 @@ launch_segmentation_app <- function(
       "Warning! No value was provided for 'cuts_path' and 'project_path' variables. Inform the value and confirm within the app."
     )
   } else if (is.null(cuts_path) & !is.null(project_path)) {
-    cuts_path <- file.path(project_path, "cuts/")
+    cuts_path <- file.path(project_path, "roi_cuts/")
     if (!dir.exists(cuts_path)) {
       # if the path does not exist, create it
       dir.create(cuts_path)
@@ -357,8 +357,8 @@ launch_segmentation_app <- function(
     session_data$temp_path <- temp_path
   } else if (!is.null(project_path)) {
     # If a project path is defined,
-    preset_path <- file.path(project_path, "presets/")
-    temp_path <- file.path(project_path, "presets/temp/")
+    preset_path <- file.path(project_path, "app_presets/")
+    temp_path <- file.path(project_path, "app_presets/temp/")
     if (!dir.exists(preset_path)) {
       dir.create(preset_path)
       dir.create(temp_path)
@@ -373,7 +373,7 @@ launch_segmentation_app <- function(
     stopifnot(file.exists(labels_file))
     sp_labels_custom <- readxl::read_xlsx(labels_file)
   } else if (!is.null(project_path)) {
-    sp_labels_custom <- file.path(project_path, "presets/sp_labels.xlsx")
+    sp_labels_custom <- file.path(project_path, "app_presets/sp_labels.xlsx")
     if (file.exists(sp_labels_custom)) {
       sp_labels_custom <- readxl::read_xlsx(sp_labels_custom)
     } else {

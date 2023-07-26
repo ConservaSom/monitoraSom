@@ -18,17 +18,16 @@
 #'
 validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
 
-  # todo Acicionar controle de caixa alta nas extensões dos arquivos
+  # todo Fill names and paths to adapt to BirdNet standard
 
-  # todo Preencher nome e caminhos de templates automaticamente para admitir
-  # birdnet
-
-  # todo Adicionar uma rodada de template matching entre as rois FN e os
-  # templates para completar os scores
+  # todo Add an extra round of template matching between rois directly to
+  # complete empty score values
 
   df_rois <- df_rois %>%
     mutate(
-      soundscape_file = paste0(substr(roi_file, 1, 33), ".wav"), # todo solve extension cases
+      # todo Solve extension cases
+      # todo Solve hard coded name to extract soundscape_file values
+      soundscape_file = paste0(substr(roi_file, 1, 33), ".wav"),
       roi_id = paste0(
         paste0("roi", sprintf("%06d", 1:nrow(df_rois)))
       ),
