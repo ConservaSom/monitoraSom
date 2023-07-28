@@ -43,7 +43,7 @@ validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
         )
       ),
       detection_id = paste0(
-        "det", sprintf("%06d", 1:nrow(df_detections))
+        "det", sprintf("%06d", 1:nrow(df_detecs))
       )
     ) %>%
     filter(species == det_species) %>%
