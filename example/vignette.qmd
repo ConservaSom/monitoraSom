@@ -56,3 +56,8 @@ the function 'fetch_match_grid()' to calculate the matching score of the templat
 
 - `plot_detecs_i()` - This function plots a spectrogram of the soundscape and the results of the
 match_i() and fetch_score_peaks_i() functions.
+
+
+  >= cut	< cut
+ovlp	TP	FN
+no ovlp	FP	TN
