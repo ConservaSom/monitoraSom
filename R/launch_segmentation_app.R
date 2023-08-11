@@ -438,8 +438,8 @@ launch_segmentation_app <- function(
                 "_",
                 stringr::str_pad(sprintf("%.3f", round(roi_start, 3)), 7, pad = "0"), "-",
                 stringr::str_pad(sprintf("%.3f", round(roi_end, 3)), 7, pad = "0"), "s_",
-                stringr::str_pad(sprintf("%.3f", round(min_freq, 3)), 6, pad = "0"), "-",
-                stringr::str_pad(sprintf("%.3f", round(max_freq, 3)), 6, pad = "0"), "kHz_",
+                stringr::str_pad(sprintf("%.3f", round(roi_min_freq, 3)), 6, pad = "0"), "-",
+                stringr::str_pad(sprintf("%.3f", round(roi_max_freq, 3)), 6, pad = "0"), "kHz_",
                 roi_wl, "wl_", roi_ovlp, "ovlp_",
                 roi_label, ".wav"
               )
