@@ -1779,9 +1779,9 @@ launch_segmentation_app <- function(
             editable = TRUE,
             colnames = c(
               "soundscape_path", "soundscape_file", "user", "timestamp",
-              "label", "start", "end", "min_freq", "max_freq",
+              "label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
               "type", "label_confidence", "is_complete", "comment",
-              "wl", "ovlp", "sample_rate"
+              "roi_wl", "roi_ovlp", "sample_rate"
             ),
             options = list(
               pageLength = 50, info = FALSE, dom = "tpl",

@@ -10,7 +10,7 @@ check()
 document()
 build()
 devtools::install()
-1
+
 
 ‘dplyr::group_rows’ by ‘kableExtra::group_rows’
 ‘collapse::is.Date’ by ‘lubridate::is.Date’

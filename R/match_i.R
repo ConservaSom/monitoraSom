@@ -78,7 +78,8 @@ match_i <- function(df_grid_i, score_method = "cor") {
       }
     ) |>
       unlist() %>%
-      c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1))
+      c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1)) %>%
+      tidyr::replace_na(min(., na.rm = TRUE))
   } else if (score_method == "dtw") {
     stretch <- 0.2
     norm <- "L1"
@@ -98,7 +99,8 @@ match_i <- function(df_grid_i, score_method = "cor") {
         {
           1 - (. / max(.))
         } %>%
-        c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1))
+      c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1)) %>%
+      tidyr::replace_na(min(., na.rm = TRUE))
   }
 
   if (length(score_vec) > length(spectro_soundscape$time)) {

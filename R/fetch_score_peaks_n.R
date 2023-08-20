@@ -73,7 +73,8 @@ fetch_score_peaks_n <- function(
         .x,
         buffer_size = buffer_size, min_score = min_score,
         min_quant = min_quant, top_n = top_n
-      )
+      ),
+      .progress = TRUE
     ) |>
     list_rbind()
 
