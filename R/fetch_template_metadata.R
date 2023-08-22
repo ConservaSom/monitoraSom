@@ -65,40 +65,35 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
         template_start, template_end, template_sample_rate
       ) |>
       collapse::fmutate(
-        template_min_freq = strsplit(template_file, "_")[[1]] %>%
-          .[which(grepl("kHz$", .))] %>%
-          {
-            strsplit(., "-")[[1]][1]
-          } %>%
-          as.numeric(),
-        # strsplit(strsplit(template_file, "_")[[1]][5], "-")[[1]][1] %>%
-        #   gsub("kHz", "", .) %>% # str_remove("kHz") %>%
-        #   as.numeric(),
-
-        template_max_freq = base::strsplit(template_file, "_")[[1]] %>%
-          .[which(grepl("kHz$", .))] %>%
-          {
-            base::strsplit(., "-")[[1]][2]
-          } %>%
-          gsub("kHz", "", .) %>%
-          as.numeric(),
-        # strsplit(strsplit(template_file, "_")[[1]][5], "-")[[1]][2] %>%
-        #   gsub("kHz", "", .) %>% # str_remove("kHz") %>%
-        #   as.numeric(),
-
-        template_wl = base::strsplit(template_file, "_")[[1]] %>%
-          .[which(grepl("wl$", .))] %>%
-          gsub("wl", "", .) %>%
-          as.numeric(),
-        # strsplit(template_file, "_")[[1]][6] %>%
-        #   gsub("wl", "", .) %>% as.numeric(),
-
-        template_ovlp = strsplit(template_file, "_")[[1]] %>%
-          .[which(grepl("ovlp$", .))] %>%
-          gsub("ovlp", "", .) %>%
-          as.numeric()
-        # strsplit(template_file, "_")[[1]][7] %>%
-        #   gsub("ovlp", "", .) %>% as.numeric()
+        template_min_freq = map_dbl(
+          base::strsplit(template_file, "_"),
+          ~ .x[which(grepl("kHz$", .x))] %>%
+            {
+              strsplit(., "-")[[1]][1]
+            } %>%
+            as.numeric()
+        ),
+        template_max_freq = map_dbl(
+          base::strsplit(template_file, "_"),
+          ~ .x[which(grepl("kHz$", .x))] %>%
+            {
+              base::strsplit(., "-")[[1]][2]
+            } %>%
+            gsub("kHz", "", .) %>%
+            as.numeric()
+        ),
+        template_wl = map_dbl(
+          base::strsplit(template_file, "_"),
+          ~ .x[which(grepl("wl$", .x))] %>%
+            gsub("wl", "", .) %>%
+            as.numeric()
+        ),
+        template_ovlp = map_dbl(
+          base::strsplit(template_file, "_"),
+          ~ .x[which(grepl("ovlp$", .x))] %>%
+            gsub("ovlp", "", .) %>%
+            as.numeric()
+        )
       )
   } else if (method == "roi_table") {
     table_list <- list.files(

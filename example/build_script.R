@@ -1,9 +1,9 @@
 # https://r-pkgs.org/workflow101.html
 library(devtools)
-library(usethis)
-library(pkgload)
-library(available)
-library(roxygen2)
+# library(usethis)
+# library(pkgload)
+# library(available)
+# library(roxygen2)
 
 roxygen2::roxygenize()
 check()
