@@ -1170,7 +1170,8 @@ launch_segmentation_app <- function(
               gsub("\\\\", "/", .)
             res_cut <- cutw(
               rec_soundscape(),
-              from = input$zoom_time[1], to = input$zoom_time[2],
+              from = input$zoom_time[1],
+              to = ifelse(input$zoom_time[2] > duration_val(), duration_val(), input$zoom_time[2]),
               output = "Wave"
             )
             seewave::savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
