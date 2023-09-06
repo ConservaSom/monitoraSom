@@ -12,11 +12,12 @@
 #' @param df_detecs A data frame containing detections as in the output of
 #'   `fetch_score_peaks_n()`.
 #' @param det_species A character string specifying the species to validate.
+#' @param min_score A numeric value specifying the minimum score for validation.
 #'
 #' @return A data frame with the validated detections.
 #' @export
 #'
-validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
+validate_by_overlap_i_v2 <- function(df_rois, df_detecs, det_species, min_score) {
   df_rois <- df_rois %>%
     mutate(
       soundscape_file = paste0(substr(roi_file, 1, 33), ".wav"),
@@ -136,20 +137,20 @@ validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
   )
 
   df_val <- df_all_overlaps %>%
-    group_by(template_name, detection_id, validation) %>%
-    summarise(peak_score = max(peak_score)) %>%
-    summarise(
-      validation = case_when(
-        any(validation == "TP") ~ "TP",
-        all(validation == "FN") ~ "FN",
-        all(validation == "FP") ~ "FP"
-      ),
-      peak_score = max(peak_score)
-    ) %>%
-    ungroup() %>%
-    arrange(peak_score)
+  group_by(template_name, detection_id, validation) %>%
+  summarise(peak_score = max(peak_score)) %>%
+  summarise(
+    validation = case_when(
+      any(validation == "TP") ~ "TP",
+      all(validation == "FN") ~ "FN",
+      all(validation == "FP") ~ "FP"
+    ),
+    peak_score = max(peak_score)
+  ) %>%
+  ungroup() %>%
+  arrange(peak_score)
 
-  res <- map_dfr(
+  res_diags <- map_dfr(
     seq(0, 1, 0.01),
     ~ {
       df_val$validation[which(df_val$validation == "TP" & df_val$peak_score < .x)] <- "FN"
@@ -168,5 +169,35 @@ validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
       return(res)
     }
   )
+
+
+  res_validation <- df_detections %>%
+    list_rbind() %>%
+    full_join(
+      df_val,
+      by = c("template_name", "detection_id", "peak_score")
+    )
+
+  # min_score <- 0.1
+
+  res_validation$validation[
+    which(res_validation$validation == "TP" & res_validation$peak_score < min_score)
+  ] <- "FN"
+  res_validation$validation[
+    which(res_validation$validation == "FN" & res_validation$peak_score >= min_score)
+  ] <- "TP"
+  res_validation$validation[
+    which(res_validation$validation == "FP" & res_validation$peak_score < min_score)
+  ] <- "TN"
+  res_validation$validation[
+    which(res_validation$validation == "TN" & res_validation$peak_score >= min_score)
+  ] <- "FP"
+
+  res <- list(
+    min_score = min_score,
+    validated_detecs = res_validation,
+    diagnostics = res_diags
+  )
+
   return(res)
 }

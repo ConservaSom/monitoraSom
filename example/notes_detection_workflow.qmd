@@ -8,6 +8,8 @@ Prioridades
 - Fazer processo funcionar com o templates standalone
 - Adicionar a função de validação por sobreposição temporal
 - Implementar o restante dos diagnósticos
+- Obter TN a partir de rois de outras espécies, que permanecem como TN independente do score
+- A validação deve retornar 3 objetos: o valor do score selecionado, a tabela de diagnosticos baseados nesse score e a tabela de detecs validadas. 
 
 Funções
 - Fazer uma função para extração dos metadados a partir de nomes de arquivos e metadados de arquivos audiomoths e sm4
@@ -29,6 +31,7 @@ Geral
 - Adicionar opções gerais para seleção e registro do canal onde cada processo foi feito
 - Criar funções para que sejam convertidas tabelas de seleção do Raven e Audacity para o formato de output do app de segmentação
 - Omitir mensagens fo pacote av quando forem feitas as buscas de metadados dos arquivos de audio
+- Verificar a viabilidade de usar a função av::read_audio_fft para gerar os sonogramas ao longo de todo o pacote
 
 Apps
 - Habilitar o acionamento dos apps por meio de função sem que todos os argumentos precisem ser definidos
