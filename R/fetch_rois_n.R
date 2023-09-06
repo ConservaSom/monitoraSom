@@ -22,7 +22,7 @@ fetch_rois_n <- function(path, recursive = FALSE, roi_filter = FALSE) {
   if (length(ls_roi_tables_raw) == 0) {
     stop("No CSV files found in path")
   } else {
-    roi_name_pattern <- "_roi_[[:alnum:]]+_[[:digit:]]{14}\\.csv$"
+    roi_name_pattern <- "_roi_.*\\.csv$"
     file_name_check <- grepl(
       pattern = roi_name_pattern, x = basename(ls_roi_tables_raw)
     )
