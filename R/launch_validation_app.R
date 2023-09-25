@@ -653,6 +653,7 @@ launch_validation_app <- function(
 
         # Set up shinyjs
         useShinyjs(),
+        useShinyalert(force = TRUE),
 
         # Make keyboard shotcuts available
         useKeys(),
@@ -661,7 +662,8 @@ launch_validation_app <- function(
         # Avoid blinking figures while rendering
         tags$style(type = "text/css", ".recalculating {opacity: 1.0;}"),
 
-        # box(width = 12, verbatimTextOutput("checagem1")),
+        # box(width = 6, verbatimTextOutput("checagem1")),
+        # box(width = 6, verbatimTextOutput("checagem2")),
 
         box(
           width = 1, height = "450px",
@@ -1333,12 +1335,6 @@ launch_validation_app <- function(
       #     )
       # })
 
-    # teste_val <- reactiveVal(NULL)
-    # output$checagem1 <- renderPrint({
-    #     req(df_cut())
-    #     df_cut() %>% glimpse()
-    # })
-
       # Reactive object containing the wav of the active template
       # todo Remake this portion so that templates standalone or roi_tabs work the same way
       rec_template <- reactiveVal(NULL)
@@ -1769,15 +1765,15 @@ launch_validation_app <- function(
 
       # Template player (not HTML)
       observeEvent(input$play_template, {
-        req(rec_template())
-        tuneR::play(object = rec_template())
+        req(df_template())
+        tuneR::play(object = readWave(df_template()$template_path))
       })
       observeEvent(input$hotkeys, {
         req(
-          rec_template(), input$hotkeys == "1",
+          df_template(), input$hotkeys == "1",
           input$wav_player_type %in% c("R session", "External player")
         )
-        tuneR::play(object = rec_template())
+        tuneR::play(object = readWave(df_template()$template_path))
       })
 
       # Soundscape player (not HTML)
@@ -2398,6 +2394,16 @@ launch_validation_app <- function(
         session_settings(res)
       })
 
+      # # teste_val <- reactiveVal(NULL)
+      # output$checagem1 <- renderPrint({
+      #   req(session_settings())
+      #   glimpse(session_settings())
+      # })
+
+      # output$checagem2 <- renderPrint({
+      #   glimpse(readRDS("app_presets/validation_preset_Salobo_validation.rds"))
+      # })
+
       # Export current session settings as a rds file
       observeEvent(input$export_preset, {
         req(
@@ -2466,18 +2472,14 @@ launch_validation_app <- function(
             }
           } else if (input$available_presets == "Export new preset file...") {
             new_name <- paste0(
-              str_remove(input$validation_user, ","), "_",
+              stringr::str_remove(input$validation_user, ","), "_",
               format(Sys.time(), "%Y-%m-%d_%H:%M:%S")
             )
             shinyalert(
               title = "Creating a new preset file",
               text = tagList(
                 h3("Provide a name in the box below:"),
-                textInput(
-                  "new_preset_name",
-                  label = NULL,
-                  value = new_name, placeholder = TRUE
-                ),
+                textInput("new_preset_name", label = NULL, value = new_name, placeholder = TRUE),
                 h4("(*) avoid commas"),
                 actionButton("confirm_export_preset", label = "Confirm & Export")
               ),
@@ -2767,16 +2769,6 @@ launch_validation_app <- function(
       observeEvent(input$confirm_exit, {
         stopApp()
       })
-
-    #   teste_val <- reactiveVal(NULL)
-    # #   output$checagem1 <- renderPrint({
-    #     req(df_template())
-    #     df_template()
-    #     # teste_val()
-    #     # req(det_i(), det_counter())
-    #     # list(det_counter(), det_i()) %>% glimpse()
-    #     # rec_detection()
-    #   })
 
       # General popover options
       pop_up_opt <- list(delay = list(show = 1000, hide = 0))

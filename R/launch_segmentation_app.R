@@ -694,8 +694,11 @@ launch_segmentation_app <- function(
         # Make keyboard shotcuts available
         useKeys(),
         keysInput("hotkeys", hotkeys),
+
         # Set up shinyjs
         useShinyjs(),
+        useShinyalert(force = TRUE),
+
         tags$style(type = "text/css", ".recalculating {opacity: 1.0;}"),
 
         # box(width = 12, verbatimTextOutput("checagem1")),
