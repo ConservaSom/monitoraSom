@@ -297,18 +297,18 @@ launch_segmentation_app <- function(
     }
   }
 
-  # check if the variable 'zoom_freq' is an integer vector of length equals 2, is between 0 and 10 and the first value is smaller than the second
+  # check if the variable 'zoom_freq' is an integer vector of length equals 2, is between 0 and 180 and the first value is smaller than the second
   if (length(zoom_freq) == 2) {
     if (all(is.numeric(zoom_freq))) {
       if (zoom_freq[1] < zoom_freq[2]) {
-        if (zoom_freq[1] >= 0 & zoom_freq[2] <= 10) {
+        if (zoom_freq[1] >= 0 & zoom_freq[2] <= 180) {
           if (zoom_freq[1] %% 1 == 0 & zoom_freq[2] %% 1 == 0) {
             session_data$zoom_freq <- zoom_freq
           } else {
             stop("Error! 'zoom_freq' must be an integer.")
           }
         } else {
-          stop("Error! 'zoom_freq' must be between 0 and 10.")
+          stop("Error! 'zoom_freq' must be between 0 and 180.")
         }
       } else {
         session_data$zoom_freq <- sort(zoom_freq)
@@ -725,7 +725,7 @@ launch_segmentation_app <- function(
             cellWidths = c("7%", "93%"),
             noUiSliderInput(
               "zoom_freq", "kHz",
-              min = 0, max = 18, step = 1, value = session_data$zoom_freq,
+              min = 0, max = 180, step = 1, value = session_data$zoom_freq,
               direction = "rtl", orientation = "vertical", width = "100px",
               height = "350px", behaviour = "drag", format = wNumbFormat(decimals = 0),
               update_on = "end"
