@@ -224,16 +224,16 @@ launch_segmentation_app <- function(
   }
 
   if (is.numeric(wl)) {
-    if (wl %in% c(128, 256, 512, 1024, 2048, 4096)) {
+    if (wl %in% c(128, 256, 512, 1024, 2048, 4096, 8192, 16384)) {
       session_data$wl <- wl
     } else {
       stop(
-        "Error! The value assigned to 'wl' is not among the expected alternatives: 128, 256, 512, 1024, 2048, or 4096."
+        "Error! The value assigned to 'wl' is not among the expected alternatives: 128, 256, 512, 1024, 2048, 4096, 8192, or 16384."
       )
     }
   } else {
     stop(
-      "Error! The value assigned to 'wl' is not among the expected alternatives: 128, 256, 512, 1024, 2048, or 4096."
+      "Error! The value assigned to 'wl' is not among the expected alternatives: 128, 256, 512, 1024, 2048, 4096, 8192, or 16384."
     )
   }
 
@@ -635,7 +635,7 @@ launch_segmentation_app <- function(
             ),
             sliderTextInput(
               "wl", "Window length",
-              choices = c(128, 256, 512, 1024, 2048, 4096),
+              choices = c(128, 256, 512, 1024, 2048, 4096, 8192, 16384),
               selected = session_data$wl, grid = TRUE, width = "100%"
             ),
             sliderInput(

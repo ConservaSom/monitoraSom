@@ -3,24 +3,25 @@
 ## Preparando o ambiente
 # Carregando os pacotes necessários
 
-library(dplyr)
-library(progressr)
-library(here)
-library(collapse)
-library(purrr)
-library(furrr)
-library(av)
-library(tuneR)
-library(seewave)
-library(data.table)
-library(dtwclust)
-library(slider)
-library(ggplot2)
-library(farver)
-library(parallel)
-library(doParallel)
-library(parabar)
+# library(progressr)
+# library(collapse)
+# library(purrr)
+# library(furrr)
+# library(av)
+# library(tuneR)
+# library(seewave)
+# library(data.table)
+# library(dtwclust)
+# library(slider)
+# library(ggplot2)
+# library(farver)
+# library(parallel)
+# library(doParallel)
+# library(parabar)
+
 library(monitoraSom)
+library(dplyr)
+library(here)
 
 # Para o pacote here funcionar corretamente, é necessário que este script esteja
 # em uma sessão baseada no projeto localizado na raiz do repositório
@@ -53,8 +54,8 @@ c(
 #   |- diagnostics
 #   |- plots
 
-    input_path, output_path, wav_cuts_path,
-    spec_path, diag_tab_path,
+    # input_path, output_path, wav_cuts_path,
+    # spec_path, diag_tab_path,
 
 
 launch_segmentation_app(
