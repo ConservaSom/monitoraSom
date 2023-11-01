@@ -661,6 +661,7 @@ launch_validation_app <- function(
 
         # Avoid blinking figures while rendering
         tags$style(type = "text/css", ".recalculating {opacity: 1.0;}"),
+        tags$head(tags$style(HTML(".content-wrapper { overflow: auto; }"))),
 
         # box(width = 6, verbatimTextOutput("checagem1")),
         # box(width = 6, verbatimTextOutput("checagem2")),
@@ -794,15 +795,16 @@ launch_validation_app <- function(
           id = "tabset1",
           tabPanel(
             "Progress",
-            column(
-              width = 6,
-              h5("Full dataset progress"),
-              progressBar(
-                id = "prog_bar_full", value = 0, total = 1,
-                status = "info", display_pct = TRUE, striped = TRUE
+            fluidRow(
+              column(
+                width = 6,
+                h5("Full dataset progress"),
+                progressBar(
+                  id = "prog_bar_full", value = 0, total = 1,
+                  status = "info", display_pct = TRUE, striped = TRUE
+                ),
+                tableOutput("count_full_tab")
               ),
-              tableOutput("count_full_tab")
-            ),
             column(
               width = 6,
               h5("Current subset progress"),
@@ -811,6 +813,7 @@ launch_validation_app <- function(
                 status = "info", display_pct = TRUE, striped = TRUE
               ),
               tableOutput("count_i_tab")
+            )
             )
           ),
           tabPanel("Detection Table",
