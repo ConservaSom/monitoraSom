@@ -24,7 +24,7 @@ launch_segmentation_app(
   wav_player_type = "R session",
   wav_player_path = "play",
   session_notes = NULL,
-  zoom_freq = c(0, 10),
+  zoom_freq = c(0, 180),
   nav_autosave = FALSE
 )
 }

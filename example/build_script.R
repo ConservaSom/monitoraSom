@@ -5,12 +5,11 @@
 # library(roxygen2)
 
 library(devtools)
-roxygen2::roxygenize()
+roxygen2::roxygenise(clean = TRUE)
 check()
 document()
 build()
 devtools::install()
-1
 
 # ‘dplyr::group_rows’ by ‘kableExtra::group_rows’
 # ‘collapse::is.Date’ by ‘lubridate::is.Date’
