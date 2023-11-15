@@ -1,3 +1,6 @@
+
+#   Forma de substituir o shinyalert e reduzir a quantidade de dependencias com isso
+
   # Display an important message that can be dismissed only by clicking the
   # dismiss button.
   shinyApp(
