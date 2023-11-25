@@ -33,14 +33,41 @@
 #'
 #' @export
 fast_spectro <- function(
-    rec, f, flim = c(0, 10), ovlp = 50, wl = 1024, dyn_range = c(-60, 0),
-    color_scale = "inferno", n_colors = 124, interpolate = FALSE, ...) {
+    rec, f, flim = c(0, 10), tlim = NULL,
+    ovlp = 50, wl = 1024, dyn_range = c(-60, 0),
+    color_scale = "inferno", n_colors = 124, interpolate = FALSE,
+    pitch_shift = 1, ...
+    ) {
+
+    if (is.numeric(pitch_shift)) {
+      if (pitch_shift %in% c(-8, -6, -4, -2, 1)) {
+        rec@samp.rate <- rec@samp.rate / pitch_shift
+        if (!is.null(tlim)) {
+          tlim <- tlim * pitch_shift
+        }
+        if (!is.null(flim)) {
+          flim <- flim / pitch_shift
+        }
+      } else {
+        stop(
+          "Error! The value assigned to 'pitch_shift' is not among the expected alternatives: -8, -6, -4, -2, or 1."
+        )
+      }
+    } else {
+      stop(
+        "Error! The value assigned to 'pitch_shift' is not among the expected alternatives: -8, -6, -4, -2, or 1."
+      )
+    }
 
   spec_raw <- seewave::spectro(
-    rec,
-    f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim,
-    norm = TRUE, fftw = TRUE, plot = FALSE, ...
+    rec, f = rec@samp.rate,
+    ovlp = ovlp, wl = wl, flim = flim, tlim = tlim,
+    norm = TRUE, fftw = TRUE, plot = FALSE, interpolate = FALSE, ...
   )
+  spec_raw$time <- spec_raw$time / pitch_shift
+  spec_raw$freq <- spec_raw$freq * pitch_shift
+
+  # mat <- pmax(pmin(spec_raw$amp, dyn_range[2]), dyn_range[1])
   mat <- spec_raw$amp
   mat[mat < dyn_range[1]] <- dyn_range[1]
   mat[mat > dyn_range[2]] <- dyn_range[2]
