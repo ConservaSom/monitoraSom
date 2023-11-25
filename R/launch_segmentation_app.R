@@ -55,6 +55,10 @@
 #'   kHz of the frequency band to be displayed in the spectrogram.
 #' @param nav_autosave If TRUE, navigating between soundscapes will
 #'   automatically save the ROI table of the active soundscape.
+#' @param pitch_shift A numeric value indicating the pitch shift to be applied
+#'  to the soundscape audio. The default is 1, which means no pitch shift.
+#' @param visible_bp If TRUE, the visible frequency band will be used as a
+#'  bandpass filter for the audio playback.
 #'
 #' @return Todo
 #'
@@ -66,9 +70,10 @@ launch_segmentation_app <- function(
   project_path = NULL, preset_id = NULL, user = NULL, preset_path = NULL,
   soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
   labels_file = NULL, sp_list = "CBRO-2021 (Brazil)", fastdisp = TRUE, label_angle = 90,
-  show_label = TRUE, dyn_range = c(-60, 0), wl = 1024, ovlp = 0,
-  color_scale = "inferno", wav_player_type = "HTML player", wav_player_path = "play",
-  session_notes = NULL, zoom_freq = c(0, 180), nav_autosave = TRUE
+  show_label = TRUE, dyn_range = c(-60, 0), wl = 1024, ovlp = 0, color_scale = "inferno",
+  wav_player_type = "R session", wav_player_path = "play", visible_bp = FALSE,
+  session_notes = NULL, zoom_freq = c(0, 180), nav_autosave = TRUE,
+  pitch_shift = 1
   ) {
   # require(shiny)
   # require(dplyr)
@@ -284,6 +289,15 @@ launch_segmentation_app <- function(
     )
   }
 
+  # visible_bp
+  if (isTRUE(visible_bp) | isFALSE(visible_bp)) {
+    session_data$visible_bp <- visible_bp
+  } else {
+    stop(
+      "Error! The value assigned to 'visible_bp' is not logical. Set it to TRUE or FALSE."
+    )
+  }
+
   if (is.null(session_notes)) {
     session_data$session_notes <- NA
   } else {
@@ -413,7 +427,8 @@ launch_segmentation_app <- function(
           session_notes = session_data$session_notes,
           zoom_freq = session_data$zoom_freq,
           nav_autosave = session_data$nav_autosave,
-          sp_list = session_data$sp_list
+          sp_list = session_data$sp_list,
+          pitch_shift = session_data$pitch_shift
         )
         saveRDS(object = preset_to_export, file = preset_file)
         message("Preset sucessfully exported to the selected destination!")
@@ -423,6 +438,20 @@ launch_segmentation_app <- function(
         "Error! The value assigned to 'preset_id' is not a character string of length 1."
       )
     }
+  }
+
+  if (is.numeric(pitch_shift)) {
+    if (pitch_shift %in% c(-8, -6, -4, -2, 1)) {
+      session_data$pitch_shift <- pitch_shift
+    } else {
+      stop(
+        "Error! The value assigned to 'pitch_shift' is not among the expected alternatives: -8, -6, -4, -2, or 1."
+      )
+    }
+  } else {
+    stop(
+      "Error! The value assigned to 'pitch_shift' is not among the expected alternatives: -8, -6, -4, -2, or 1."
+    )
   }
 
   roi_razor <- function(wav, rois, path) {
@@ -454,7 +483,7 @@ launch_segmentation_app <- function(
         ~ cutw(
           wav,
           f = wav@samp.rate, output = "Wave",
-          from = .x$roi_start, to = .x$roi_end
+          from = .x$roi_start, to = .x$roi_endc(1, 2, 4, 6, 8)
         ) %>%
           savewav(filename = file.path(path, .x$cut_name))
       )
@@ -618,10 +647,10 @@ launch_segmentation_app <- function(
             "Spectrogram Parameters",
             tabName = "spec_par_tab",
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
-            checkboxInput(
-              "fastdisp", "Faster spectrogram (lower quality)",
-              value = session_data$fastdisp, width = "400px"
-            ),
+            # checkboxInput(
+            #   "fastdisp", "Faster spectrogram (lower quality)",
+            #   value = session_data$fastdisp, width = "400px"
+            # ),
             splitLayout(
               cellWidths = c("75%", "25%"),
               sliderInput("label_angle", "Adjust label angle (º)",
@@ -642,6 +671,11 @@ launch_segmentation_app <- function(
               "ovlp", "Overlap (%)",
               min = 0, max = 80, value = session_data$ovlp, step = 10, width = "100%"
             ),
+            sliderTextInput(
+              "pitch_shift", "Pitch shift (octaves) and slow down (factor)",
+              choices = c(-8, -6, -4, -2, 1), selected = session_data$pitch_shift,
+              grid = TRUE, width = "100%"
+            ),
             selectInput("color_scale", "Color scale",
               choices = c(
                 "viridis", "magma", "inferno", "cividis",
@@ -653,6 +687,10 @@ launch_segmentation_app <- function(
               "wav_player_type", "Sound player",
               choices = c("HTML player", "R session", "External player"),
               selected = session_data$wav_player_type, inline = TRUE
+            ),
+            checkboxInput(
+              "visible_bp", "Play only the visible frequency band",
+              value = session_data$visible_bp, width = "400px"
             ),
             splitLayout(
               cellWidths = c("75%", "25%"),
@@ -1158,6 +1196,11 @@ launch_segmentation_app <- function(
             range = c(0, duration_val()),
             value = c(0, ifelse(duration_val() >= 60, 60, duration_val()))
           )
+          updateNoUiSliderInput(
+            session,
+            inputId = "zoom_freq",
+            range = c(0, (res@samp.rate / 2000) - 1)
+          )
         }
       })
 
@@ -1171,13 +1214,33 @@ launch_segmentation_app <- function(
           if (file.exists(wav_path) & input$wav_player_type == "HTML player") {
             temp_file <- tempfile(tmpdir = session_data$temp_path, fileext = ".wav") %>%
               gsub("\\\\", "/", .)
+            pitch_shift <- abs(input$pitch_shift)
             res_cut <- cutw(
               rec_soundscape(),
               from = input$zoom_time[1],
               to = ifelse(input$zoom_time[2] > duration_val(), duration_val(), input$zoom_time[2]),
               output = "Wave"
             )
-            seewave::savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
+            if (input$pitch_shift < 1) {
+              res_cut@samp.rate <- res_cut@samp.rate / pitch_shift
+            }
+            if (isTRUE(input$visible_bp)) {
+              res_cut <- seewave::fir(
+                res_cut,
+                f = res_cut@samp.rate,
+                from = (input$zoom_freq[1] / pitch_shift) * 1000,
+                to = (input$zoom_freq[2] / pitch_shift) * 1000,
+                wl = input$wl, output = "Wave"
+              )
+            }
+            seewave::savewav(
+              wav = normalize(
+                object = res_cut,
+                unit = as.character(res_cut@bit),
+                pcm = TRUE
+              ),
+              f = res_cut@samp.rate, filename = temp_file
+            )
             removeUI(selector = "#visible_soundscape_clip_selector")
             insertUI(
               selector = "#visible_soundscape_clip", where = "afterEnd",
@@ -1295,7 +1358,8 @@ launch_segmentation_app <- function(
             roi_comment = NA, # ex-label_comment
             roi_wl = NA,
             roi_ovlp = NA,
-            roi_sample_rate = NA
+            roi_sample_rate = NA,
+            roi_pitch_shift = NA
           )
           roi_values(res)
         }
@@ -1323,7 +1387,8 @@ launch_segmentation_app <- function(
               roi_comment = input$label_comment, # ex-label_comment
               roi_wl = input$wl,
               roi_ovlp = input$ovlp,
-              roi_sample_rate = rec_soundscape()@samp.rate
+              roi_sample_rate = rec_soundscape()@samp.rate,
+              roi_pitch_shift = input$pitch_shift
             )
             roi_values(roi_i)
           }
@@ -1346,7 +1411,8 @@ launch_segmentation_app <- function(
                 roi_comment = input$label_comment, # ex-label_comment
                 roi_wl = input$wl,
                 roi_ovlp = input$ovlp,
-                roi_sample_rate = rec_soundscape()@samp.rate
+                roi_sample_rate = rec_soundscape()@samp.rate,
+                roi_pitch_shift = input$pitch_shift
               )
               res <- tibble(bind_rows(current_rois, roi_i))
               roi_values(res)
@@ -1373,7 +1439,8 @@ launch_segmentation_app <- function(
                 roi_comment = NA,
                 roi_wl = NA,
                 roi_ovlp = NA,
-                roi_sample_rate = NA
+                roi_sample_rate = NA,
+                roi_pitch_shift = NA
               )
               roi_values(roi_i_empty)
             }
@@ -1456,12 +1523,32 @@ launch_segmentation_app <- function(
           input$wav_player_path, rec_soundscape(),
           input$wav_player_type %in% c("R session", "External player")
         )
-        tuneR::play(
-          seewave::cutw(
-            rec_soundscape(),
-            from = input$zoom_time[1], to = input$zoom_time[2],
-            output = "Wave"
+        rec_to_play <- rec_soundscape()
+        pitch_shift <- abs(input$pitch_shift)
+        if (input$pitch_shift < 1) {
+          rec_to_play@samp.rate <- rec_to_play@samp.rate / pitch_shift
+        }
+        rec_to_play <- seewave::cutw(
+          rec_to_play,
+          from = input$zoom_time[1] * pitch_shift, to = input$zoom_time[2] * pitch_shift,
+          output = "Wave"
+        )
+        if (isTRUE(input$visible_bp)) {
+          rec_to_play <- seewave::fir(
+            rec_to_play,
+            f = rec_to_play@samp.rate,
+            from = (input$zoom_freq[1] / pitch_shift) * 1000,
+            to = (input$zoom_freq[2] / pitch_shift) * 1000,
+            wl = input$wl, output = "Wave"
           )
+        }
+        tuneR::play(
+          normalize(
+            object = rec_to_play,
+            unit = as.character(rec_to_play@bit),
+            pcm = TRUE
+          ),
+          player = "play"
         )
       })
 
@@ -1653,39 +1740,39 @@ launch_segmentation_app <- function(
       observe({
         req(input$soundscape_file, rec_soundscape(), roi_values())
 
-        spec_raw <- spectro(
-          rec_soundscape(),
-          f = rec_soundscape()@samp.rate, norm = TRUE, plot = FALSE,
-          ovlp = input$ovlp, wl = input$wl, fastdisp = TRUE, fftw = TRUE
-        )
-        spec_raw$amp <- pmax(pmin(spec_raw$amp, input$dyn_range[2]), input$dyn_range[1])
-        n_colors <- 124
-        amp_range <- range(spec_raw$amp)
-        if (input$color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
-          colormap <- viridis::viridis(n_colors, option = input$color_scale)
-        } else if (input$color_scale == "greyscale 1") {
-          colormap <- seewave::reverse.gray.colors.1(n_colors)
-        } else if (input$color_scale == "greyscale 2") {
-          colormap <- seewave::reverse.gray.colors.2(n_colors)
+        zoom_freq <- input$zoom_freq
+        if (zoom_freq[1] >= zoom_freq[2]) {
+          zoom_freq[2] <- zoom_freq[1] + 1
         }
+        zoom_freq <- sort(zoom_freq)
+
+        zoom_time <- input$zoom_time
+
+        spec_raw <- fast_spectro(
+          rec_soundscape(),
+          f = rec_soundscape()@samp.rate,
+          ovlp = input$ovlp, wl = input$wl,
+          flim = zoom_freq, tlim = zoom_time, dyn = input$dyn_range,
+          color_scale = input$color_scale, ncolors = 124
+        )
 
         rois_to_plot <- roi_values() |>
           mutate(id = row_number()) |>
           fsubset(
-            roi_start < input$zoom_time[2] & roi_end > input$zoom_time[1]
+            roi_start < zoom_time[2] & roi_end > zoom_time[1]
           ) |>
           fmutate(
             roi_start = ifelse(
-              roi_start < input$zoom_time[1], input$zoom_time[1], roi_start
+              roi_start < zoom_time[1], zoom_time[1], roi_start
             ),
             roi_end = ifelse(
-              roi_end > input$zoom_time[2], input$zoom_time[2], roi_end
+              roi_end > zoom_time[2], zoom_time[2], roi_end
             ),
             roi_max_freq = ifelse(
-              roi_max_freq > input$zoom_freq[2], input$zoom_freq[2], roi_max_freq
+              roi_max_freq > zoom_freq[2], zoom_freq[2], roi_max_freq
             ),
             roi_min_freq = ifelse(
-              roi_min_freq < input$zoom_freq[1], input$zoom_freq[1], roi_min_freq
+              roi_min_freq < zoom_freq[1], zoom_freq[1], roi_min_freq
             )
           )
 
@@ -1693,36 +1780,13 @@ launch_segmentation_app <- function(
           input$color_scale %in% c("greyscale 1", "greyscale 2"),
           "black", "white"
         )
-        nr <- mat_to_nativeRaster(t(spec_raw$amp), colormap, amp_range)
-        xmin <- min(spec_raw$time)
-        xmax <- max(spec_raw$time)
-        ymin <- min(spec_raw$freq)
-        ymax <- max(spec_raw$freq)
-
-        spectro_plot <- ggplot() +
-          geom_rect(
-            data = data.frame(x = NA_real_), mapping = aes(fill = x),
-            xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, na.rm = TRUE
-          ) +
-          annotation_raster(
-            nr,
-            xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax
-          ) +
-          scale_fill_gradient( # This has to match with the colormap above
-            low = colormap[0], high = colormap[length(colormap)],
-            limits = amp_range, na.value = "#00000000"
-          ) +
-          scale_x_continuous(
-            expand = c(0, 0), limits = c(input$zoom_time[1], input$zoom_time[2])
-          ) +
-          scale_y_continuous(
-            expand = c(0, 0), limits = c(input$zoom_freq[1], input$zoom_freq[2])
-          ) +
+        spectro_plot <- spec_raw +
           annotate(
             "label",
             label = paste0(
               input$soundscape_file, " (sr = ", rec_soundscape()@samp.rate,
-              "; wl = ", input$wl, "; ovlp = ", input$ovlp, ")"
+              "; wl = ", input$wl, "; ovlp = ", input$ovlp,
+              "; pitch_shift = ", input$pitch_shift, ")"
             ),
             x = -Inf, y = Inf, hjust = 0, vjust = 1,
             color = "white", fill = "black"
@@ -1785,7 +1849,7 @@ launch_segmentation_app <- function(
               "soundscape_path", "soundscape_file", "user", "timestamp",
               "label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
               "type", "label_confidence", "is_complete", "comment",
-              "roi_wl", "roi_ovlp", "sample_rate"
+              "roi_wl", "roi_ovlp", "sample_rate", "pitch_shift"
             ),
             options = list(
               pageLength = 50, info = FALSE, dom = "tpl",
@@ -1876,17 +1940,14 @@ launch_segmentation_app <- function(
         updateSliderTextInput(session, inputId = "wl", selected = 2048)
         updateSliderInput(session, inputId = "ovlp", value = 0)
         updateSelectInput(session, inputId = "color_scale", selected = "inferno")
-        updateSliderInput(session,
-          "zoom_freq",
-          min = 0, max = (rec_soundscape()@samp.rate / 2000),
-          step = 1, value = c(0, 10)
-        )
+        updateSliderInput(session, "zoom_freq", value = c(0, 10))
         updateCheckboxInput(session, inputId = "fastdisp", value = TRUE)
         updateSliderInput(session, inputId = "label_angle", value = 90)
         updateCheckboxInput(session, inputId = "show_label", value = TRUE)
         updateRadioButtons(session, inputId = "wav_player_type", selected = "R session")
         updateNoUiSliderInput(session, inputId = "zoom_freq", value = c(0, 10))
         updateCheckboxInput(session, inputId = "nav_autosave", value = TRUE)
+        updateSliderTextInput(session, inputId = "pitch_shift", selected = 1)
       })
 
       session_settings <- reactiveVal(NULL)
@@ -1908,7 +1969,8 @@ launch_segmentation_app <- function(
           session_notes = input$session_notes,
           zoom_freq = input$zoom_freq,
           nav_autosave = input$nav_autosave,
-          sp_list = input$sp_list
+          sp_list = input$sp_list,
+          pitch_shift = input$pitch_shift
         )
         session_settings(res)
       })
@@ -1949,7 +2011,7 @@ launch_segmentation_app <- function(
                     "spectrogram window length", "spectrogram overlap",
                     "spectrogram color scale", "wave player type", "wave player path",
                     "session notes", "visible frequency band", "autosave while navigating",
-                    "available labels for ROIs (species lists)"
+                    "available labels for ROIs (species lists)", "pitch shift for ultrasound recordings"
                   )
                 ) %>%
                 select_if(function(col) length(unique(col)) > 1) %>%
@@ -2057,7 +2119,7 @@ launch_segmentation_app <- function(
           updateSliderInput(session, inputId = "label_angle", value = res$label_angle)
           updateCheckboxInput(session, inputId = "show_label", value = res$show_label)
           updateSliderInput(session, inputId = "dyn_range", value = res$dyn_range)
-          updateSliderInput(session, inputId = "wl", value = res$wl)
+          updateSliderTextInput(session, inputId = "wl", selected = res$wl)
           updateSliderInput(session, inputId = "ovlp", value = res$ovlp)
           updateSelectInput(session, inputId = "color_scale", selected = res$color_scale)
           updateTextAreaInput(session, inputId = "wav_player_path", value = res$wav_player_path)
@@ -2066,6 +2128,7 @@ launch_segmentation_app <- function(
           updateNoUiSliderInput(session, inputId = "zoom_freq", value = res$zoom_freq)
           updateCheckboxInput(session, inputId = "nav_autosave", value = res$nav_autosave)
           updateSelectizeInput(session, inputId = "sp_list", selected = res$sp_list)
+          updateSliderInput(session, inputId = "pitch_shift", value = res$pitch_shift)
           showNotification("Preset file successfully imported")
         }
       })
@@ -2131,7 +2194,7 @@ launch_segmentation_app <- function(
                 "spectrogram window length", "spectrogram overlap",
                 "spectrogram color scale", "wave player type", "wave player path",
                 "session notes", "visible frequency band", "autosave while navigating",
-                "available labels for ROIs (species lists)"
+                "available labels for ROIs (species lists)", "pitch shift for ultrasound recordings"
               )
             ) %>%
             select_if(function(col) length(unique(col)) > 1) %>%
@@ -2243,6 +2306,12 @@ launch_segmentation_app <- function(
         title = "Increase if more resultion is needed. Performance may decrease for values above 80%",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
+      shinyBS::addTooltip(session,
+        id = "pitch_shift",
+        title = "Adjust the pitch of ultrasound recordings to improve visualization",
+        placement = "right", trigger = "hover", options = pop_up_opt
+      )
+
       shinyBS::addTooltip(session,
         id = "dyn_range",
         title = "Adjust what portion of the amplitude scale is shown in the spectrograms",

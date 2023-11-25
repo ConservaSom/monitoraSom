@@ -8,12 +8,14 @@ fast_spectro(
   rec,
   f,
   flim = c(0, 10),
+  tlim = NULL,
   ovlp = 50,
   wl = 1024,
   dyn_range = c(-60, 0),
   color_scale = "inferno",
   n_colors = 124,
   interpolate = FALSE,
+  pitch_shift = 1,
   ...
 )
 }
