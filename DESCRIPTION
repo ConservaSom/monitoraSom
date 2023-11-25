@@ -12,7 +12,6 @@ License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: TRUE
 Imports:
-    av (>= 0.8.5),
     caret (>= 6.0-94),
     cli (>= 3.6.1),
     collapse (>= 1.9.6),

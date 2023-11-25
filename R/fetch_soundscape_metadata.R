@@ -13,11 +13,9 @@
 #'   parallelization. Default is 1.
 #'
 #' @return A data frame with the following columns:
-#' @import progressr future furrr
-#' @importFrom av av_media_info
+#' @import progressr furrr purrr
 #' @export
 fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
-
   soundscape_list <- list.files(
     path,
     pattern = ".wav", recursive = recursive, ignore.case = TRUE,
@@ -32,17 +30,31 @@ fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
     )
   )
 
-  get_metadata <- function(soundscape_list) {
-    p <- progressor(along = 1:length(soundscape_list), auto_finish = FALSE)
-    res <- future_map_dfr(
-      soundscape_list,
-      function(x) {
-        res <- unlist(av_media_info(x), recursive = FALSE)
-        p(message = "Extracting soundscape metadata")
-        return(res)
-      }
-    )
-  }
+  get_metadata_safely <- safely(
+    function(soundscape_list) {
+      p <- progressor(along = 1:length(soundscape_list), auto_finish = FALSE)
+      res <- future_map_dfr(
+        soundscape_list,
+        function(x) {
+          res_raw <- as.data.frame(readWave(x, header = TRUE))
+          res <- data.frame(
+            soundscape_path = x,
+            soundscape_file = basename(x),
+            soundscape_duration = length(res_raw$samples) / res_raw$sample.rate,
+            soundscape_sample_rate = res_raw$sample.rate,
+            soundscape_bitrate = res_raw$bits,
+            soundscape_layout = case_when(
+              res_raw$channels == 1 ~ "mono",
+              res_raw$channels == 2 ~ "stereo",
+              TRUE ~ "other"
+            )
+          )
+          p(message = "Extracting soundscape metadata")
+          return(res)
+        }
+      )
+    }
+  )
 
   if (ncores > 1) {
     future::plan(multicore, workers = ncores)
@@ -51,22 +63,10 @@ fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
   }
 
   with_progress({
-    res_raw <- get_metadata(soundscape_list)
+    res <- get_metadata_safely(soundscape_list)$result
   })
   future::plan(sequential)
 
-  names(res_raw) <- gsub("audio\\.", "", names(res_raw))
-  res_raw$soundscape_path <- soundscape_list
-  res_raw$soundscape_file <- basename(soundscape_list)
-  res_raw$soundscape_duration <- res_raw$duration
-  res_raw$soundscape_sample_rate <- res_raw$sample_rate
-  res_raw$soundscape_codec <- res_raw$codec
-  res_raw$soundscape_layout <- res_raw$layout
-  res <- res_raw[, c(
-    "soundscape_path", "soundscape_file", "soundscape_duration",
-    "soundscape_sample_rate", "soundscape_codec", "soundscape_layout"
-  )]
   message("Soundscape metadata successfully extracted")
   return(res)
-
 }

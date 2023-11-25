@@ -17,6 +17,8 @@
 #' @export
 fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone") {
 
+  # todo Adicionar informação de pitch_shift
+
   if (method == "standalone") {
     template_list <- list.files(
       path, pattern = ".wav", full.names = TRUE, ignore.case = TRUE,
@@ -45,21 +47,33 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
       stop("None of the wav files found in the specified directory match the template naming convention")
     }
 
+    get_metadata_safely <- safely(
+      function(template_list) {
+        res <- future_map_dfr(
+          template_list,
+          function(x) {
+            res <- as.data.frame(readWave(x, header = TRUE))
+            res$path <- x
+            return(res)
+          }
+        )
+      }
+    )
+
     res <- map_df(
-      template_list, ~ unlist(av_media_info(.x), recursive = FALSE)
+      template_list, ~ get_metadata_safely(.x)$result, recursive = FALSE)
     ) %>%
-      rename_with(~ gsub("audio.", "", .x)) |>
-      collapse::fmutate(
-        template_path = template_list,
-        template_file = basename(template_list),
-        template_name = basename(template_list),
-        template_label =
-          map_chr(strsplit(gsub(".WAV|.wav", "", template_file), split = "_"), tail, 1),
-          # tail(strsplit(gsub(".WAV|.wav", "", template_file), split = "_")[[1]], 1),
-        template_start = 0,
-        template_end = duration,
-        template_sample_rate = sample_rate
-      ) |>
+    collapse::fmutate(
+      template_path = path,
+      template_file = basename(path),
+      template_name = basename(path),
+      template_label = tail(
+        unlist(strsplit(gsub(".WAV|.wav", "", basename(res$path[1])), split = "_")), 1
+      ),
+      template_start = 0,
+      template_end = length(samples) / sample.rate,
+      template_sample_rate = sample.rate
+    ) |>
       collapse::fselect(
         template_path, template_file, template_name, template_label,
         template_start, template_end, template_sample_rate
