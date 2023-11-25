@@ -56,6 +56,9 @@
 #' @param nav_autosave If TRUE, navigating between soundscapes will
 #'   automatically save the ROI table of the active soundscape.
 #' @param pitch_shift A numeric value indicating the pitch shift to be applied
+#'  to the soundscape audio. The default is 1, which means no pitch shift.
+#' @param visible_bp If TRUE, the visible frequency band will be used as a
+#'  bandpass filter for the audio playback.
 #'
 #' @return Todo
 #'

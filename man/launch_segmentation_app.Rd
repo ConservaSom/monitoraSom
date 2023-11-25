@@ -23,9 +23,11 @@ launch_segmentation_app(
   color_scale = "inferno",
   wav_player_type = "R session",
   wav_player_path = "play",
+  visible_bp = FALSE,
   session_notes = NULL,
   zoom_freq = c(0, 180),
-  nav_autosave = FALSE
+  nav_autosave = TRUE,
+  pitch_shift = 1
 )
 }
 \arguments{
@@ -88,6 +90,9 @@ executable is provided in the 'wav_player_path' argument.}
 \item{wav_player_path}{Path to the wav player executable (only for
 wav_player_type = "External player")}
 
+\item{visible_bp}{If TRUE, the visible frequency band will be used as a
+bandpass filter for the audio playback.}
+
 \item{session_notes}{A single character string with related to the current
 segmentation session.}
 
@@ -97,6 +102,9 @@ kHz of the frequency band to be displayed in the spectrogram.}
 
 \item{nav_autosave}{If TRUE, navigating between soundscapes will
 automatically save the ROI table of the active soundscape.}
+
+\item{pitch_shift}{A numeric value indicating the pitch shift to be applied
+to the soundscape audio. The default is 1, which means no pitch shift.}
 }
 \value{
 Todo
