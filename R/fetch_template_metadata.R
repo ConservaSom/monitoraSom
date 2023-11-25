@@ -48,15 +48,10 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
     }
 
     get_metadata_safely <- safely(
-      function(temp_names) {
-        res <- future_map_dfr(
-          temp_names,
-          function(x) {
-            res <- as.data.frame(readWave(x, header = TRUE))
-            res$path <- x
-            return(res)
-          }
-        )
+      function(x) {
+        res <- as.data.frame(readWave(x, header = TRUE))
+        res$path <- x
+        return(res)
       }
     )
 
