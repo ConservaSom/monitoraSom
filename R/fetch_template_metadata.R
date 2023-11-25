@@ -48,9 +48,9 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
     }
 
     get_metadata_safely <- safely(
-      function(template_list) {
+      function(temp_names) {
         res <- future_map_dfr(
-          template_list,
+          temp_names,
           function(x) {
             res <- as.data.frame(readWave(x, header = TRUE))
             res$path <- x
@@ -61,19 +61,20 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
     )
 
     res <- map_df(
-      template_list, ~ get_metadata_safely(.x)$result, recursive = FALSE)
+      template_list,
+      ~ get_metadata_safely(.x)$result
     ) %>%
-    collapse::fmutate(
-      template_path = path,
-      template_file = basename(path),
-      template_name = basename(path),
-      template_label = tail(
-        unlist(strsplit(gsub(".WAV|.wav", "", basename(res$path[1])), split = "_")), 1
-      ),
-      template_start = 0,
-      template_end = length(samples) / sample.rate,
-      template_sample_rate = sample.rate
-    ) |>
+      collapse::fmutate(
+        template_path = path,
+        template_file = basename(path),
+        template_name = basename(path),
+        template_label = tail(
+          unlist(strsplit(gsub(".WAV|.wav", "", basename(path)), split = "_")), 1
+        ),
+        template_start = 0,
+        template_end = samples / sample.rate,
+        template_sample_rate = sample.rate
+      ) |>
       collapse::fselect(
         template_path, template_file, template_name, template_label,
         template_start, template_end, template_sample_rate
