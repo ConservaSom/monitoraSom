@@ -43,7 +43,7 @@ fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
     transmute(
       soundscape_path = path,
       soundscape_file = basename(path),
-      soundscape_duration = length(samples) / sample.rate,
+      soundscape_duration = samples / sample.rate,
       soundscape_sample_rate = sample.rate,
       soundscape_bitrate = bits,
       soundscape_layout = case_when(

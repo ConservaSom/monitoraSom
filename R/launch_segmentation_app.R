@@ -1745,9 +1745,9 @@ launch_segmentation_app <- function(
           zoom_freq[2] <- zoom_freq[1] + 1
         }
         zoom_freq <- sort(zoom_freq)
-
         zoom_time <- input$zoom_time
 
+        
         spec_raw <- fast_spectro(
           rec_soundscape(),
           f = rec_soundscape()@samp.rate,

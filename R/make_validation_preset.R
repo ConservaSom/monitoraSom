@@ -49,6 +49,9 @@ make_validation_preset <- function(preset_path = NULL, preset_name = NULL,
                                    nav_shuffle = FALSE, seed = 123,
                                    auto_next = FALSE, nav_autosave = FALSE, overwrite = FALSE,
                                    session_notes) {
+
+  # todo Adicionar informação de pitch_shift
+
   res <- list()
 
   validation_user_temp <- gsub(",", "", validation_user)

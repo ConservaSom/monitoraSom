@@ -67,7 +67,11 @@ fast_spectro <- function(
   spec_raw$time <- spec_raw$time / pitch_shift
   spec_raw$freq <- spec_raw$freq * pitch_shift
 
-  mat <- pmax(pmin(spec_raw$amp, dyn_range[2]), dyn_range[1])
+  # mat <- pmax(pmin(spec_raw$amp, dyn_range[2]), dyn_range[1]) # ou...
+  mat <- spec_raw$amp
+  mat[mat < dyn_range[1]] <- dyn_range[1]
+  mat[mat > dyn_range[2]] <- dyn_range[2]
+
   mat <- t(mat)
 
   amp_range <- range(mat)

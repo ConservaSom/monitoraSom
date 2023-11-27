@@ -38,6 +38,8 @@
 #' @importFrom slider slide
 match_i <- function(df_grid_i, score_method = "cor") {
 
+  # todo Adicionar informação de pitch_shift
+
   wav_query <- readWave(df_grid_i$soundscape_path)
   wav_template <- readWave(df_grid_i$template_path)
 

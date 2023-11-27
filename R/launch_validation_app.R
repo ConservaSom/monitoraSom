@@ -65,6 +65,8 @@ launch_validation_app <- function(
 
     ) {
 
+      # todo Adicionar informações de pitch_shift
+
   library(dplyr, warn.conflicts = FALSE)
   # require(tidyr)
   # require(ggplot2)
