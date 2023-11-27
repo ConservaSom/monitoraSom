@@ -53,6 +53,8 @@ make_segmentation_preset <- function(
     wav_player_path = "play", session_notes = NULL,
     zoom_freq = c(0, 10), nav_autosave = FALSE,
     sp_list = "CBRO-2021 (Brazil)") {
+
+      # todo Adicionar informação de pitch_shift
   res <- list()
 
   user <- gsub(",", "", validation_user)

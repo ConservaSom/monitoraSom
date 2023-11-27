@@ -33,7 +33,7 @@
 #'
 #' @export
 fast_spectro <- function(
-    rec, f, flim = c(0, 10), tlim = NULL,
+    rec, f, flim = NULL, tlim = NULL,
     ovlp = 50, wl = 1024, dyn_range = c(-60, 0),
     color_scale = "inferno", n_colors = 124, interpolate = FALSE,
     pitch_shift = 1, ...
@@ -62,15 +62,16 @@ fast_spectro <- function(
   spec_raw <- seewave::spectro(
     rec, f = rec@samp.rate,
     ovlp = ovlp, wl = wl, flim = flim, tlim = tlim,
-    norm = TRUE, fftw = TRUE, plot = FALSE, interpolate = FALSE, ...
+    norm = TRUE, fftw = FALSE, plot = FALSE, interpolate = FALSE, ...
   )
   spec_raw$time <- spec_raw$time / pitch_shift
   spec_raw$freq <- spec_raw$freq * pitch_shift
 
-  # mat <- pmax(pmin(spec_raw$amp, dyn_range[2]), dyn_range[1])
+  # mat <- pmax(pmin(spec_raw$amp, dyn_range[2]), dyn_range[1]) # ou...
   mat <- spec_raw$amp
   mat[mat < dyn_range[1]] <- dyn_range[1]
   mat[mat > dyn_range[2]] <- dyn_range[2]
+
   mat <- t(mat)
 
   amp_range <- range(mat)

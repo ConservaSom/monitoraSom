@@ -59,6 +59,8 @@ plot_detecs_i <- function(
     score_lims = NULL, ...
     ) {
 
+    # todo Adicionar informação de pitch_shift
+    
     require(patchwork)
 
     detecs <- fetch_score_peaks_i(

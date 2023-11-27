@@ -1736,25 +1736,34 @@ launch_segmentation_app <- function(
         }
       })
 
+      spectro_soundscape_raw <- reactiveVal(NULL)
+      observe({
+        req(rec_soundscape(), input$wl, input$ovlp, input$color_scale)
+        res <- fast_spectro(
+          rec_soundscape(),
+          f = rec_soundscape()@samp.rate,
+          ovlp = input$ovlp, wl = input$wl,
+          # flim = c(0, (rec_soundscape()@samp.rate / 2) - 1),
+          # tlim = c(0, duration_val()),
+          dyn = input$dyn_range, pitch_shift = input$pitch_shift,
+          color_scale = input$color_scale, ncolors = 124
+        )
+        spectro_soundscape_raw(res)
+      })
+
       spectro_soundscape <- reactiveVal(NULL)
       observe({
-        req(input$soundscape_file, rec_soundscape(), roi_values())
+        req(
+          input$soundscape_file, rec_soundscape(), duration_val(),
+          roi_values(), spectro_soundscape_raw()
+        )
 
         zoom_freq <- input$zoom_freq
         if (zoom_freq[1] >= zoom_freq[2]) {
           zoom_freq[2] <- zoom_freq[1] + 1
         }
         zoom_freq <- sort(zoom_freq)
-
         zoom_time <- input$zoom_time
-
-        spec_raw <- fast_spectro(
-          rec_soundscape(),
-          f = rec_soundscape()@samp.rate,
-          ovlp = input$ovlp, wl = input$wl,
-          flim = zoom_freq, tlim = zoom_time, dyn = input$dyn_range,
-          color_scale = input$color_scale, ncolors = 124
-        )
 
         rois_to_plot <- roi_values() |>
           mutate(id = row_number()) |>
@@ -1780,7 +1789,10 @@ launch_segmentation_app <- function(
           input$color_scale %in% c("greyscale 1", "greyscale 2"),
           "black", "white"
         )
-        spectro_plot <- spec_raw +
+
+        spectro_plot <- spectro_soundscape_raw() +
+          scale_x_continuous(limits = zoom_time, expand = c(0, 0)) +
+          scale_y_continuous(limits = zoom_freq, expand = c(0, 0)) +
           annotate(
             "label",
             label = paste0(
