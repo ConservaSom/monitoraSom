@@ -42,7 +42,8 @@ validate_by_overlap_i_v2 <- function(df_rois, df_detecs, det_species, min_score)
             template_file,
             regexpr("(?<=_)[^_]+$", template_file, perl = TRUE)
           )
-        ) 
+        )
+      ),
       detection_id = paste0(
         "det", sprintf("%06d", 1:nrow(df_detecs))
       )

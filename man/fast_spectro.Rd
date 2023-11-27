@@ -7,7 +7,7 @@
 fast_spectro(
   rec,
   f,
-  flim = c(0, 10),
+  flim = NULL,
   tlim = NULL,
   ovlp = 50,
   wl = 1024,
