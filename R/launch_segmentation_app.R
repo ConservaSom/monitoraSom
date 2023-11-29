@@ -25,8 +25,6 @@
 #'   titles.
 #' @param sp_list A character string with the available labels to be used in the
 #'   cuirrent session. The default is "CBRO-2021 (Brazil)".
-#' @param fastdisp If TRUE, the spectrogram will be displayed in a lower
-#'   quality, but faster.
 #' @param label_angle Angle between 0 and 180 to draw the ROI labels in the
 #'   spectrogram plot.
 #' @param show_label If TRUE, ROI labels will be displayed alongside ROI
@@ -69,7 +67,7 @@
 launch_segmentation_app <- function(
   project_path = NULL, preset_id = NULL, user = NULL, preset_path = NULL,
   soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
-  labels_file = NULL, sp_list = "CBRO-2021 (Brazil)", fastdisp = TRUE, label_angle = 90,
+  labels_file = NULL, sp_list = "CBRO-2021 (Brazil)", label_angle = 90,
   show_label = TRUE, dyn_range = c(-60, 0), wl = 1024, ovlp = 0, color_scale = "inferno",
   wav_player_type = "R session", wav_player_path = "play", visible_bp = FALSE,
   session_notes = NULL, zoom_freq = c(0, 180), nav_autosave = TRUE,
@@ -178,11 +176,11 @@ launch_segmentation_app <- function(
     }
   }
 
-  if (is.logical(fastdisp)) {
-    session_data$fastdisp <- fastdisp
-  } else {
-    stop("Error! The value assigned to 'fastdisp' is not logical. Set it to TRUE or FALSE.")
-  }
+  # if (is.logical(fastdisp)) {
+  #   session_data$fastdisp <- fastdisp
+  # } else {
+  #   stop("Error! The value assigned to 'fastdisp' is not logical. Set it to TRUE or FALSE.")
+  # }
 
   # check of "label_angle" variable is within 0-180 range and is a multiple of 10
   if (!is.numeric(label_angle)) {
@@ -415,7 +413,7 @@ launch_segmentation_app <- function(
           soundscapes_path = session_data$soundscapes_path,
           roi_tables_path = session_data$roi_tables_path,
           cuts_path = session_data$cuts_path,
-          fastdisp = session_data$fastdisp,
+          # fastdisp = session_data$fastdisp,
           label_angle = session_data$label_angle,
           show_label = session_data$show_label,
           dyn_range = session_data$dyn_range,
@@ -647,10 +645,10 @@ launch_segmentation_app <- function(
             "Spectrogram Parameters",
             tabName = "spec_par_tab",
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
-            checkboxInput(
-              "fastdisp", "Faster spectrogram (unstable normalization)",
-              value = session_data$fastdisp, width = "400px"
-            ),
+            # checkboxInput(
+            #   "fastdisp", "Faster spectrogram (unstable normalization)",
+            #   value = session_data$fastdisp, width = "400px"
+            # ),
             splitLayout(
               cellWidths = c("75%", "25%"),
               sliderInput("label_angle", "Adjust label angle (º)",
@@ -1741,7 +1739,6 @@ launch_segmentation_app <- function(
         req(
           rec_soundscape(), input$wl, input$ovlp, input$color_scale
         )
-        if (input$fastdisp == FALSE) {
           res <- fast_spectro(
             rec_soundscape(),
             f = rec_soundscape()@samp.rate,
@@ -1751,15 +1748,6 @@ launch_segmentation_app <- function(
             dyn = input$dyn_range, pitch_shift = input$pitch_shift,
             color_scale = input$color_scale, ncolors = 124
           )
-        } else if (input$fastdisp == TRUE) {
-          res <- fast_spectro(
-            rec_soundscape(),
-            f = rec_soundscape()@samp.rate,
-            ovlp = input$ovlp, wl = input$wl,
-            flim = input$zoom_freq, tlim = input$zoom_time, dyn = input$dyn_range,
-            color_scale = input$color_scale,
-          )
-        }
         spectro_soundscape_raw(res)
 
       })
@@ -1804,16 +1792,8 @@ launch_segmentation_app <- function(
         )
 
         spectro_plot <- spectro_soundscape_raw() +
-          {
-            if (input$fastdisp == FALSE) {
-              scale_x_continuous(limits = zoom_time, expand = c(0, 0))
-            }
-          } +
-          {
-            if (input$fastdisp == FALSE) {
-              scale_y_continuous(limits = zoom_freq, expand = c(0, 0))
-            }
-          } +
+          scale_x_continuous(limits = zoom_time, expand = c(0, 0)) +
+          scale_y_continuous(limits = zoom_freq, expand = c(0, 0)) +
           annotate(
             "label",
             label = paste0(
@@ -1974,7 +1954,7 @@ launch_segmentation_app <- function(
         updateSliderInput(session, inputId = "ovlp", value = 0)
         updateSelectInput(session, inputId = "color_scale", selected = "inferno")
         updateSliderInput(session, "zoom_freq", value = c(0, 10))
-        updateCheckboxInput(session, inputId = "fastdisp", value = TRUE)
+        # updateCheckboxInput(session, inputId = "fastdisp", value = TRUE)
         updateSliderInput(session, inputId = "label_angle", value = 90)
         updateCheckboxInput(session, inputId = "show_label", value = TRUE)
         updateRadioButtons(session, inputId = "wav_player_type", selected = "R session")
@@ -1990,7 +1970,7 @@ launch_segmentation_app <- function(
           soundscapes_path = input$soundscapes_path,
           roi_tables_path = input$roi_tables_path,
           cuts_path = input$cuts_path, # temporario
-          fastdisp = input$fastdisp,
+          # fastdisp = input$fastdisp,
           label_angle = input$label_angle,
           show_label = input$show_label,
           dyn_range = input$dyn_range,
@@ -2039,7 +2019,8 @@ launch_segmentation_app <- function(
                 setNames(
                   list(
                     "user name", "path to soundscapes", "path to ROI tables",
-                    "path to audio cuts and spectrograms", "fast display spectrogram",
+                    "path to audio cuts and spectrograms",
+                    # "fast display spectrogram",
                     "roi label angle", "show roi rabels", "spectrogram dynamic range",
                     "spectrogram window length", "spectrogram overlap",
                     "spectrogram color scale", "wave player type", "wave player path",
@@ -2148,7 +2129,7 @@ launch_segmentation_app <- function(
           updateTextAreaInput(session, inputId = "roi_tables_path", value = res$roi_tables_path)
           cuts_path_val(res$cuts_path)
           updateTextAreaInput(session, inputId = "cuts_path", value = cuts_path_val())
-          updateCheckboxInput(session, inputId = "fastdisp", value = res$fastdisp)
+          # updateCheckboxInput(session, inputId = "fastdisp", value = res$fastdisp)
           updateSliderInput(session, inputId = "label_angle", value = res$label_angle)
           updateCheckboxInput(session, inputId = "show_label", value = res$show_label)
           updateSliderInput(session, inputId = "dyn_range", value = res$dyn_range)
@@ -2318,12 +2299,12 @@ launch_segmentation_app <- function(
       )
 
       #  # Side bar menu - Session setup
-      shinyBS::addTooltip(
-        session,
-        id = "fastdisp",
-        title = "Requires que 'fftw' package",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
+      # shinyBS::addTooltip(
+      #   session,
+      #   id = "fastdisp",
+      #   title = "Requires que 'fftw' package",
+      #   placement = "right", trigger = "hover", options = pop_up_opt
+      # )
       shinyBS::addTooltip(session,
         id = "label_angle",
         title = "Adjust the angle of labels in the spectrogram. Recommended 90º for a less cluttering.",
