@@ -647,10 +647,10 @@ launch_segmentation_app <- function(
             "Spectrogram Parameters",
             tabName = "spec_par_tab",
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
-            # checkboxInput(
-            #   "fastdisp", "Faster spectrogram (lower quality)",
-            #   value = session_data$fastdisp, width = "400px"
-            # ),
+            checkboxInput(
+              "fastdisp", "Faster spectrogram (unstable normalization)",
+              value = session_data$fastdisp, width = "400px"
+            ),
             splitLayout(
               cellWidths = c("75%", "25%"),
               sliderInput("label_angle", "Adjust label angle (º)",
@@ -1738,17 +1738,30 @@ launch_segmentation_app <- function(
 
       spectro_soundscape_raw <- reactiveVal(NULL)
       observe({
-        req(rec_soundscape(), input$wl, input$ovlp, input$color_scale)
-        res <- fast_spectro(
-          rec_soundscape(),
-          f = rec_soundscape()@samp.rate,
-          ovlp = input$ovlp, wl = input$wl,
-          # flim = c(0, (rec_soundscape()@samp.rate / 2) - 1),
-          # tlim = c(0, duration_val()),
-          dyn = input$dyn_range, pitch_shift = input$pitch_shift,
-          color_scale = input$color_scale, ncolors = 124
+        req(
+          rec_soundscape(), input$wl, input$ovlp, input$color_scale
         )
+        if (input$fastdisp == FALSE) {
+          res <- fast_spectro(
+            rec_soundscape(),
+            f = rec_soundscape()@samp.rate,
+            ovlp = input$ovlp, wl = input$wl,
+            # flim = c(0, (rec_soundscape()@samp.rate / 2) - 1),
+            # tlim = c(0, duration_val()),
+            dyn = input$dyn_range, pitch_shift = input$pitch_shift,
+            color_scale = input$color_scale, ncolors = 124
+          )
+        } else if (input$fastdisp == TRUE) {
+          res <- fast_spectro(
+            rec_soundscape(),
+            f = rec_soundscape()@samp.rate,
+            ovlp = input$ovlp, wl = input$wl,
+            flim = input$zoom_freq, tlim = input$zoom_time, dyn = input$dyn_range,
+            color_scale = input$color_scale,
+          )
+        }
         spectro_soundscape_raw(res)
+
       })
 
       spectro_soundscape <- reactiveVal(NULL)
@@ -1791,8 +1804,16 @@ launch_segmentation_app <- function(
         )
 
         spectro_plot <- spectro_soundscape_raw() +
-          scale_x_continuous(limits = zoom_time, expand = c(0, 0)) +
-          scale_y_continuous(limits = zoom_freq, expand = c(0, 0)) +
+          {
+            if (input$fastdisp == FALSE) {
+              scale_x_continuous(limits = zoom_time, expand = c(0, 0))
+            }
+          } +
+          {
+            if (input$fastdisp == FALSE) {
+              scale_y_continuous(limits = zoom_freq, expand = c(0, 0))
+            }
+          } +
           annotate(
             "label",
             label = paste0(
