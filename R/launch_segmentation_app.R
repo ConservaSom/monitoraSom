@@ -478,12 +478,12 @@ launch_segmentation_app <- function(
 
       purrr::map(
         rois_list,
-        ~ cutw(
+        ~ seewave::cutw(
           wav,
           f = wav@samp.rate, output = "Wave",
-          from = .x$roi_start, to = .x$roi_endc(1, 2, 4, 6, 8)
+          from = .x$roi_start, to = .x$roi_end
         ) %>%
-          savewav(filename = file.path(path, .x$cut_name))
+          seewave::savewav(filename = file.path(path, .x$cut_name))
       )
     }
   }
@@ -1908,7 +1908,7 @@ launch_segmentation_app <- function(
       })
 
       observeEvent(input$export_selected_cut, {
-        req(roi_values(), rec_soundscape())
+        req(roi_values(), rec_soundscape(), cuts_path_val())
         if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
           df <- roi_values()
           if (!is.null(input$res_table_rows_selected)) {
