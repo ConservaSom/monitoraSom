@@ -14,7 +14,6 @@ launch_segmentation_app(
   cuts_path = NULL,
   labels_file = NULL,
   sp_list = "CBRO-2021 (Brazil)",
-  fastdisp = TRUE,
   label_angle = 90,
   show_label = TRUE,
   dyn_range = c(-60, 0),
@@ -57,9 +56,6 @@ titles.}
 
 \item{sp_list}{A character string with the available labels to be used in the
 cuirrent session. The default is "CBRO-2021 (Brazil)".}
-
-\item{fastdisp}{If TRUE, the spectrogram will be displayed in a lower
-quality, but faster.}
 
 \item{label_angle}{Angle between 0 and 180 to draw the ROI labels in the
 spectrogram plot.}
