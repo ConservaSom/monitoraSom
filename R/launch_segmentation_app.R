@@ -67,10 +67,10 @@ launch_segmentation_app <- function(
   project_path = NULL, preset_path = NULL, user = NULL,
   soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
   labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)", label_angle = 90,
-  show_label = TRUE, dyn_range = c(-60, 0), wl = 1024, ovlp = 0, color_scale = "inferno",
-  wav_player_type = "R session", wav_player_path = "play", visible_bp = FALSE,
-  session_notes = NULL, zoom_freq = c(0, 180), nav_autosave = TRUE,
-  pitch_shift = 1
+  show_label = TRUE, dyn_range = c(0, 50), wl = 1024, ovlp = 0, color_scale = "inferno",
+  wav_player_type = "R session", wav_player_path = "play",
+  visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
+  nav_autosave = TRUE, pitch_shift = 1
   ) {
 
   # require(shiny)
@@ -196,15 +196,11 @@ launch_segmentation_app <- function(
   if (length(dyn_range) == 2) {
     if (all(is.numeric(dyn_range))) {
       if (dyn_range[1] < dyn_range[2]) {
-        if (dyn_range[1] >= -100 & dyn_range[2] <= 10) {
           if (dyn_range[1] %% 10 == 0 & dyn_range[2] %% 10 == 0) {
             session_data$dyn_range <- dyn_range
           } else {
             stop("Error! 'dyn_range' must be a multiple of 10.")
           }
-        } else {
-          stop("Error! 'dyn_range' must be between -100 and 10.")
-        }
       } else {
         session_data$dyn_range <- sort(dyn_range)
         warning(
@@ -287,6 +283,13 @@ launch_segmentation_app <- function(
   } else {
     stop(
       "Error! The value assigned to 'visible_bp' is not logical. Set it to TRUE or FALSE."
+    )
+  }
+  if (isTRUE(play_norm) | isFALSE(play_norm)) {
+    session_data$play_norm <- play_norm
+  } else {
+    stop(
+      "Error! The value assigned to 'play_norm' is not logical. Set it to TRUE or FALSE."
     )
   }
 
@@ -626,7 +629,7 @@ launch_segmentation_app <- function(
             ),
             sliderInput(
               "dyn_range", "Dynamic range (dB)",
-              min = -100, max = 10, step = 10, value = session_data$dyn_range, width = "100%"
+              min = -120, max = 120, step = 10, value = session_data$dyn_range, width = "100%"
             ),
             sliderTextInput(
               "wl", "Window length",
@@ -657,6 +660,10 @@ launch_segmentation_app <- function(
             checkboxInput(
               "visible_bp", "Play only the visible frequency band",
               value = session_data$visible_bp, width = "400px"
+            ),
+            checkboxInput(
+              "play_norm", "Normalize playable audio",
+              value = session_data$play_norm, width = "400px"
             ),
             splitLayout(
               cellWidths = c("75%", "25%"),
@@ -1200,14 +1207,14 @@ launch_segmentation_app <- function(
                 wl = input$wl, output = "Wave"
               )
             }
-            seewave::savewav(
-              wav = normalize(
+            if (isTRUE(input$play_norm)) {
+              res_cut <- normalize(
                 object = res_cut,
                 unit = as.character(res_cut@bit),
-                pcm = TRUE
-              ),
-              f = res_cut@samp.rate, filename = temp_file
-            )
+                pcm <- TRUE
+              )
+            }
+            seewave::savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
             removeUI(selector = "#visible_soundscape_clip_selector")
             insertUI(
               selector = "#visible_soundscape_clip", where = "afterEnd",
@@ -1509,14 +1516,14 @@ launch_segmentation_app <- function(
             wl = input$wl, output = "Wave"
           )
         }
-        tuneR::play(
-          normalize(
+        if (isTRUE(input$play_norm)) {
+          rec_to_play <- normalize(
             object = rec_to_play,
             unit = as.character(rec_to_play@bit),
-            pcm = TRUE
-          ),
-          player = "play"
-        )
+            pcm <- TRUE
+          )
+        }
+        tuneR::play(rec_to_play,player = "play")
       })
 
       progress_tracker <- reactiveValues(df = NULL)
@@ -1715,7 +1722,7 @@ launch_segmentation_app <- function(
             # flim = c(0, (rec_soundscape()@samp.rate / 2) - 1),
             # tlim = c(0, duration_val()),
             dyn = input$dyn_range, pitch_shift = input$pitch_shift,
-            color_scale = input$color_scale, ncolors = 124
+            color_scale = input$color_scale, ncolors = 124, norm = FALSE
           )
         spectro_soundscape_raw(res)
 
