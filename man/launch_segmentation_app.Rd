@@ -13,7 +13,7 @@ launch_segmentation_app(
   roi_tables_path = NULL,
   cuts_path = NULL,
   labels_file = NULL,
-  sp_list = "CBRO-2021 (Aves - Brazil)",
+  sp_list = "CBRO-2021 (Birds - Brazil)",
   label_angle = 90,
   show_label = TRUE,
   dyn_range = c(-60, 0),

@@ -67,13 +67,13 @@
 launch_segmentation_app <- function(
   project_path = NULL, preset_id = NULL, user = NULL, preset_path = NULL,
   soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
-  labels_file = NULL, sp_list = "CBRO-2021 (Aves - Brazil)", label_angle = 90,
+  labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)", label_angle = 90,
   show_label = TRUE, dyn_range = c(-60, 0), wl = 1024, ovlp = 0, color_scale = "inferno",
   wav_player_type = "R session", wav_player_path = "play", visible_bp = FALSE,
   session_notes = NULL, zoom_freq = c(0, 180), nav_autosave = TRUE,
   pitch_shift = 1
   ) {
-    
+
   # require(shiny)
   # require(dplyr)
   # require(ggplot2)
