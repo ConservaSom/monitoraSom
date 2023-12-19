@@ -935,13 +935,13 @@ launch_segmentation_app <- function(
             ),
             DTOutput("res_table")
           ),
-          tabPanel(
-            "Progress Overview",
-            progressBar(
-              id = "progress_bar", value = 0, total = 1,
-              status = "info", display_pct = TRUE, striped = TRUE
-            )
-          ),
+          # tabPanel(
+          #   "Progress Overview",
+          #   progressBar(
+          #     id = "progress_bar", value = 0, total = 1,
+          #     status = "info", display_pct = TRUE, striped = TRUE
+          #   )
+          # ),
           tabPanel(
             "User Manual",
             p("Q - delete active ROI"),
