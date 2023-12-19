@@ -1,4 +1,4 @@
-#' Function to launch the segmentation app
+#' Function to launch the segmentation app VERSÃO COM PRESETS
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
@@ -7,11 +7,12 @@
 #'   regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
 #'   be imported from presets or set manually.
 #'
-#' @param project_path Path to the project folder, where the segmentation
-#'   project will be stored. It is necessary to provide this path if the
-#'   segmentation project is being created for the first time or if the user
-#'   wants to use relative paths for other input fields.
-#' @param preset_path Path to temporary files and other acessory files used by the app.
+#' @param project_path Todo
+#' @param preset_path Path from which presets can be imported and to which new
+#'   presets can be exported.
+#' @param preset_id ID of the preset to be imported from the 'preset_path'
+#'   folder. If export_preset = TRUE, the preset will be exported to the
+#'   'preset_path' folder with the name "segmentation_preset_<preset_id>.rds".
 #' @param user Identification of the user of the segmentation app.
 #' @param soundscapes_path Path to soundscapes files.
 #' @param roi_tables_path Path to the folder from which the ROI tables will be
@@ -64,7 +65,7 @@
 #'  shinyWidgets shinydashboard shinyFiles shinyalert keys shinyjs shinyBS
 #' @importFrom data.table fread fwrite
 launch_segmentation_app <- function(
-  project_path = NULL, preset_path = NULL, user = NULL,
+  project_path = NULL, preset_id = NULL, user = NULL, preset_path = NULL,
   soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
   labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)", label_angle = 90,
   show_label = TRUE, dyn_range = c(-60, 0), wl = 1024, ovlp = 0, color_scale = "inferno",
@@ -115,7 +116,7 @@ launch_segmentation_app <- function(
 
   if (!is.null(user)) {
     session_data$user <- as.character(gsub(",", "", user))
-  } else if (is.null(preset_path)) {
+  } else if (is.null(preset_id) | is.null(preset_path)) {
     session_data$user <- as.character(NA)
     warning("Warning! A value was not provided for 'user' variable. Inform the correct value and confirm within the app.")
   }
@@ -175,6 +176,12 @@ launch_segmentation_app <- function(
       session_data$cuts_path <- cuts_path
     }
   }
+
+  # if (is.logical(fastdisp)) {
+  #   session_data$fastdisp <- fastdisp
+  # } else {
+  #   stop("Error! The value assigned to 'fastdisp' is not logical. Set it to TRUE or FALSE.")
+  # }
 
   # check of "label_angle" variable is within 0-180 range and is a multiple of 10
   if (!is.numeric(label_angle)) {
@@ -290,18 +297,18 @@ launch_segmentation_app <- function(
     )
   }
 
-  # if (is.null(session_notes)) {
-  #   session_data$session_notes <- NA
-  # } else {
-  #   session_notes <- as.character(session_notes)
-  #   if (is.character(session_notes)) {
-  #     session_data$session_notes <- session_notes
-  #   } else {
-  #     stop(
-  #       "Error! The value assigned to 'session_notes' cannot be coerced to a character string."
-  #     )
-  #   }
-  # }
+  if (is.null(session_notes)) {
+    session_data$session_notes <- NA
+  } else {
+    session_notes <- as.character(session_notes)
+    if (is.character(session_notes)) {
+      session_data$session_notes <- session_notes
+    } else {
+      stop(
+        "Error! The value assigned to 'session_notes' cannot be coerced to a character string."
+      )
+    }
+  }
 
   # check if the variable 'zoom_freq' is an integer vector of length equals 2, is between 0 and 180 and the first value is smaller than the second
   if (length(zoom_freq) == 2) {
@@ -373,6 +380,7 @@ launch_segmentation_app <- function(
     session_data$temp_path <- temp_path
   }
 
+  # data(sp_labels)
   sp_labels_default <- sp_labels
   if (!is.null(labels_file)) {
     stopifnot(file.exists(labels_file))
@@ -394,42 +402,42 @@ launch_segmentation_app <- function(
   }
   session_data$sp_list <- sp_list
 
-  # if (!is.null(preset_id)) {
-  #   if (is.character(preset_id) & length(preset_id) == 1) {
-  #     session_data$preset_id <- preset_id
-  #     if (!is.null(preset_path)) {
-  #       preset_file <- file.path(
-  #         preset_path, paste0("segmentation_preset_", preset_id, ".rds")
-  #       )
-  #       preset_to_export <- list(
-  #         user = session_data$user,
-  #         soundscapes_path = session_data$soundscapes_path,
-  #         roi_tables_path = session_data$roi_tables_path,
-  #         cuts_path = session_data$cuts_path,
-  #         # fastdisp = session_data$fastdisp,
-  #         label_angle = session_data$label_angle,
-  #         show_label = session_data$show_label,
-  #         dyn_range = session_data$dyn_range,
-  #         wl = session_data$wl,
-  #         ovlp = session_data$ovlp,
-  #         color_scale = session_data$color_scale,
-  #         wav_player_type = session_data$wav_player_type,
-  #         wav_player_path = session_data$wav_player_path,
-  #         session_notes = session_data$session_notes,
-  #         zoom_freq = session_data$zoom_freq,
-  #         nav_autosave = session_data$nav_autosave,
-  #         sp_list = session_data$sp_list,
-  #         pitch_shift = session_data$pitch_shift
-  #       )
-  #       saveRDS(object = preset_to_export, file = preset_file)
-  #       message("Preset sucessfully exported to the selected destination!")
-  #     }
-  #   } else {
-  #     stop(
-  #       "Error! The value assigned to 'preset_id' is not a character string of length 1."
-  #     )
-  #   }
-  # }
+  if (!is.null(preset_id)) {
+    if (is.character(preset_id) & length(preset_id) == 1) {
+      session_data$preset_id <- preset_id
+      if (!is.null(preset_path)) {
+        preset_file <- file.path(
+          preset_path, paste0("segmentation_preset_", preset_id, ".rds")
+        )
+        preset_to_export <- list(
+          user = session_data$user,
+          soundscapes_path = session_data$soundscapes_path,
+          roi_tables_path = session_data$roi_tables_path,
+          cuts_path = session_data$cuts_path,
+          # fastdisp = session_data$fastdisp,
+          label_angle = session_data$label_angle,
+          show_label = session_data$show_label,
+          dyn_range = session_data$dyn_range,
+          wl = session_data$wl,
+          ovlp = session_data$ovlp,
+          color_scale = session_data$color_scale,
+          wav_player_type = session_data$wav_player_type,
+          wav_player_path = session_data$wav_player_path,
+          session_notes = session_data$session_notes,
+          zoom_freq = session_data$zoom_freq,
+          nav_autosave = session_data$nav_autosave,
+          sp_list = session_data$sp_list,
+          pitch_shift = session_data$pitch_shift
+        )
+        saveRDS(object = preset_to_export, file = preset_file)
+        message("Preset sucessfully exported to the selected destination!")
+      }
+    } else {
+      stop(
+        "Error! The value assigned to 'preset_id' is not a character string of length 1."
+      )
+    }
+  }
 
   if (is.numeric(pitch_shift)) {
     if (pitch_shift %in% c(-8, -6, -4, -2, 1)) {
@@ -445,7 +453,6 @@ launch_segmentation_app <- function(
     )
   }
 
-  # todo Deactivate when the function is ready
   roi_razor <- function(wav, rois, path) {
     if (is.null(rois)) {
       stop("No ROIs available")
@@ -480,6 +487,22 @@ launch_segmentation_app <- function(
           seewave::savewav(filename = file.path(path, .x$cut_name))
       )
     }
+  }
+
+  # Credits to Sergio Oller in <https://github.com/tidyverse/ggplot2/issues/4989>
+  mat_to_nativeRaster <- function(x, colormap, rangex) {
+    cols_to_ints <- farver::encode_native(colormap)
+    breaks <- seq(from = rangex[1], to = rangex[2], length.out = length(colormap))
+    xdim <- dim(x)
+    rev_cols <- seq.int(ncol(x), 1L, by = -1L)
+    x <- x[, rev_cols]
+    x <- findInterval(x, breaks, rightmost.closed = TRUE)
+    x <- cols_to_ints[x]
+    x <- matrix(x, nrow = xdim[1], ncol = xdim[2], byrow = FALSE)
+    structure(
+      x,
+      dim = c(xdim[2], xdim[1]), class = "nativeRaster", channels = 4L
+    )
   }
 
   # This function defines where embedded html wav players will look for the files
@@ -532,34 +555,34 @@ launch_segmentation_app <- function(
               tags$style(type = "text/css", "#preset_path_load { margin-top: 50px;}")
             ),
             shinyBS::bsTooltip("preset_path",
-              title = "Paste the path to app acessory files here.",
+              title = "Paste the path to segmentation presets here. Available presets will be shown in the drop-down menu below",
               placement = "right", trigger = "hover",
               options = list(delay = list(show = 1000, hide = 0))
             ),
             tags$style(".tooltip {width: 300px;}"),
-            # selectizeInput("available_presets", "Available presets",
-            #   choices = "Export new preset file...", width = "100%",
-            # ),
-            # fluidRow(
-            #   column(
-            #     width = 5, offset = "0px",
-            #     actionButton(
-            #       "export_preset", "Export preset",
-            #       icon = icon(lib = "glyphicon", "glyphicon glyphicon-export"),
-            #       width = "170px"
-            #     )
-            #   ),
-            #   column(
-            #     width = 6, offset = "0px",
-            #     actionButton(
-            #       "import_preset", "Import preset",
-            #       icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
-            #       width = "170px"
-            #     )
-            #   ),
-            #   tags$style(type = "text/css", "#export_preset { margin-top: 0px;}"),
-            #   tags$style(type = "text/css", "#import_preset { margin-top: 0px;}")
-            # ),
+            selectizeInput("available_presets", "Available presets",
+              choices = "Export new preset file...", width = "100%",
+            ),
+            fluidRow(
+              column(
+                width = 5, offset = "0px",
+                actionButton(
+                  "export_preset", "Export preset",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-export"),
+                  width = "170px"
+                )
+              ),
+              column(
+                width = 6, offset = "0px",
+                actionButton(
+                  "import_preset", "Import preset",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
+                  width = "170px"
+                )
+              ),
+              tags$style(type = "text/css", "#export_preset { margin-top: 0px;}"),
+              tags$style(type = "text/css", "#import_preset { margin-top: 0px;}")
+            ),
             textInput(
               "user", "User name",
               value = session_data$user, placeholder = "Type your name here"
@@ -613,10 +636,20 @@ launch_segmentation_app <- function(
             )
           ),
 
+          # menuItem(
+          #   "Session Setup",
+          #   icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
+          #   tabName = "sect_setup_tab",
+
+          # ),
           menuItem(
             "Spectrogram Parameters",
             tabName = "spec_par_tab",
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
+            # checkboxInput(
+            #   "fastdisp", "Faster spectrogram (unstable normalization)",
+            #   value = session_data$fastdisp, width = "400px"
+            # ),
             splitLayout(
               cellWidths = c("75%", "25%"),
               sliderInput("label_angle", "Adjust label angle (º)",
@@ -676,17 +709,16 @@ launch_segmentation_app <- function(
               label = "Reset to default parameters", icon = icon("gear"),
               style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
             )
+          ),
+          menuItem(
+            "Session Notes",
+            icon = icon(lib = "glyphicon", "glyphicon glyphicon-pencil"),
+            tabName = "tab_notes",
+            textAreaInput("session_notes", "Session notes",
+              value = session_data$session_notes, placeholder = "Write session notes here", width = "100%",
+              height = "150px", resize = "vertical"
+            )
           )
-          # ,
-          # menuItem(
-          #   "Session Notes",
-          #   icon = icon(lib = "glyphicon", "glyphicon glyphicon-pencil"),
-          #   tabName = "tab_notes",
-          #   textAreaInput("session_notes", "Session notes",
-          #     value = session_data$session_notes, placeholder = "Write session notes here", width = "100%",
-          #     height = "150px", resize = "vertical"
-          #   )
-          # )
         ),
         actionButton(
           "end_session", "End Session",
@@ -1902,19 +1934,19 @@ launch_segmentation_app <- function(
         )
       })
 
-      # observeEvent(input$preset_path, {
-      #   res_list <- list.files(
-      #     path = input$preset_path, pattern = "^segmentation_preset_.*\\.rds$"
-      #   ) %>%
-      #     str_remove("segmentation_preset_") %>%
-      #     str_remove(".rds")
-      #   if (!is.null(res_list)) {
-      #     updateSelectInput(
-      #       session, "available_presets",
-      #       choices = c("Export new preset file...", res_list)
-      #     )
-      #   }
-      # })
+      observeEvent(input$preset_path, {
+        res_list <- list.files(
+          path = input$preset_path, pattern = "^segmentation_preset_.*\\.rds$"
+        ) %>%
+          str_remove("segmentation_preset_") %>%
+          str_remove(".rds")
+        if (!is.null(res_list)) {
+          updateSelectInput(
+            session, "available_presets",
+            choices = c("Export new preset file...", res_list)
+          )
+        }
+      })
 
       observeEvent(input$default_pars, {
         req(rec_soundscape())
@@ -1923,6 +1955,7 @@ launch_segmentation_app <- function(
         updateSliderInput(session, inputId = "ovlp", value = 0)
         updateSelectInput(session, inputId = "color_scale", selected = "inferno")
         updateSliderInput(session, "zoom_freq", value = c(0, 10))
+        # updateCheckboxInput(session, inputId = "fastdisp", value = TRUE)
         updateSliderInput(session, inputId = "label_angle", value = 90)
         updateCheckboxInput(session, inputId = "show_label", value = TRUE)
         updateRadioButtons(session, inputId = "wav_player_type", selected = "R session")
@@ -1956,164 +1989,164 @@ launch_segmentation_app <- function(
         session_settings(res)
       })
 
-      # # Export current session settings as a rds file
-      # observeEvent(input$export_preset, {
-      #   req(
-      #     session_settings(), input$preset_path, input$available_presets
-      #   )
-      #   if (
-      #     all(c(
-      #       nchar(input$user) != 0,
-      #       dir.exists(c(input$preset_path, soundscape_path_val(), roi_tables_path_val()))
-      #     ))
-      #   ) {
-      #     preset_file <- file.path(
-      #       input$preset_path,
-      #       paste0("segmentation_preset_", input$available_presets, ".rds")
-      #     )
-      #     if (file.exists(preset_file)) {
-      #       saved_preset <- readRDS(preset_file)
-      #       if (identical(saved_preset, session_settings())) {
-      #         shinyalert(
-      #           title = "Nothing to be done",
-      #           text = tagList(h3("No changes were made in the current preset")),
-      #           closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
-      #           type = "warning", animation = TRUE, showConfirmButton = FALSE,
-      #           showCancelButton = FALSE
-      #         )
-      #       } else {
-      #         what_changed <- rbind(saved_preset, session_settings()) %>%
-      #           as.data.frame() %>%
-      #           setNames(
-      #             list(
-      #               "user name", "path to soundscapes", "path to ROI tables",
-      #               "path to audio cuts and spectrograms",
-      #               # "fast display spectrogram",
-      #               "roi label angle", "show roi rabels", "spectrogram dynamic range",
-      #               "spectrogram window length", "spectrogram overlap",
-      #               "spectrogram color scale", "wave player type", "wave player path",
-      #               "session notes", "visible frequency band", "autosave while navigating",
-      #               "available labels for ROIs (species lists)", "pitch shift for ultrasound recordings"
-      #             )
-      #           ) %>%
-      #           select_if(function(col) length(unique(col)) > 1) %>%
-      #           colnames() %>%
-      #           paste(collapse = "; ")
+      # Export current session settings as a rds file
+      observeEvent(input$export_preset, {
+        req(
+          session_settings(), input$preset_path, input$available_presets
+        )
+        if (
+          all(c(
+            nchar(input$user) != 0,
+            dir.exists(c(input$preset_path, soundscape_path_val(), roi_tables_path_val()))
+          ))
+        ) {
+          preset_file <- file.path(
+            input$preset_path,
+            paste0("segmentation_preset_", input$available_presets, ".rds")
+          )
+          if (file.exists(preset_file)) {
+            saved_preset <- readRDS(preset_file)
+            if (identical(saved_preset, session_settings())) {
+              shinyalert(
+                title = "Nothing to be done",
+                text = tagList(h3("No changes were made in the current preset")),
+                closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
+                type = "warning", animation = TRUE, showConfirmButton = FALSE,
+                showCancelButton = FALSE
+              )
+            } else {
+              what_changed <- rbind(saved_preset, session_settings()) %>%
+                as.data.frame() %>%
+                setNames(
+                  list(
+                    "user name", "path to soundscapes", "path to ROI tables",
+                    "path to audio cuts and spectrograms",
+                    # "fast display spectrogram",
+                    "roi label angle", "show roi rabels", "spectrogram dynamic range",
+                    "spectrogram window length", "spectrogram overlap",
+                    "spectrogram color scale", "wave player type", "wave player path",
+                    "session notes", "visible frequency band", "autosave while navigating",
+                    "available labels for ROIs (species lists)", "pitch shift for ultrasound recordings"
+                  )
+                ) %>%
+                select_if(function(col) length(unique(col)) > 1) %>%
+                colnames() %>%
+                paste(collapse = "; ")
 
-      #         shinyalert(
-      #           title = "Changes detected in preset",
-      #           text = tagList(
-      #             h3("There are differences between settings in the current session and in the preset file:"),
-      #             h3(what_changed),
-      #             h3("Exporting will overwrite the existing preset file. Provide a new name below if if you wish to create a new preset instead:"),
-      #             textInput(
-      #               "new_preset_name",
-      #               label = NULL,
-      #               value = input$available_presets, placeholder = TRUE
-      #             ),
-      #             actionButton("confirm_export_preset", label = "Confirm & Export")
-      #           ),
-      #           closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
-      #           type = "warning", animation = TRUE, showConfirmButton = FALSE,
-      #           showCancelButton = TRUE
-      #         )
-      #       }
-      #     } else if (input$available_presets == "Export new preset file...") {
-      #       new_name <- paste0(
-      #         str_remove(user_val(), ","), "_",
-      #         format(Sys.time(), "%Y-%m-%d_%H:%M:%S")
-      #       )
-      #       shinyalert(
-      #         title = "Creating a new preset file",
-      #         text = tagList(
-      #           h3("Provide a name in the box below:"),
-      #           textInput(
-      #             "new_preset_name",
-      #             label = NULL,
-      #             value = new_name, placeholder = TRUE
-      #           ),
-      #           h4("(*) avoid commas"),
-      #           actionButton("confirm_export_preset", label = "Confirm & Export")
-      #         ),
-      #         closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
-      #         type = "warning", animation = TRUE, showConfirmButton = FALSE,
-      #         showCancelButton = FALSE
-      #       )
-      #     }
-      #   } else {
-      #     shinyalert(
-      #       title = "There are missing information in the User setup",
-      #       text = tagList(
-      #         h3("Complete the missing inputs before exporting a preset"),
-      #       ),
-      #       closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
-      #       type = "warning", animation = TRUE, showConfirmButton = FALSE,
-      #       showCancelButton = FALSE
-      #     )
-      #   }
-      # })
+              shinyalert(
+                title = "Changes detected in preset",
+                text = tagList(
+                  h3("There are differences between settings in the current session and in the preset file:"),
+                  h3(what_changed),
+                  h3("Exporting will overwrite the existing preset file. Provide a new name below if if you wish to create a new preset instead:"),
+                  textInput(
+                    "new_preset_name",
+                    label = NULL,
+                    value = input$available_presets, placeholder = TRUE
+                  ),
+                  actionButton("confirm_export_preset", label = "Confirm & Export")
+                ),
+                closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
+                type = "warning", animation = TRUE, showConfirmButton = FALSE,
+                showCancelButton = TRUE
+              )
+            }
+          } else if (input$available_presets == "Export new preset file...") {
+            new_name <- paste0(
+              str_remove(user_val(), ","), "_",
+              format(Sys.time(), "%Y-%m-%d_%H:%M:%S")
+            )
+            shinyalert(
+              title = "Creating a new preset file",
+              text = tagList(
+                h3("Provide a name in the box below:"),
+                textInput(
+                  "new_preset_name",
+                  label = NULL,
+                  value = new_name, placeholder = TRUE
+                ),
+                h4("(*) avoid commas"),
+                actionButton("confirm_export_preset", label = "Confirm & Export")
+              ),
+              closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
+              type = "warning", animation = TRUE, showConfirmButton = FALSE,
+              showCancelButton = FALSE
+            )
+          }
+        } else {
+          shinyalert(
+            title = "There are missing information in the User setup",
+            text = tagList(
+              h3("Complete the missing inputs before exporting a preset"),
+            ),
+            closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
+            type = "warning", animation = TRUE, showConfirmButton = FALSE,
+            showCancelButton = FALSE
+          )
+        }
+      })
 
-      # observeEvent(input$confirm_export_preset, {
-      #   req(session_settings(), input$preset_path, input$new_preset_name)
-      #   saveRDS(
-      #     session_settings(),
-      #     file.path(
-      #       input$preset_path, paste0("segmentation_preset_", input$new_preset_name, ".rds")
-      #     )
-      #   )
-      #   res_list <- list.files(
-      #     path = input$preset_path, pattern = "^segmentation_preset_.*\\.rds$"
-      #   )
-      #   res_list <- gsub("segmentation_preset_", "", res_list)
-      #   res_list <- gsub(".rds$", "", res_list)
+      observeEvent(input$confirm_export_preset, {
+        req(session_settings(), input$preset_path, input$new_preset_name)
+        saveRDS(
+          session_settings(),
+          file.path(
+            input$preset_path, paste0("segmentation_preset_", input$new_preset_name, ".rds")
+          )
+        )
+        res_list <- list.files(
+          path = input$preset_path, pattern = "^segmentation_preset_.*\\.rds$"
+        )
+        res_list <- gsub("segmentation_preset_", "", res_list)
+        res_list <- gsub(".rds$", "", res_list)
 
-      #   if (!is.null(res_list)) {
-      #     updateSelectInput(
-      #       session, "available_presets",
-      #       choices = c("Export new preset file...", res_list), #
-      #       selected = input$new_preset_name
-      #     )
-      #   }
-      #   showNotification("Preset file successfully exported")
-      # })
+        if (!is.null(res_list)) {
+          updateSelectInput(
+            session, "available_presets",
+            choices = c("Export new preset file...", res_list), #
+            selected = input$new_preset_name
+          )
+        }
+        showNotification("Preset file successfully exported")
+      })
 
-      # # Import the settins of the preset files to the active session
-      # observeEvent(input$import_preset, {
-      #   req(input$available_presets)
+      # Import the settins of the preset files to the active session
+      observeEvent(input$import_preset, {
+        req(input$available_presets)
 
-      #   preset_file <- file.path(
-      #     input$preset_path,
-      #     paste0("segmentation_preset_", input$available_presets, ".rds")
-      #   )
+        preset_file <- file.path(
+          input$preset_path,
+          paste0("segmentation_preset_", input$available_presets, ".rds")
+        )
 
-      #   if (file.exists(preset_file)) {
-      #     res <- readRDS(preset_file)
-      #     session_settings(res)
-      #     user_val(res$user)
-      #     updateTextInput(session, inputId = "user", value = res$user)
-      #     soundscape_path_val(res$soundscapes_path)
-      #     updateTextAreaInput(session, inputId = "soundscapes_path", value = res$soundscapes_path)
-      #     roi_tables_path_val(res$roi_tables_path)
-      #     updateTextAreaInput(session, inputId = "roi_tables_path", value = res$roi_tables_path)
-      #     cuts_path_val(res$cuts_path)
-      #     updateTextAreaInput(session, inputId = "cuts_path", value = cuts_path_val())
-      #     # updateCheckboxInput(session, inputId = "fastdisp", value = res$fastdisp)
-      #     updateSliderInput(session, inputId = "label_angle", value = res$label_angle)
-      #     updateCheckboxInput(session, inputId = "show_label", value = res$show_label)
-      #     updateSliderInput(session, inputId = "dyn_range", value = res$dyn_range)
-      #     updateSliderTextInput(session, inputId = "wl", selected = res$wl)
-      #     updateSliderInput(session, inputId = "ovlp", value = res$ovlp)
-      #     updateSelectInput(session, inputId = "color_scale", selected = res$color_scale)
-      #     updateTextAreaInput(session, inputId = "wav_player_path", value = res$wav_player_path)
-      #     updateRadioButtons(session, inputId = "wav_player_type", selected = res$wav_player_type)
-      #     updateTextAreaInput(session, inputId = "session_notes", value = res$session_notes)
-      #     updateNoUiSliderInput(session, inputId = "zoom_freq", value = res$zoom_freq)
-      #     updateCheckboxInput(session, inputId = "nav_autosave", value = res$nav_autosave)
-      #     updateSelectizeInput(session, inputId = "sp_list", selected = res$sp_list)
-      #     updateSliderInput(session, inputId = "pitch_shift", value = res$pitch_shift)
-      #     showNotification("Preset file successfully imported")
-      #   }
-      # })
+        if (file.exists(preset_file)) {
+          res <- readRDS(preset_file)
+          session_settings(res)
+          user_val(res$user)
+          updateTextInput(session, inputId = "user", value = res$user)
+          soundscape_path_val(res$soundscapes_path)
+          updateTextAreaInput(session, inputId = "soundscapes_path", value = res$soundscapes_path)
+          roi_tables_path_val(res$roi_tables_path)
+          updateTextAreaInput(session, inputId = "roi_tables_path", value = res$roi_tables_path)
+          cuts_path_val(res$cuts_path)
+          updateTextAreaInput(session, inputId = "cuts_path", value = cuts_path_val())
+          # updateCheckboxInput(session, inputId = "fastdisp", value = res$fastdisp)
+          updateSliderInput(session, inputId = "label_angle", value = res$label_angle)
+          updateCheckboxInput(session, inputId = "show_label", value = res$show_label)
+          updateSliderInput(session, inputId = "dyn_range", value = res$dyn_range)
+          updateSliderTextInput(session, inputId = "wl", selected = res$wl)
+          updateSliderInput(session, inputId = "ovlp", value = res$ovlp)
+          updateSelectInput(session, inputId = "color_scale", selected = res$color_scale)
+          updateTextAreaInput(session, inputId = "wav_player_path", value = res$wav_player_path)
+          updateRadioButtons(session, inputId = "wav_player_type", selected = res$wav_player_type)
+          updateTextAreaInput(session, inputId = "session_notes", value = res$session_notes)
+          updateNoUiSliderInput(session, inputId = "zoom_freq", value = res$zoom_freq)
+          updateCheckboxInput(session, inputId = "nav_autosave", value = res$nav_autosave)
+          updateSelectizeInput(session, inputId = "sp_list", selected = res$sp_list)
+          updateSliderInput(session, inputId = "pitch_shift", value = res$pitch_shift)
+          showNotification("Preset file successfully imported")
+        }
+      })
 
       # Trigger checks for ending the session
       observeEvent(input$end_session, {
@@ -2158,47 +2191,47 @@ launch_segmentation_app <- function(
         } else {
           message_rois <- paste0("ROIs in the current soundscape are not stored in a file. Consider exporting a new one before leaving the session.")
         }
-# # Check if there are settings to be saved on the preset file
-# preset_file <- file.path(
-#   input$preset_path,
-#   paste0("segmentation_preset_", input$available_presets, ".rds")
-# )
-# if (file.exists(preset_file)) {
-#   saved_preset <- readRDS(preset_file)
-#   message_settings <- "teste1"
-#   what_changed <- rbind(saved_preset, session_settings()) %>%
-#     as.data.frame() %>%
-#     setNames(
-#       list(
-#         "user name", "path to soundscapes", "path to ROI tables",
-#         "path to audio cuts and spectrograms", "fast display spectrogram",
-#         "roi label angle", "show roi rabels", "spectrogram dynamic range",
-#         "spectrogram window length", "spectrogram overlap",
-#         "spectrogram color scale", "wave player type", "wave player path",
-#         "session notes", "visible frequency band", "autosave while navigating",
-#         "available labels for ROIs (species lists)", "pitch shift for ultrasound recordings"
-#       )
-#     ) %>%
-#     select_if(function(col) length(unique(col)) > 1) %>%
-#     colnames() %>%
-#     paste(collapse = "; ")
-#   if (!identical(saved_preset, session_settings())) {
-#     message_settings <- paste0(
-#       "The following settings were updated: ", what_changed,
-#       ". Consider update the preset or create a new one before leaving the session."
-#     )
-#   } else {
-#     message_settings <- paste0("No setting changes detected.")
-#   }
-# } else {
-#   message_settings <- paste0("No preset file was found. Consider creating a new one before leaving the session.")
-# }
+        # Check if there are settings to be saved on the preset file
+        preset_file <- file.path(
+          input$preset_path,
+          paste0("segmentation_preset_", input$available_presets, ".rds")
+        )
+        if (file.exists(preset_file)) {
+          saved_preset <- readRDS(preset_file)
+          message_settings <- "teste1"
+          what_changed <- rbind(saved_preset, session_settings()) %>%
+            as.data.frame() %>%
+            setNames(
+              list(
+                "user name", "path to soundscapes", "path to ROI tables",
+                "path to audio cuts and spectrograms", "fast display spectrogram",
+                "roi label angle", "show roi rabels", "spectrogram dynamic range",
+                "spectrogram window length", "spectrogram overlap",
+                "spectrogram color scale", "wave player type", "wave player path",
+                "session notes", "visible frequency band", "autosave while navigating",
+                "available labels for ROIs (species lists)", "pitch shift for ultrasound recordings"
+              )
+            ) %>%
+            select_if(function(col) length(unique(col)) > 1) %>%
+            colnames() %>%
+            paste(collapse = "; ")
+          if (!identical(saved_preset, session_settings())) {
+            message_settings <- paste0(
+              "The following settings were updated: ", what_changed,
+              ". Consider update the preset or create a new one before leaving the session."
+            )
+          } else {
+            message_settings <- paste0("No setting changes detected.")
+          }
+        } else {
+          message_settings <- paste0("No preset file was found. Consider creating a new one before leaving the session.")
+        }
 
         shinyalert(
           title = "Check out",
           text = tagList(
             h3(message_rois),
-            # h3(message_settings),
+            h3(message_settings),
             actionButton("cancel_exit", "Cancel"),
             actionButton("confirm_exit", "End session"),
           ),
@@ -2225,21 +2258,21 @@ launch_segmentation_app <- function(
       pop_up_opt <- list(delay = list(show = 1000, hide = 0))
 
       # Side bar menu - User setup
-      # shinyBS::addTooltip(session,
-      #   id = "available_presets",
-      #   title = "Select a preset or type a new name to create a new one.",
-      #   placement = "right", trigger = "hover", options = pop_up_opt
-      # )
-      # shinyBS::addTooltip(session,
-      #   id = "import_preset",
-      #   title = "Apply stored settings to the current session",
-      #   placement = "right", trigger = "hover", options = pop_up_opt
-      # )
-      # shinyBS::addTooltip(session,
-      #   id = "export_preset",
-      #   title = "Store the current session settings to a preset file. Existing files will be overwritten",
-      #   placement = "right", trigger = "hover", options = pop_up_opt
-      # )
+      shinyBS::addTooltip(session,
+        id = "available_presets",
+        title = "Select a preset or type a new name to create a new one.",
+        placement = "right", trigger = "hover", options = pop_up_opt
+      )
+      shinyBS::addTooltip(session,
+        id = "import_preset",
+        title = "Apply stored settings to the current session",
+        placement = "right", trigger = "hover", options = pop_up_opt
+      )
+      shinyBS::addTooltip(session,
+        id = "export_preset",
+        title = "Store the current session settings to a preset file. Existing files will be overwritten",
+        placement = "right", trigger = "hover", options = pop_up_opt
+      )
       shinyBS::addTooltip(session,
         id = "user",
         title = "Identify yourself in the recommended format: 'Rosa G. L. M. (avoid commas)",
@@ -2431,6 +2464,6 @@ launch_segmentation_app <- function(
         title = "Delete the ROIs selected in the table below",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-    }
+    },
   )
 }

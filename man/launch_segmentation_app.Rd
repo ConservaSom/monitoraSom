@@ -6,9 +6,8 @@
 \usage{
 launch_segmentation_app(
   project_path = NULL,
-  preset_id = NULL,
-  user = NULL,
   preset_path = NULL,
+  user = NULL,
   soundscapes_path = NULL,
   roi_tables_path = NULL,
   cuts_path = NULL,
@@ -30,16 +29,14 @@ launch_segmentation_app(
 )
 }
 \arguments{
-\item{project_path}{Todo}
+\item{project_path}{Path to the project folder, where the segmentation
+project will be stored. It is necessary to provide this path if the
+segmentation project is being created for the first time or if the user
+wants to use relative paths for other input fields.}
 
-\item{preset_id}{ID of the preset to be imported from the 'preset_path'
-folder. If export_preset = TRUE, the preset will be exported to the
-'preset_path' folder with the name "segmentation_preset_<preset_id>.rds".}
+\item{preset_path}{Path to temporary files and other acessory files used by the app.}
 
 \item{user}{Identification of the user of the segmentation app.}
-
-\item{preset_path}{Path from which presets can be imported and to which new
-presets can be exported.}
 
 \item{soundscapes_path}{Path to soundscapes files.}
 
