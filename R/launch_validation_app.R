@@ -9,7 +9,6 @@
 #'
 #' @param preset_path Path from which presets can be imported and to which new
 #'   presets can be exported.
-#' @param preset_id Name of the preset to be exported.
 #' @param validation_user User name.
 #' @param templates_path Path to the template wave files.
 #' @param soundscapes_path Path to the soundscape wave files.
@@ -52,17 +51,15 @@
 #' @importFrom farver encode_native
 #' @importFrom tuneR play setWavPlayer readWave
 launch_validation_app <- function(
-    preset_path = NULL, preset_id = NULL,
-    validation_user, templates_path, soundscapes_path,
-    input_path, output_path, wav_cuts_path,
-    spec_path, diag_tab_path,
+    project_path = NULL, preset_path = NULL,
+    validation_user, templates_path, soundscapes_path, input_path, output_path,
+    spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
     val_subset = c("NA", "TP", "FP", "UN"), min_score = 0,
-    time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(-60, 0),
-    color_scale = "inferno", zoom_freq = c(0, 4),
+    time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(-50, 0),
+    color_scale = "inferno", zoom_freq = c(0, 10),
     nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
-    overwrite = FALSE, session_notes
-
+    overwrite = FALSE, pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
     ) {
 
       # todo Adicionar informações de pitch_shift
@@ -97,52 +94,75 @@ launch_validation_app <- function(
 
   session_data <- list()
 
-  # check if the 'preset_path' is a valid path
-  if (!is.null(preset_path)) {
-      if (dir.exists(preset_path)) {
-          session_data$preset_path <- preset_path
+  if (!is.null(project_path)) {
+    if (dir.exists(project_path)) {
+      session_data$project_path <- project_path
+    } else {
+      dir.create(project_path)
+      if (dir.exists(project_path)) {
+        session_data$project_path <- project_path
+        warning(
+          paste0("The validation app project directory was sucessfully created at '", project_path, "'")
+        )
       } else {
-          dir.create(preset_path)
-          if (dir.exists(preset_path)) {
-              session_data$preset_path <- preset_path
-              warning(
-                  "The validation preset destination directory was created automatically at '",
-                  preset_path, "'"
-              )
-          } else {
-              stop("Error! The selected preset destination folder does not exist and could not be created.")
-          }
+        stop("Error! Tried to create the validation app project directory at '", project_path, "' but failed.")
       }
-      # The creation of the temp directory assumes that the preset directory exists
-      temp_path <- file.path(preset_path, "temp/")
-      if (!dir.exists(temp_path)) {
-          dir.create(temp_path)
-      }
-      session_data$temp_path <- temp_path
+    }
   }
-  #    else if (!is.null(project_path)) {
-  #       # If a project path is defined,
-  #       preset_path <- file.path(project_path, "app_presets/")
-  #       temp_path <- file.path(project_path, "app_presets/temp/")
-  #       if (!dir.exists(preset_path)) {
-  #           dir.create(preset_path)
-  #           dir.create(temp_path)
-  #       }
-  #       session_data$preset_path <- preset_path
-  #       session_data$temp_path <- temp_path
-  #   }
 
-  validation_user_temp <- gsub(",", "", validation_user)
+  if (!is.null(preset_path)) {
+    if (dir.exists(preset_path)) {
+      session_data$preset_path <- preset_path
+    } else {
+      dir.create(preset_path)
+      if (dir.exists(preset_path)) {
+        session_data$preset_path <- preset_path
+        warning(
+          "The segmentation preset destination directory was created automatically at '",
+          preset_path, "'"
+        )
+      } else {
+        stop("Error! The selected preset destination folder does not exist and could not be created.")
+      }
+    }
+    # The creation of the temp directory assumes that the preset directory exists
+    temp_path <- file.path(preset_path, "temp/")
+    if (!dir.exists(temp_path)) {
+      dir.create(temp_path)
+    }
+    session_data$temp_path <- temp_path
+  } else if (!is.null(project_path)) {
+    # If a project path is defined,
+    preset_path <- file.path(project_path, "app_presets/")
+    temp_path <- file.path(project_path, "app_presets/temp/")
+    if (!dir.exists(preset_path)) {
+      dir.create(preset_path)
+      dir.create(temp_path)
+    }
+    session_data$preset_path <- preset_path
+    session_data$temp_path <- temp_path
+  }
 
-  if (!is.null(validation_user_temp)) {
-    session_data$validation_user <- as.character(validation_user_temp)
+  if (!is.null(validation_user)) {
+    session_data$validation_user <- as.character(gsub(",", "", validation_user))
   } else {
-    stop("Error! Inform one user name.")
+    session_data$validation_user <- as.character(NA)
+    warning("Warning! A value was not provided for 'validation_user' variable. Inform the correct value and confirm within the app.")
   }
 
-  session_data$templates_path <- templates_path
-  if (!dir.exists(templates_path)) {
-    stop("Error! The path to the template wave files was not found locally.")
+  if (is.null(templates_path)) {
+    if (dir.exists("roi_cuts/")) {
+      session_data$templates_path <- "roi_cuts/"
+      warning(
+        "Warning! The path to the template wave files was not provided. Using the default path 'roi_cuts/'"
+      )
+    }
+  } else {
+    if (dir.exists(templates_path)) {
+      session_data$templates_path <- templates_path
+    } else {
+      stop("Error! The path to the template wave files was not found locally.")
+    }
   }
 
   session_data$soundscapes_path <- soundscapes_path
@@ -201,14 +221,10 @@ launch_validation_app <- function(
   if (length(dyn_range) == 2) {
     if (all(is.numeric(dyn_range))) {
       if (dyn_range[1] < dyn_range[2]) {
-        if (dyn_range[1] >= -100 & dyn_range[2] <= 10) {
-          if (dyn_range[1] %% 10 == 0 & dyn_range[2] %% 10 == 0) {
-            session_data$dyn_range <- dyn_range
-          } else {
-            stop("Error! 'dyn_range' must be a multiple of 10.")
-          }
+        if (dyn_range[1] %% 10 == 0 & dyn_range[2] %% 10 == 0) {
+          session_data$dyn_range <- dyn_range
         } else {
-          stop("Error! 'dyn_range' must be between -100 and 10.")
+          stop("Error! 'dyn_range' must be a multiple of 10.")
         }
       } else {
         session_data$dyn_range <- sort(dyn_range)
@@ -226,16 +242,16 @@ launch_validation_app <- function(
   }
 
   if (is.numeric(wl)) {
-    if (wl %in% c(128, 256, 512, 1024, 2048, 4096)) {
+    if (wl %in% c(128, 256, 512, 1024, 2048, 4096, 8192, 16384)) {
       session_data$wl <- wl
     } else {
       stop(
-        "Error! The value assigned to 'wl' is not among the expected alternatives: 128, 256, 512, 1024, 2048, or 4096."
+        "Error! The value assigned to 'wl' is not among the expected alternatives: 128, 256, 512, 1024, 2048, 4096, 8192, or 16384."
       )
     }
   } else {
     stop(
-      "Error! The value assigned to 'wl' is not among the expected alternatives: 128, 256, 512, 1024, 2048, or 4096."
+      "Error! The value assigned to 'wl' is not among the expected alternatives: 128, 256, 512, 1024, 2048, 4096, 8192, or 16384."
     )
   }
 
@@ -311,7 +327,20 @@ launch_validation_app <- function(
     stop("Error! The 'zoom_freq' must be a numeric vector of length 2.")
   }
 
-
+  if (isTRUE(visible_bp) | isFALSE(visible_bp)) {
+    session_data$visible_bp <- visible_bp
+  } else {
+    stop(
+      "Error! The value assigned to 'visible_bp' is not logical. Set it to TRUE or FALSE."
+    )
+  }
+  if (isTRUE(play_norm) | isFALSE(play_norm)) {
+    session_data$play_norm <- play_norm
+  } else {
+    stop(
+      "Error! The value assigned to 'play_norm' is not logical. Set it to TRUE or FALSE."
+    )
+  }
 
   if (isTRUE(nav_shuffle) | isFALSE(nav_shuffle)) {
     session_data$nav_shuffle <- nav_shuffle
@@ -344,57 +373,117 @@ launch_validation_app <- function(
     stop("Error! 'overwrite' must be set to TRUE or FALSE.")
   }
 
-  session_data$session_notes <- session_notes
+  # session_data$session_notes <- session_notes
 
-  session_data$wav_cuts_path <- wav_cuts_path
-  if (!dir.exists(wav_cuts_path)) {
-    warning("Warning! The informed 'wav_cuts_path' was not found locally.")
-  }
-  #
-  session_data$spec_path <- spec_path
-  if (!dir.exists(spec_path)) {
-    warning("Warning! The informed 'spec_path' was not found locally.")
-  }
-  #
-  session_data$diag_tab_path <- diag_tab_path
-  if (!dir.exists(diag_tab_path)) {
-    warning("Warning! The informed 'diag_tab_path' was not found locally.")
+  if (is.null(wav_cuts_path)) {
+    if (dir.exists("detection_cuts/")) {
+      warning(
+        "Warning! The informed 'wav_cuts_path' was not found locally. Using the default path 'detection_cuts/'"
+      )
+    } else {
+      dir.create("detection_cuts/")
+      warning(
+        "Warning! The informed 'wav_cuts_path' was not found locally. Using the default path 'detection_cuts/'"
+      )
+    }
+    session_data$wav_cuts_path <- "detection_cuts/"
+  } else {
+    if (dir.exists(wav_cuts_path)) {
+      session_data$wav_cuts_path <- wav_cuts_path
+    } else {
+      stop("Error! The provided path to store detection cut files was not found locally.")
+    }
   }
 
-  if (!is.null(preset_path) & !is.null(preset_id)) {
-    # todo Adicionar esse prefixo no arquivo de preset
-    preset_file <- file.path(
-      preset_path, paste0("validation_preset_", preset_id, ".rds")
-    )
-    preset_to_export <- list(
-      validation_user = session_data$validation_user,
-      templates_path = session_data$templates_path,
-      soundscapes_path = session_data$soundscapes_path,
-      input_path = session_data$input_path,
-      output_path = session_data$output_path,
-      wav_player_path = session_data$wav_player_path,
-      wav_player_type = session_data$wav_player_type,
-      val_subset = session_data$val_subset,
-      min_score = session_data$min_score,
-      time_pads = session_data$time_pads,
-      ovlp = session_data$ovlp,
-      wl = session_data$wl,
-      dyn_range = session_data$dyn_range,
-      color_scale = session_data$color_scale,
-      zoom_freq = session_data$zoom_freq,
-      nav_shuffle = session_data$nav_shuffle,
-      seed = session_data$seed,
-      auto_next = session_data$auto_next,
-      nav_autosave = session_data$nav_autosave,
-      overwrite = session_data$overwrite,
-      session_notes = session_data$session_notes,
-      wav_cuts_path = session_data$wav_cuts_path,
-      spec_path = session_data$spec_path,
-      diag_tab_path = session_data$diag_tab_path
-    )
-    saveRDS(object = preset_to_export, file = preset_file)
-    message("Preset sucessfully exported to the selected destination!")
+  #
+  if (is.null(spec_path)) {
+    if (dir.exists("detection_spectrograms/")) {
+      warning(
+        "Warning! The informed 'spec_path' was not found locally. Using the default path 'detection_spectrograms/'"
+      )
+    } else {
+      dir.create("detection_spectrograms/")
+      warning(
+        "Warning! The informed 'spec_path' was not found locally. Using the default path 'detection_spectrograms/'"
+      )
+    }
+    session_data$spec_path <- "detection_spectrograms/"
+  } else {
+    if (dir.exists(spec_path)) {
+      session_data$spec_path <- wav_cuts_path
+    } else {
+      stop("Error! The provided path to store detection spectrograms was not found locally.")
+    }
   }
+
+  if (is.null(diag_tab_path)) {
+    if (dir.exists("detection_validation_tables/")) {
+      warning(
+        "Warning! The informed 'diag_tab_path' was not found locally. Using the default path 'detection_validation_tables/'"
+      )
+    } else {
+      dir.create("detection_validation_tables/")
+      warning(
+        "Warning! The informed 'diag_tab_path' was not found locally. Using the default path 'detection_validation_tables/'"
+      )
+    }
+    session_data$diag_tab_path <- "detection_validation_tables/"
+  } else {
+    if (dir.exists(diag_tab_path)) {
+      session_data$diag_tab_path <- wav_cuts_path
+    } else {
+      stop("Error! The provided path to store validation tables was not found locally.")
+    }
+  }
+
+  if (is.numeric(pitch_shift)) {
+    if (pitch_shift %in% c(-8, -6, -4, -2, 1)) {
+      session_data$pitch_shift <- pitch_shift
+    } else {
+      stop(
+        "Error! The value assigned to 'pitch_shift' is not among the expected alternatives: -8, -6, -4, -2, or 1."
+      )
+    }
+  } else {
+    stop(
+      "Error! The value assigned to 'pitch_shift' is not among the expected alternatives: -8, -6, -4, -2, or 1."
+    )
+  }
+
+# if (!is.null(preset_path) & !is.null(preset_id)) {
+#   # todo Adicionar esse prefixo no arquivo de preset
+#   preset_file <- file.path(
+#     preset_path, paste0("validation_preset_", preset_id, ".rds")
+#   )
+#   preset_to_export <- list(
+#     validation_user = session_data$validation_user,
+#     templates_path = session_data$templates_path,
+#     soundscapes_path = session_data$soundscapes_path,
+#     input_path = session_data$input_path,
+#     output_path = session_data$output_path,
+#     wav_player_path = session_data$wav_player_path,
+#     wav_player_type = session_data$wav_player_type,
+#     val_subset = session_data$val_subset,
+#     min_score = session_data$min_score,
+#     time_pads = session_data$time_pads,
+#     ovlp = session_data$ovlp,
+#     wl = session_data$wl,
+#     dyn_range = session_data$dyn_range,
+#     color_scale = session_data$color_scale,
+#     zoom_freq = session_data$zoom_freq,
+#     nav_shuffle = session_data$nav_shuffle,
+#     seed = session_data$seed,
+#     auto_next = session_data$auto_next,
+#     nav_autosave = session_data$nav_autosave,
+#     overwrite = session_data$overwrite,
+#     session_notes = session_data$session_notes,
+#     wav_cuts_path = session_data$wav_cuts_path,
+#     spec_path = session_data$spec_path,
+#     diag_tab_path = session_data$diag_tab_path
+#   )
+#   saveRDS(object = preset_to_export, file = preset_file)
+#   message("Preset sucessfully exported to the selected destination!")
+# }
 
   auc_trap <- function(x, y) {
     res <- sum(
@@ -461,29 +550,29 @@ launch_validation_app <- function(
               ),
               tags$style(type = "text/css", "#preset_path_load { margin-top: 40px;}")
             ),
-            selectizeInput("available_presets", "Available presets",
-              choices = "Export new preset file...", width = "100%",
-            ),
-            fluidRow(
-              column(
-                width = 5, offset = "0px",
-                actionButton(
-                  "export_preset", "Export preset",
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-export"),
-                  width = "170px"
-                )
-              ),
-              column(
-                width = 6, offset = "0px",
-                actionButton(
-                  "import_preset", "Import preset",
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
-                  width = "170px"
-                )
-              ),
-              tags$style(type = "text/css", "#export_preset { margin-top: 0px;}"),
-              tags$style(type = "text/css", "#import_preset { margin-top: 0px;}")
-            ),
+            # selectizeInput("available_presets", "Available presets",
+            #   choices = "Export new preset file...", width = "100%",
+            # ),
+            # fluidRow(
+            #   column(
+            #     width = 5, offset = "0px",
+            #     actionButton(
+            #       "export_preset", "Export preset",
+            #       icon = icon(lib = "glyphicon", "glyphicon glyphicon-export"),
+            #       width = "170px"
+            #     )
+            #   ),
+            #   column(
+            #     width = 6, offset = "0px",
+            #     actionButton(
+            #       "import_preset", "Import preset",
+            #       icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
+            #       width = "170px"
+            #     )
+            #   ),
+            #   tags$style(type = "text/css", "#export_preset { margin-top: 0px;}"),
+            #   tags$style(type = "text/css", "#import_preset { margin-top: 0px;}")
+            # ),
             textInput("validation_user", "User name (*):",
               value = session_data$validation_user,
               placeholder = "Identify yourself here", width = "100%"
@@ -581,9 +670,8 @@ launch_validation_app <- function(
               value = session_data$time_pads
             ),
             sliderInput(
-              "dyn_range", "Dynamic range (dB):",
-              min = -100, max = 10, step = 10, width = "100%",
-              value = session_data$dyn_range
+              "dyn_range", "Dynamic range (dB)",
+              min = -120, max = 120, step = 10, value = session_data$dyn_range, width = "100%"
             ),
             sliderTextInput(
               "wl", "Window length:",
@@ -596,12 +684,25 @@ launch_validation_app <- function(
               min = 0, max = 80, step = 10, width = "100%",
               value = session_data$ovlp
             ),
+            sliderTextInput(
+              "pitch_shift", "Pitch shift (octaves) and slow down (factor)",
+              choices = c(-8, -6, -4, -2, 1), selected = session_data$pitch_shift,
+              grid = TRUE, width = "100%"
+            ),
             selectInput(
               "color_scale", "Color:",
               choices = c(
                 "viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2"
               ),
               width = "100%", selected = session_data$color_scale
+            ),
+            checkboxInput(
+              "visible_bp", "Play only the visible frequency band",
+              value = session_data$visible_bp, width = "400px"
+            ),
+            checkboxInput(
+              "play_norm", "Normalize playable audio",
+              value = session_data$play_norm, width = "400px"
             ),
             radioButtons(
               "wav_player_type", "Sound player",
@@ -632,18 +733,18 @@ launch_validation_app <- function(
               label = "Reset to default parameters", icon = icon("gear"),
               style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
             )
-          ),
-          menuItem(
-            "Session Notes",
-            icon = icon(lib = "glyphicon", "glyphicon glyphicon-pencil"),
-            tabName = "tab_notes",
-            textAreaInput(
-              "session_notes", "Session notes",
-              placeholder = "Write session notes here", width = "100%",
-              height = "150px", resize = "vertical",
-              value = session_data$session_notes
-            )
           )
+          # menuItem(
+          #   "Session Notes",
+          #   icon = icon(lib = "glyphicon", "glyphicon glyphicon-pencil"),
+          #   tabName = "tab_notes",
+          #   textAreaInput(
+          #     "session_notes", "Session notes",
+          #     placeholder = "Write session notes here", width = "100%",
+          #     height = "150px", resize = "vertical",
+          #     value = session_data$session_notes
+          #   )
+          # )
         ),
         actionButton(
           "end_session", "End validation session",
@@ -1384,6 +1485,26 @@ launch_validation_app <- function(
                 output = "Wave"
               )
             }
+            if (input$pitch_shift < 1) {
+              res@samp.rate <- res@samp.rate / pitch_shift
+            }
+            if (isTRUE(input$visible_bp)) {
+              res <- seewave::fir(
+                res,
+                f = res@samp.rate,
+                from = (input$zoom_freq[1] / pitch_shift) * 1000,
+                to = (input$zoom_freq[2] / pitch_shift) * 1000,
+                wl = input$wl, output = "Wave"
+              )
+            }
+            if (isTRUE(input$play_norm)) {
+              res <- normalize(
+                object = res,
+                unit = as.character(res@bit),
+                pcm <- TRUE
+              )
+            }
+
             seewave::savewav(res, f = res@samp.rate, filename = temp_file)
             removeUI(selector = "#template_player_selector")
             insertUI(
@@ -1464,12 +1585,12 @@ launch_validation_app <- function(
           input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
         )
         temp_rec <- rec_template()
-        monitoraSom::fast_spectro(
-          # efficient_spectro(
+        fast_spectro(
           rec = temp_rec, f = df_template()$sample_rate, wl = input$wl,
           ovlp = input$ovlp, flim = c(input$zoom_freq[1], input$zoom_freq[2]),
           dyn_range = c(input$dyn_range[1], input$dyn_range[2]),
-          fastdisp = TRUE, color_scale = input$color_scale
+          color_scale = input$color_scale,
+          pitch_shift = input$pitch_shift
         ) +
           annotate(
             "label",
@@ -1542,6 +1663,23 @@ launch_validation_app <- function(
             pattern = "detection_", tmpdir = session_data$temp_path, fileext = ".wav"
           ) %>%
             gsub("\\\\", "/", .)
+          if (input$pitch_shift < 1) {
+            res@samp.rate <- res@samp.rate / pitch_shift
+          }
+          if (isTRUE(input$visible_bp)) {
+            res <- seewave::fir(
+              res,
+              f = res@samp.rate,
+              from = (input$zoom_freq[1] / pitch_shift) * 1000,
+              to = (input$zoom_freq[2] / pitch_shift) * 1000,
+              wl = input$wl, output = "Wave"
+            )
+          }
+          if (isTRUE(input$play_norm)) {
+            res <- normalize(
+              object = res, unit = as.character(res@bit), pcm = TRUE #
+            )
+          }
           seewave::savewav(res, f = res@samp.rate, filename = temp_file)
           removeUI(selector = "#detection_player_selector")
           insertUI(
@@ -1569,14 +1707,13 @@ launch_validation_app <- function(
         box_color <- ifelse(
           input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
         )
-
         # efficient_spectro(
-        monitoraSom::fast_spectro(
+        fast_spectro(
           rec = rec_detection(), f = det_i()$detection_sample_rate,
-          wl = input$wl, ovlp = input$ovlp, fastdisp = TRUE,
+          wl = input$wl, ovlp = input$ovlp,
           flim = c(input$zoom_freq[1], input$zoom_freq[2]),
           dyn_range = c(input$dyn_range[1], input$dyn_range[2]),
-          color_scale = input$color_scale
+          color_scale = input$color_scale, pitch_shift = input$pitch_shift
         ) +
           annotate(
             "label",
@@ -1680,13 +1817,13 @@ launch_validation_app <- function(
 
       spectro_soundscape <- reactive({
         if (input$show_soundscape == TRUE) {
-          monitoraSom::fast_spectro(
-            # efficient_spectro(
+          fast_spectro(
             rec = rec_soundscape(), f = df_soundscape()$sample_rate,
             wl = input$wl, ovlp = input$ovlp,
             flim = c(input$zoom_freq[1], input$zoom_freq[2]),
             dyn_range = c(input$dyn_range[1], input$dyn_range[2]),
-            fastdisp = TRUE, color_scale = input$color_scale
+            color_scale = input$color_scale,
+            pitch_shift = input$pitch_shift
           )
         } else {
           return()
@@ -1770,15 +1907,54 @@ launch_validation_app <- function(
 
       # Template player (not HTML)
       observeEvent(input$play_template, {
-        req(df_template())
-        tuneR::play(object = readWave(df_template()$template_path))
+        req(rec_template())
+        res <- rec_template()
+        pitch_shift <- abs(input$pitch_shift)
+        if (input$pitch_shift < 1) {
+          res@samp.rate <- res@samp.rate / pitch_shift
+        }
+        if (isTRUE(input$visible_bp)) { # ! Quebra quando filtra
+          res <- seewave::fir(
+            res,
+            f = res@samp.rate,
+            from = (input$zoom_freq[1] / pitch_shift) * 1000,
+            to = (input$zoom_freq[2] / pitch_shift) * 1000,
+            wl = input$wl, output = "Wave"
+          )
+        }
+        if (isTRUE(input$play_norm)) {
+          res <- tuneR::normalize(
+            object = res, unit = as.character(res@bit), pcm = TRUE
+          )
+        }
+        tuneR::play(object = res)
       })
+
       observeEvent(input$hotkeys, {
         req(
-          df_template(), input$hotkeys == "1",
+          rec_template(), input$hotkeys == "1",
           input$wav_player_type %in% c("R session", "External player")
         )
-        tuneR::play(object = readWave(df_template()$template_path))
+        res <- rec_template()
+        pitch_shift <- abs(input$pitch_shift)
+        if (input$pitch_shift < 1) {
+          res@samp.rate <- res@samp.rate / pitch_shift
+        }
+        if (isTRUE(input$visible_bp)) { # ! Quebra quando filtra
+          res <- seewave::fir(
+            res,
+            f = res@samp.rate,
+            from = (input$zoom_freq[1] / pitch_shift) * 1000,
+            to = (input$zoom_freq[2] / pitch_shift) * 1000,
+            wl = input$wl, output = "Wave"
+          )
+        }
+        if (isTRUE(input$play_norm)) {
+          res <- normalize(
+            object = res, unit = as.character(res@bit), pcm = TRUE #
+          )
+        }
+        tuneR::play(object = res)
       })
 
       # Soundscape player (not HTML)
@@ -1793,7 +1969,26 @@ launch_validation_app <- function(
       # Detection player (not HTML)
       observeEvent(input$play_detec, {
         req(rec_detection())
-        tuneR::play(object = rec_detection())
+        res <- rec_detection()
+        pitch_shift <- abs(input$pitch_shift)
+        if (input$pitch_shift < 1) {
+          res@samp.rate <- res@samp.rate / pitch_shift
+        }
+        if (isTRUE(input$visible_bp)) {
+          res <- seewave::fir(
+            res,
+            f = res@samp.rate,
+            from = (input$zoom_freq[1] / pitch_shift) * 1000,
+            to = (input$zoom_freq[2] / pitch_shift) * 1000,
+            wl = input$wl, output = "Wave"
+          )
+        }
+        if (isTRUE(input$play_norm)) {
+          res <- normalize(
+            object = res, unit = as.character(res@bit), pcm = TRUE #
+          )
+        }
+        tuneR::play(object = res)
       })
 
       observeEvent(input$hotkeys, {
@@ -1801,7 +1996,26 @@ launch_validation_app <- function(
           rec_detection(), input$hotkeys == "2",
           input$wav_player_type %in% c("R session", "External player")
         )
-        tuneR::play(object = rec_detection())
+        res <- rec_detection()
+        pitch_shift <- abs(input$pitch_shift)
+        if (input$pitch_shift < 1) {
+          res@samp.rate <- res@samp.rate / pitch_shift
+        }
+        if (isTRUE(input$visible_bp)) {
+          res <- seewave::fir(
+            res,
+            f = res@samp.rate,
+            from = (input$zoom_freq[1] / pitch_shift) * 1000,
+            to = (input$zoom_freq[2] / pitch_shift) * 1000,
+            wl = input$wl, output = "Wave"
+          )
+        }
+        if (isTRUE(input$play_norm)) {
+          res <- normalize(
+            object = res, unit = as.character(res@bit), pcm = TRUE #
+          )
+        }
+        tuneR::play(object = res)
       })
 
       validation_input <- reactiveVal(NULL)
@@ -2353,51 +2567,51 @@ launch_validation_app <- function(
       })
 
       # Observe the presets path to update the list of available presets
-      # todo Modificar o prefixo dos presets para "validation_preset_"
-      observeEvent(input$preset_path, {
-        res_list <- list.files(
-          path = input$preset_path, pattern = "^validation_preset_.*\\.rds$"
-        ) %>%
-          str_remove("validation_preset_") %>%
-          str_remove(".rds")
-        if (!is.null(res_list)) {
-          updateSelectInput(
-            session, "available_presets",
-            choices = c("Export new preset file...", res_list) #
-          )
-        }
-      })
+      # # todo Modificar o prefixo dos presets para "validation_preset_"
+      # observeEvent(input$preset_path, {
+      #   res_list <- list.files(
+      #     path = input$preset_path, pattern = "^validation_preset_.*\\.rds$"
+      #   ) %>%
+      #     str_remove("validation_preset_") %>%
+      #     str_remove(".rds")
+      #   if (!is.null(res_list)) {
+      #     updateSelectInput(
+      #       session, "available_presets",
+      #       choices = c("Export new preset file...", res_list) #
+      #     )
+      #   }
+      # })
 
-      # Whatch and store the settings of the active session
-      session_settings <- reactiveVal(NULL)
-      observe({
-        res <- list(
-          validation_user = input$validation_user,
-          templates_path = input$templates_path,
-          soundscapes_path = input$soundscapes_path,
-          input_path = input$input_path,
-          output_path = input$output_path,
-          wav_player_path = input$wav_player_path,
-          wav_player_type = input$wav_player_type,
-          val_subset = input$val_subset,
-          min_score = as.numeric(input$min_score),
-          time_pads = as.numeric(input$time_pads),
-          ovlp = as.numeric(input$ovlp),
-          wl = as.numeric(input$wl),
-          dyn_range = as.numeric(input$dyn_range),
-          color_scale = input$color_scale,
-          zoom_freq = as.numeric(input$zoom_freq),
-          nav_shuffle = input$nav_shuffle,
-          seed = as.numeric(input$seed),
-          auto_next = input$auto_next,
-          nav_autosave = input$nav_autosave,
-          overwrite = input$overwrite,
-          session_notes = input$session_notes,
-          wav_cuts_path = input$wav_cuts_path,
-          spec_path = input$spec_path, diag_tab_path = input$diag_tab_path #
-        )
-        session_settings(res)
-      })
+      # # Whatch and store the settings of the active session
+      # session_settings <- reactiveVal(NULL)
+      # observe({
+      #   res <- list(
+      #     validation_user = input$validation_user,
+      #     templates_path = input$templates_path,
+      #     soundscapes_path = input$soundscapes_path,
+      #     input_path = input$input_path,
+      #     output_path = input$output_path,
+      #     wav_player_path = input$wav_player_path,
+      #     wav_player_type = input$wav_player_type,
+      #     val_subset = input$val_subset,
+      #     min_score = as.numeric(input$min_score),
+      #     time_pads = as.numeric(input$time_pads),
+      #     ovlp = as.numeric(input$ovlp),
+      #     wl = as.numeric(input$wl),
+      #     dyn_range = as.numeric(input$dyn_range),
+      #     color_scale = input$color_scale,
+      #     zoom_freq = as.numeric(input$zoom_freq),
+      #     nav_shuffle = input$nav_shuffle,
+      #     seed = as.numeric(input$seed),
+      #     auto_next = input$auto_next,
+      #     nav_autosave = input$nav_autosave,
+      #     overwrite = input$overwrite,
+      #     session_notes = input$session_notes,
+      #     wav_cuts_path = input$wav_cuts_path,
+      #     spec_path = input$spec_path, diag_tab_path = input$diag_tab_path #
+      #   )
+      #   session_settings(res)
+      # })
 
       # # teste_val <- reactiveVal(NULL)
       # output$checagem1 <- renderPrint({
@@ -2409,164 +2623,164 @@ launch_validation_app <- function(
       #   glimpse(readRDS("app_presets/validation_preset_Salobo_validation.rds"))
       # })
 
-      # Export current session settings as a rds file
-      observeEvent(input$export_preset, {
-        req(
-          session_settings(), input$preset_path, input$available_presets
-        )
-        if (
-          all(c(
-            nchar(input$validation_user) != 0,
-            dir.exists(c(input$preset_path, input$templates_path, input$soundscapes_path)),
-            file.exists(c(input$input_path))
-          ))
-        ) {
-          preset_file <- file.path(
-            input$preset_path,
-            paste0("validation_preset_", input$available_presets, ".rds")
-          )
-          if (file.exists(preset_file)) {
-            saved_preset <- readRDS(preset_file)
-            if (identical(saved_preset, session_settings())) {
-              shinyalert(
-                title = "Nothing to be done",
-                text = tagList(h3("No changes were made in the current preset")),
-                closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
-                type = "warning", animation = TRUE, showConfirmButton = FALSE,
-                showCancelButton = FALSE
-              )
-            } else {
-              what_changed <- rbind(saved_preset, session_settings()) %>%
-                as.data.frame() %>%
-                setNames(
-                  list(
-                    "user name", "path to templates", "path to soundscapes",
-                    "path to input table", "path to output table",
-                    "wave player type", "wave player path",
-                    "validation outcome subset", "minimum detection score",
-                    "time pad duration", "overlap", "window length",
-                    "dynamic range", "color scale", "visibile frequency band",
-                    "shuffle navigation", "random seed",
-                    "autonavigate", "autosave", "overwrite",
-                    "session notes", "path to export wav cuts",
-                    "path to export spectrograms",
-                    "path to export diagnostics table"
-                  )
-                ) %>%
-                select_if(function(col) length(unique(col)) > 1) %>%
-                colnames() %>%
-                paste(collapse = "; ")
+      # # Export current session settings as a rds file
+      # observeEvent(input$export_preset, {
+      #   req(
+      #     session_settings(), input$preset_path, input$available_presets
+      #   )
+      #   if (
+      #     all(c(
+      #       nchar(input$validation_user) != 0,
+      #       dir.exists(c(input$preset_path, input$templates_path, input$soundscapes_path)),
+      #       file.exists(c(input$input_path))
+      #     ))
+      #   ) {
+      #     preset_file <- file.path(
+      #       input$preset_path,
+      #       paste0("validation_preset_", input$available_presets, ".rds")
+      #     )
+      #     if (file.exists(preset_file)) {
+      #       saved_preset <- readRDS(preset_file)
+      #       if (identical(saved_preset, session_settings())) {
+      #         shinyalert(
+      #           title = "Nothing to be done",
+      #           text = tagList(h3("No changes were made in the current preset")),
+      #           closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
+      #           type = "warning", animation = TRUE, showConfirmButton = FALSE,
+      #           showCancelButton = FALSE
+      #         )
+      #       } else {
+      #         what_changed <- rbind(saved_preset, session_settings()) %>%
+      #           as.data.frame() %>%
+      #           setNames(
+      #             list(
+      #               "user name", "path to templates", "path to soundscapes",
+      #               "path to input table", "path to output table",
+      #               "wave player type", "wave player path",
+      #               "validation outcome subset", "minimum detection score",
+      #               "time pad duration", "overlap", "window length",
+      #               "dynamic range", "color scale", "visibile frequency band",
+      #               "shuffle navigation", "random seed",
+      #               "autonavigate", "autosave", "overwrite",
+      #               "session notes", "path to export wav cuts",
+      #               "path to export spectrograms",
+      #               "path to export diagnostics table"
+      #             )
+      #           ) %>%
+      #           select_if(function(col) length(unique(col)) > 1) %>%
+      #           colnames() %>%
+      #           paste(collapse = "; ")
 
-              shinyalert(
-                title = "Changes detected in preset",
-                text = tagList(
-                  h3("There are differences between settings in the current session and in the preset file:"),
-                  h3(what_changed),
-                  h3("Exporting will overwrite the existing preset file. Provide a new name below if if you wish to create a new preset instead:"),
-                  textInput(
-                    "new_preset_name",
-                    label = NULL,
-                    value = input$available_presets, placeholder = TRUE
-                  ),
-                  actionButton("confirm_export_preset", label = "Confirm & Export")
-                ),
-                closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
-                type = "warning", animation = TRUE, showConfirmButton = FALSE,
-                showCancelButton = TRUE
-              )
-            }
-          } else if (input$available_presets == "Export new preset file...") {
-            new_name <- paste0(
-              stringr::str_remove(input$validation_user, ","), "_",
-              format(Sys.time(), "%Y-%m-%d_%H:%M:%S")
-            )
-            shinyalert(
-              title = "Creating a new preset file",
-              text = tagList(
-                h3("Provide a name in the box below:"),
-                textInput("new_preset_name", label = NULL, value = new_name, placeholder = TRUE),
-                h4("(*) avoid commas"),
-                actionButton("confirm_export_preset", label = "Confirm & Export")
-              ),
-              closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
-              type = "warning", animation = TRUE, showConfirmButton = FALSE,
-              showCancelButton = FALSE
-            )
-          }
-        } else {
-          shinyalert(
-            title = "There are missing information in the User setup",
-            text = tagList(
-              h3("Complete the missing inputs before exporting a preset"),
-            ),
-            closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
-            type = "warning", animation = TRUE, showConfirmButton = FALSE,
-            showCancelButton = FALSE
-          )
-        }
-      })
+      #         shinyalert(
+      #           title = "Changes detected in preset",
+      #           text = tagList(
+      #             h3("There are differences between settings in the current session and in the preset file:"),
+      #             h3(what_changed),
+      #             h3("Exporting will overwrite the existing preset file. Provide a new name below if if you wish to create a new preset instead:"),
+      #             textInput(
+      #               "new_preset_name",
+      #               label = NULL,
+      #               value = input$available_presets, placeholder = TRUE
+      #             ),
+      #             actionButton("confirm_export_preset", label = "Confirm & Export")
+      #           ),
+      #           closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
+      #           type = "warning", animation = TRUE, showConfirmButton = FALSE,
+      #           showCancelButton = TRUE
+      #         )
+      #       }
+      #     } else if (input$available_presets == "Export new preset file...") {
+      #       new_name <- paste0(
+      #         stringr::str_remove(input$validation_user, ","), "_",
+      #         format(Sys.time(), "%Y-%m-%d_%H:%M:%S")
+      #       )
+      #       shinyalert(
+      #         title = "Creating a new preset file",
+      #         text = tagList(
+      #           h3("Provide a name in the box below:"),
+      #           textInput("new_preset_name", label = NULL, value = new_name, placeholder = TRUE),
+      #           h4("(*) avoid commas"),
+      #           actionButton("confirm_export_preset", label = "Confirm & Export")
+      #         ),
+      #         closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
+      #         type = "warning", animation = TRUE, showConfirmButton = FALSE,
+      #         showCancelButton = FALSE
+      #       )
+      #     }
+      #   } else {
+      #     shinyalert(
+      #       title = "There are missing information in the User setup",
+      #       text = tagList(
+      #         h3("Complete the missing inputs before exporting a preset"),
+      #       ),
+      #       closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
+      #       type = "warning", animation = TRUE, showConfirmButton = FALSE,
+      #       showCancelButton = FALSE
+      #     )
+      #   }
+      # })
 
-      observeEvent(input$confirm_export_preset, {
-        req(session_settings(), input$preset_path, input$new_preset_name)
-        saveRDS(
-          session_settings(),
-          file.path(
-            input$preset_path, paste0("preset_", input$new_preset_name, ".rds")
-          )
-        )
-        res_list <- list.files(
-          path = input$preset_path, pattern = "^preset_.*\\.rds$"
-        ) %>%
-          str_remove("preset_") %>%
-          str_remove(".rds$")
-        if (!is.null(res_list)) {
-          updateSelectInput(
-            session, "available_presets",
-            choices = c("Export new preset file...", res_list), #
-            selected = input$new_preset_name
-          )
-        }
-        showNotification("Preset file successfully exported")
-      })
+      # observeEvent(input$confirm_export_preset, {
+      #   req(session_settings(), input$preset_path, input$new_preset_name)
+      #   saveRDS(
+      #     session_settings(),
+      #     file.path(
+      #       input$preset_path, paste0("preset_", input$new_preset_name, ".rds")
+      #     )
+      #   )
+      #   res_list <- list.files(
+      #     path = input$preset_path, pattern = "^preset_.*\\.rds$"
+      #   ) %>%
+      #     str_remove("preset_") %>%
+      #     str_remove(".rds$")
+      #   if (!is.null(res_list)) {
+      #     updateSelectInput(
+      #       session, "available_presets",
+      #       choices = c("Export new preset file...", res_list), #
+      #       selected = input$new_preset_name
+      #     )
+      #   }
+      #   showNotification("Preset file successfully exported")
+      # })
 
-      # Import the settins of the preset files to the active session
-      observeEvent(input$import_preset, {
-        req(input$available_presets)
-        preset_file <- file.path(
-          input$preset_path,
-          paste0("preset_", input$available_presets, ".rds")
-        )
+      # # Import the settins of the preset files to the active session
+      # observeEvent(input$import_preset, {
+      #   req(input$available_presets)
+      #   preset_file <- file.path(
+      #     input$preset_path,
+      #     paste0("preset_", input$available_presets, ".rds")
+      #   )
 
-        if (file.exists(preset_file)) {
-          res <- readRDS(preset_file)
-          updateTextInput(session, inputId = "validation_user", value = res$validation_user)
-          updateTextAreaInput(session, inputId = "templates_path", value = res$templates_path)
-          updateTextAreaInput(session, inputId = "soundscapes_path", value = res$soundscapes_path)
-          updateTextAreaInput(session, inputId = "wav_player_path", value = res$wav_player_path)
-          updateRadioButtons(session, inputId = "wav_player_type", selected = res$wav_player_type)
-          updateTextAreaInput(session, inputId = "input_path", value = res$input_path)
-          updateTextAreaInput(session, inputId = "output_path", value = res$output_path)
-          updateSelectizeInput(session, inputId = "val_subset", selected = res$val_subset)
-          updateSliderInput(session, inputId = "min_score", value = res$cut)
-          updateSliderInput(session, inputId = "time_pads", value = res$time_pads)
-          updateCheckboxInput(session, inputId = "auto_next", value = res$auto_next)
-          updateCheckboxInput(session, inputId = "nav_autosave", value = res$nav_autosave)
-          updateCheckboxInput(session, inputId = "overwrite", value = res$overwrite)
-          updateCheckboxInput(session, inputId = "nav_shuffle", value = res$nav_shuffle)
-          updateNumericInput(session, inputId = "seed", value = res$seed)
-          updateSliderInput(session, inputId = "ovlp", value = res$ovlp)
-          updateSliderTextInput(session, inputId = "wl", selected = res$wl)
-          updateSliderInput(session, inputId = "dyn_range", value = res$dyn_range)
-          updateSelectInput(session, inputId = "color_scale", selected = res$color_scale)
-          updateNoUiSliderInput(session, inputId = "zoom_freq", value = res$zoom_freq)
-          updateTextAreaInput(session, inputId = "session_notes", value = res$session_notes)
-          updateTextInput(session, inputId = "wav_cuts_path", value = res$wav_cuts_path)
-          updateTextInput(session, inputId = "spec_path", value = res$spec_path)
-          updateTextInput(session, inputId = "diag_tab_path", value = res$diag_tab_path)
-          session_settings(res)
-          showNotification("Preset file successfully imported")
-        }
-      })
+      #   if (file.exists(preset_file)) {
+      #     res <- readRDS(preset_file)
+      #     updateTextInput(session, inputId = "validation_user", value = res$validation_user)
+      #     updateTextAreaInput(session, inputId = "templates_path", value = res$templates_path)
+      #     updateTextAreaInput(session, inputId = "soundscapes_path", value = res$soundscapes_path)
+      #     updateTextAreaInput(session, inputId = "wav_player_path", value = res$wav_player_path)
+      #     updateRadioButtons(session, inputId = "wav_player_type", selected = res$wav_player_type)
+      #     updateTextAreaInput(session, inputId = "input_path", value = res$input_path)
+      #     updateTextAreaInput(session, inputId = "output_path", value = res$output_path)
+      #     updateSelectizeInput(session, inputId = "val_subset", selected = res$val_subset)
+      #     updateSliderInput(session, inputId = "min_score", value = res$cut)
+      #     updateSliderInput(session, inputId = "time_pads", value = res$time_pads)
+      #     updateCheckboxInput(session, inputId = "auto_next", value = res$auto_next)
+      #     updateCheckboxInput(session, inputId = "nav_autosave", value = res$nav_autosave)
+      #     updateCheckboxInput(session, inputId = "overwrite", value = res$overwrite)
+      #     updateCheckboxInput(session, inputId = "nav_shuffle", value = res$nav_shuffle)
+      #     updateNumericInput(session, inputId = "seed", value = res$seed)
+      #     updateSliderInput(session, inputId = "ovlp", value = res$ovlp)
+      #     updateSliderTextInput(session, inputId = "wl", selected = res$wl)
+      #     updateSliderInput(session, inputId = "dyn_range", value = res$dyn_range)
+      #     updateSelectInput(session, inputId = "color_scale", selected = res$color_scale)
+      #     updateNoUiSliderInput(session, inputId = "zoom_freq", value = res$zoom_freq)
+      #     updateTextAreaInput(session, inputId = "session_notes", value = res$session_notes)
+      #     updateTextInput(session, inputId = "wav_cuts_path", value = res$wav_cuts_path)
+      #     updateTextInput(session, inputId = "spec_path", value = res$spec_path)
+      #     updateTextInput(session, inputId = "diag_tab_path", value = res$diag_tab_path)
+      #     session_settings(res)
+      #     showNotification("Preset file successfully imported")
+      #   }
+      # })
 
       # Load path to export the wav file
       shinyDirChoose(
@@ -2686,8 +2900,6 @@ launch_validation_app <- function(
         showNotification("Detection spectrogram successfully exported")
       })
 
-
-
       # Trigger checks and confirm or cancel the end of the session
       observeEvent(input$end_session, {
         req(df_cut(), df_output())
@@ -2697,7 +2909,6 @@ launch_validation_app <- function(
         dfa <- df_cut() %>%
           dplyr::select(tidyr::contains("validation"))
         nrow_unsaved <- 0
-
 
         if (file.exists(input$output_path)) {
           dfb <- fread(file = input$output_path) %>%
@@ -2721,46 +2932,46 @@ launch_validation_app <- function(
           message_detecs <- paste0("There are no differences between the current session and the output '.csv' file.")
         }
 
-        preset_file <- file.path(
-          input$preset_path,
-          paste0("preset_", input$available_presets, ".rds")
-        )
-        showNotification(length(preset_file))
-        if (file.exists(preset_file)) {
-          saved_preset <- readRDS(preset_file)
-          what_changed <- rbind(saved_preset, session_settings()) %>%
-            as.data.frame() %>%
-            setNames(
-              list(
-                "user name", "path to templates", "path to soundscapes",
-                "path to input table", "path to output table", "wave player path",
-                "wave player type", "validation outcome subset", "minimum correlation value",
-                "time pad duration", "overlap", "window length",
-                "dynamic range", "color scale", "visibile frequency band",
-                "shuffle navigation", "random seed", "autonavigate", "autosave",
-                "overwrite", "session notes", "path to export wav cuts",
-                "path to export spectrograms", "path to export diagnostics table"
-              )
-            ) %>%
-            select_if(function(col) length(unique(col)) > 1) %>%
-            colnames() %>%
-            paste(collapse = "; ")
-        }
+        # preset_file <- file.path(
+        #   input$preset_path,
+        #   paste0("preset_", input$available_presets, ".rds")
+        # )
+        # showNotification(length(preset_file))
+        # if (file.exists(preset_file)) {
+        #   saved_preset <- readRDS(preset_file)
+        #   what_changed <- rbind(saved_preset, session_settings()) %>%
+        #     as.data.frame() %>%
+        #     setNames(
+        #       list(
+        #         "user name", "path to templates", "path to soundscapes",
+        #         "path to input table", "path to output table", "wave player path",
+        #         "wave player type", "validation outcome subset", "minimum correlation value",
+        #         "time pad duration", "overlap", "window length",
+        #         "dynamic range", "color scale", "visibile frequency band",
+        #         "shuffle navigation", "random seed", "autonavigate", "autosave",
+        #         "overwrite", "session notes", "path to export wav cuts",
+        #         "path to export spectrograms", "path to export diagnostics table"
+        #       )
+        #     ) %>%
+        #     select_if(function(col) length(unique(col)) > 1) %>%
+        #     colnames() %>%
+        #     paste(collapse = "; ")
+        # }
 
-        if (!identical(saved_preset, session_settings())) {
-          message_settings <- paste0(
-            "The following settings were updated: ", what_changed,
-            ". Consider update the preset or create a new one before leaving the session."
-          )
-        } else {
-          message_settings <- paste0("No setting changes detected.")
-        }
+        # if (!identical(saved_preset, session_settings())) {
+        #   message_settings <- paste0(
+        #     "The following settings were updated: ", what_changed,
+        #     ". Consider update the preset or create a new one before leaving the session."
+        #   )
+        # } else {
+        #   message_settings <- paste0("No setting changes detected.")
+        # }
 
         shinyalert(
           title = "Check out",
           text = tagList(
             h3(message_detecs),
-            h3(message_settings),
+            # h3(message_settings),
             actionButton("cancel_exit", "Cancel"),
             actionButton("confirm_exit", "End session"),
           ),
@@ -2785,21 +2996,21 @@ launch_validation_app <- function(
         placement = "right", trigger = "hover", options = pop_up_opt
       )
       # ! tooltips não funcionam em selectize widgets
-      shinyBS::addTooltip(session,
-        id = "available_presets",
-        title = "Select a preset or type a new name to create a new one (must contain the .rds extension)",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "import_preset",
-        title = "Apply stored settings to the current session",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "export_preset",
-        title = "Store the current session settings to a preset file. Existing files will be overwritten",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
+      # shinyBS::addTooltip(session,
+      #   id = "available_presets",
+      #   title = "Select a preset or type a new name to create a new one (must contain the .rds extension)",
+      #   placement = "right", trigger = "hover", options = pop_up_opt
+      # )
+      # shinyBS::addTooltip(session,
+      #   id = "import_preset",
+      #   title = "Apply stored settings to the current session",
+      #   placement = "right", trigger = "hover", options = pop_up_opt
+      # )
+      # shinyBS::addTooltip(session,
+      #   id = "export_preset",
+      #   title = "Store the current session settings to a preset file. Existing files will be overwritten",
+      #   placement = "right", trigger = "hover", options = pop_up_opt
+      # )
       shinyBS::addTooltip(session,
         id = "validation_user",
         title = "Recommended format: 'Rosa G. L. M. (avoid commas)",

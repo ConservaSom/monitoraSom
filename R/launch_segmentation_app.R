@@ -1518,9 +1518,7 @@ launch_segmentation_app <- function(
         }
         if (isTRUE(input$play_norm)) {
           rec_to_play <- normalize(
-            object = rec_to_play,
-            unit = as.character(rec_to_play@bit),
-            pcm <- TRUE
+            object = rec_to_play, unit = as.character(rec_to_play@bit), pcm = TRUE #
           )
         }
         tuneR::play(rec_to_play,player = "play")
@@ -1923,6 +1921,7 @@ launch_segmentation_app <- function(
       #   }
       # })
 
+      # todo update here
       observeEvent(input$default_pars, {
         req(rec_soundscape())
         updateSliderInput(session, inputId = "dyn_range", value = c(-60, 0))
