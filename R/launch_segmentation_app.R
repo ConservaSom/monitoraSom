@@ -68,7 +68,7 @@ launch_segmentation_app <- function(
   soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
   labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)", label_angle = 90,
   show_label = TRUE, dyn_range = c(0, 50), wl = 1024, ovlp = 0, color_scale = "inferno",
-  wav_player_type = "R session", wav_player_path = "play",
+  wav_player_type = "HTML player", wav_player_path = "play",
   visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
   nav_autosave = TRUE, pitch_shift = 1
   ) {
@@ -1308,11 +1308,36 @@ launch_segmentation_app <- function(
 
         # Unless the file exists, the reactive object remains empty
         if (file.exists(active_roi_table_path)) {
-          res <- as.data.frame(fread(file = active_roi_table_path))
-          res <- fread(file = active_roi_table_path) %>%
-            as.data.frame() %>%
-            fmutate(
-              roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S")
+          # res <- as.data.frame(fread(file = active_roi_table_path))
+          var_names <- c(
+            "soundscape_path", "soundscape_file", "roi_user", "roi_input_timestamp",
+            "roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
+            "roi_type", "roi_label_confidence", "roi_is_complete", "roi_comment",
+            "roi_wl", "roi_ovlp", "roi_sample_rate", "roi_pitch_shift"
+          )
+          res_raw <- fread(file = active_roi_table_path) %>%
+            as.data.frame()
+          missing_vars <- var_names[!var_names %in% names(res_raw)]
+          if (length(missing_vars) != 0) res_raw[missing_vars] <- NA
+          res <- res_raw %>%
+            transmute(
+              soundscape_path = soundscape_path,
+              soundscape_file = soundscape_file,
+              roi_user = roi_user,
+              roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S"),
+              roi_label = roi_label,
+              roi_start = roi_start,
+              roi_end = roi_end,
+              roi_min_freq = roi_min_freq,
+              roi_max_freq = roi_max_freq,
+              roi_type = roi_type,
+              roi_label_confidence = roi_label_confidence,
+              roi_is_complete = roi_is_complete,
+              roi_comment = roi_comment,
+              roi_wl = roi_wl,
+              roi_ovlp = roi_ovlp,
+              roi_sample_rate = roi_sample_rate,
+              roi_pitch_shift = roi_pitch_shift
             )
           roi_values(res)
         } else {
@@ -1717,20 +1742,20 @@ launch_segmentation_app <- function(
             rec_soundscape(),
             f = rec_soundscape()@samp.rate,
             ovlp = input$ovlp, wl = input$wl,
-            # flim = c(0, (rec_soundscape()@samp.rate / 2) - 1),
-            # tlim = c(0, duration_val()),
             dyn = input$dyn_range, pitch_shift = input$pitch_shift,
             color_scale = input$color_scale, ncolors = 124, norm = FALSE
           )
         spectro_soundscape_raw(res)
-
       })
 
       spectro_soundscape <- reactiveVal(NULL)
-      observe({
+
+      observeEvent(roi_values()$soundscape_file == input$soundscape_file, {
         req(
-          input$soundscape_file, rec_soundscape(), duration_val(),
-          roi_values(), spectro_soundscape_raw()
+          spectro_soundscape_raw(),
+          rec_soundscape(),
+          duration_val(),
+          roi_values()
         )
 
         zoom_freq <- input$zoom_freq
@@ -1739,26 +1764,6 @@ launch_segmentation_app <- function(
         }
         zoom_freq <- sort(zoom_freq)
         zoom_time <- input$zoom_time
-
-        rois_to_plot <- roi_values() |>
-          mutate(id = row_number()) |>
-          fsubset(
-            roi_start < zoom_time[2] & roi_end > zoom_time[1]
-          ) |>
-          fmutate(
-            roi_start = ifelse(
-              roi_start < zoom_time[1], zoom_time[1], roi_start
-            ),
-            roi_end = ifelse(
-              roi_end > zoom_time[2], zoom_time[2], roi_end
-            ),
-            roi_max_freq = ifelse(
-              roi_max_freq > zoom_freq[2], zoom_freq[2], roi_max_freq
-            ),
-            roi_min_freq = ifelse(
-              roi_min_freq < zoom_freq[1], zoom_freq[1], roi_min_freq
-            )
-          )
 
         selection_color <- ifelse(
           input$color_scale %in% c("greyscale 1", "greyscale 2"),
@@ -1781,7 +1786,28 @@ launch_segmentation_app <- function(
           labs(x = "Time (s)", y = "Frequency (kHz)") +
           theme(legend.position = "none")
 
-        if (nrow(rois_to_plot) > 0) {
+        if (nrow(roi_values()) > 0) {
+
+          rois_to_plot <- roi_values() |>
+            mutate(id = row_number()) |>
+            fsubset(
+              roi_start < zoom_time[2] & roi_end > zoom_time[1]
+            ) |>
+            fmutate(
+              roi_start = ifelse(
+                roi_start < zoom_time[1], zoom_time[1], roi_start
+              ),
+              roi_end = ifelse(
+                roi_end > zoom_time[2], zoom_time[2], roi_end
+              ),
+              roi_max_freq = ifelse(
+                roi_max_freq > zoom_freq[2], zoom_freq[2], roi_max_freq
+              ),
+              roi_min_freq = ifelse(
+                roi_min_freq < zoom_freq[1], zoom_freq[1], roi_min_freq
+              )
+            )
+
           spectro_plot <- spectro_plot +
             {
               if (input$show_label == TRUE) {
@@ -1833,10 +1859,10 @@ launch_segmentation_app <- function(
             roi_values(),
             editable = TRUE,
             colnames = c(
-              "soundscape_path", "soundscape_file", "user", "timestamp",
-              "label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
-              "type", "label_confidence", "is_complete", "comment",
-              "roi_wl", "roi_ovlp", "sample_rate", "pitch_shift"
+              "soundscape_path", "soundscape_file", "roi_user", "roi_input_timestamp",
+              "roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
+              "roi_type", "roi_label_confidence", "roi_is_complete", "roi_comment",
+              "roi_wl", "roi_ovlp", "roi_sample_rate", "roi_pitch_shift"
             ),
             options = list(
               pageLength = 50, info = FALSE, dom = "tpl",
@@ -1844,7 +1870,8 @@ launch_segmentation_app <- function(
                 list(
                   visible = FALSE,
                   targets = c(
-                    "soundscape_path", "soundscape_file", "roi_sample_rate"
+                    "soundscape_path", "soundscape_file", "roi_user",
+                    "roi_input_timestamp", "roi_sample_rate"
                   )
                 )
               )
@@ -1863,7 +1890,7 @@ launch_segmentation_app <- function(
         df[input$res_table_cell_edit$row, input$res_table_cell_edit$col] <-
           input$res_table_cell_edit$value
         roi_values(df)
-        if (input$nav_autosave == TRUE) { # todo - teste it
+        if (input$nav_autosave == TRUE) {
           data.table::fwrite(
             roi_values(), file.path(roi_tables_path_val(), input$roi_table_name),
             row.names = FALSE
@@ -1924,15 +1951,14 @@ launch_segmentation_app <- function(
       # todo update here
       observeEvent(input$default_pars, {
         req(rec_soundscape())
-        updateSliderInput(session, inputId = "dyn_range", value = c(-60, 0))
-        updateSliderTextInput(session, inputId = "wl", selected = 2048)
+        updateSliderInput(session, inputId = "dyn_range", value = c(0, 50))
+        updateSliderTextInput(session, inputId = "wl", selected = 1024)
         updateSliderInput(session, inputId = "ovlp", value = 0)
         updateSelectInput(session, inputId = "color_scale", selected = "inferno")
-        updateSliderInput(session, "zoom_freq", value = c(0, 10))
         updateSliderInput(session, inputId = "label_angle", value = 90)
         updateCheckboxInput(session, inputId = "show_label", value = TRUE)
         updateRadioButtons(session, inputId = "wav_player_type", selected = "R session")
-        updateNoUiSliderInput(session, inputId = "zoom_freq", value = c(0, 10))
+        updateNoUiSliderInput(session, inputId = "zoom_freq", value = c(0, 180))
         updateCheckboxInput(session, inputId = "nav_autosave", value = TRUE)
         updateSliderTextInput(session, inputId = "pitch_shift", selected = 1)
       })
@@ -2164,41 +2190,42 @@ launch_segmentation_app <- function(
         } else {
           message_rois <- paste0("ROIs in the current soundscape are not stored in a file. Consider exporting a new one before leaving the session.")
         }
-# # Check if there are settings to be saved on the preset file
-# preset_file <- file.path(
-#   input$preset_path,
-#   paste0("segmentation_preset_", input$available_presets, ".rds")
-# )
-# if (file.exists(preset_file)) {
-#   saved_preset <- readRDS(preset_file)
-#   message_settings <- "teste1"
-#   what_changed <- rbind(saved_preset, session_settings()) %>%
-#     as.data.frame() %>%
-#     setNames(
-#       list(
-#         "user name", "path to soundscapes", "path to ROI tables",
-#         "path to audio cuts and spectrograms", "fast display spectrogram",
-#         "roi label angle", "show roi rabels", "spectrogram dynamic range",
-#         "spectrogram window length", "spectrogram overlap",
-#         "spectrogram color scale", "wave player type", "wave player path",
-#         "session notes", "visible frequency band", "autosave while navigating",
-#         "available labels for ROIs (species lists)", "pitch shift for ultrasound recordings"
-#       )
-#     ) %>%
-#     select_if(function(col) length(unique(col)) > 1) %>%
-#     colnames() %>%
-#     paste(collapse = "; ")
-#   if (!identical(saved_preset, session_settings())) {
-#     message_settings <- paste0(
-#       "The following settings were updated: ", what_changed,
-#       ". Consider update the preset or create a new one before leaving the session."
-#     )
-#   } else {
-#     message_settings <- paste0("No setting changes detected.")
-#   }
-# } else {
-#   message_settings <- paste0("No preset file was found. Consider creating a new one before leaving the session.")
-# }
+
+        # # Check if there are settings to be saved on the preset file
+        # preset_file <- file.path(
+        #   input$preset_path,
+        #   paste0("segmentation_preset_", input$available_presets, ".rds")
+        # )
+        # if (file.exists(preset_file)) {
+        #   saved_preset <- readRDS(preset_file)
+        #   message_settings <- "teste1"
+        #   what_changed <- rbind(saved_preset, session_settings()) %>%
+        #     as.data.frame() %>%
+        #     setNames(
+        #       list(
+        #         "user name", "path to soundscapes", "path to ROI tables",
+        #         "path to audio cuts and spectrograms", "fast display spectrogram",
+        #         "roi label angle", "show roi rabels", "spectrogram dynamic range",
+        #         "spectrogram window length", "spectrogram overlap",
+        #         "spectrogram color scale", "wave player type", "wave player path",
+        #         "session notes", "visible frequency band", "autosave while navigating",
+        #         "available labels for ROIs (species lists)", "pitch shift for ultrasound recordings"
+        #       )
+        #     ) %>%
+        #     select_if(function(col) length(unique(col)) > 1) %>%
+        #     colnames() %>%
+        #     paste(collapse = "; ")
+        #   if (!identical(saved_preset, session_settings())) {
+        #     message_settings <- paste0(
+        #       "The following settings were updated: ", what_changed,
+        #       ". Consider update the preset or create a new one before leaving the session."
+        #     )
+        #   } else {
+        #     message_settings <- paste0("No setting changes detected.")
+        #   }
+        # } else {
+        #   message_settings <- paste0("No preset file was found. Consider creating a new one before leaving the session.")
+        # }
 
         shinyalert(
           title = "Check out",

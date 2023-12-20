@@ -56,7 +56,7 @@ launch_validation_app <- function(
     spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
     val_subset = c("NA", "TP", "FP", "UN"), min_score = 0,
-    time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(-50, 0),
+    time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(0, 50),
     color_scale = "inferno", zoom_freq = c(0, 10),
     nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
     overwrite = FALSE, pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
@@ -524,17 +524,6 @@ launch_validation_app <- function(
             "User setup",
             tabName = "user_setup_tab", startExpanded = TRUE,
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-user"),
-            # todo Mudar de input path para "user_setup"
-            actionButton("input_path_confirm", "Confirm Paths",
-              icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
-              style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
-            ),
-            shinyBS::bsTooltip("input_path_confirm",
-              title = "<b>Part 1 of 2 required to start the session</b>. All inputs marked with (*) are required for this step",
-              placement = "right", trigger = "hover",
-              options = list(delay = list(show = 1000, hide = 0))
-            ),
-            tags$style(".tooltip {width: 300px;}"),
             splitLayout(
               cellWidths = c("75%", "25%"),
               # path to the soundscape directory
@@ -630,17 +619,24 @@ launch_validation_app <- function(
                 icon = icon(lib = "glyphicon", "glyphicon glyphicon-export")
               ),
               tags$style(type = "text/css", "#output_path_load { margin-top: 40px;}")
-            )
+            ),
+                        # todo Mudar de input path para "user_setup"
+            actionButton("input_path_confirm", "Confirm Paths",
+              icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
+              style = "color: #000000; background-color: #33b733; border-color: #288d28; width: 360px;"
+            ),
+            shinyBS::bsTooltip("input_path_confirm",
+              title = "<b>Part 1 of 2 required to start the session</b>. All inputs marked with (*) are required for this step",
+              placement = "right", trigger = "hover",
+              options = list(delay = list(show = 1000, hide = 0))
+            ),
+            tags$style(".tooltip {width: 300px;}")
+
           ),
           menuItem(
             "Session Setup",
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
             tabName = "sect_setup_tab",
-            actionButton(
-              "confirm_session_setup", "Confirm session setup",
-              icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
-              style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
-            ),
             # todo Template name is not among validation presets. Is is a must?
             selectInput(
               "template_name", "Template file (*)",
@@ -658,6 +654,11 @@ launch_validation_app <- function(
               "min_score", "Minimum correlation (*)",
               width = "100%", min = 0, max = 1, step = 0.01,
               value = session_data$min_score
+            ),
+            actionButton(
+              "confirm_session_setup", "Confirm validation setup",
+              icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
+              style = "color: #000000; background-color: #33b733; border-color: #288d28; width: 360px;"
             )
           ),
           menuItem(
@@ -675,7 +676,7 @@ launch_validation_app <- function(
             ),
             sliderTextInput(
               "wl", "Window length:",
-              choices = c(128, 256, 512, 1024, 2048, 4096),
+              choices = c(128, 256, 512, 1024, 2048, 4096, 8192, 16384),
               grid = TRUE, width = "100%",
               selected = session_data$wl
             ),
@@ -701,7 +702,7 @@ launch_validation_app <- function(
               value = session_data$visible_bp, width = "400px"
             ),
             checkboxInput(
-              "play_norm", "Normalize playable audio",
+              "play_norm", "Normalize detection audio",
               value = session_data$play_norm, width = "400px"
             ),
             radioButtons(
@@ -1069,11 +1070,6 @@ launch_validation_app <- function(
                 style = "color: #fff; background-color: #33b76e; border-color: #5da42e;"
               )
             )
-          ),
-          tabPanel(
-            "User Manual",
-            # todo inserir manual aqui
-            actionButton("teste", "teste")
           )
         )
       ),
@@ -1157,7 +1153,6 @@ launch_validation_app <- function(
           )
         }
       })
-
 
       # Open the server side for choosing the csv in which validations will be stored
       shinyFileChoose(
@@ -1279,6 +1274,18 @@ launch_validation_app <- function(
         df_output(res)
 
         showNotification("Paths updated successfully")
+      })
+
+      # observe and update cut levels for avoiding returning empty detection tables
+      observeEvent(input$template_name, {
+        req(df_full$data)
+        df_ref <- df_full$data[
+          which(df_full$data$template_name == input$template_name),
+        ]
+        updateSliderInput(
+          session, "min_score",
+          max = round(head(tail(sort(df_ref$peak_score), 2), 1), 2)
+        )
       })
 
       # Alternative version of df_detections_full containing only the
@@ -1497,13 +1504,6 @@ launch_validation_app <- function(
                 wl = input$wl, output = "Wave"
               )
             }
-            if (isTRUE(input$play_norm)) {
-              res <- normalize(
-                object = res,
-                unit = as.character(res@bit),
-                pcm <- TRUE
-              )
-            }
 
             seewave::savewav(res, f = res@samp.rate, filename = temp_file)
             removeUI(selector = "#template_player_selector")
@@ -1536,13 +1536,13 @@ launch_validation_app <- function(
         updateSliderInput(
           session,
           inputId = "ovlp", label = "Overlap (%):",
-          value = df_template()$template_ovlp, step = 10
+          value = df_template()$detection_ovlp, step = 10
         )
         # update spectroram window length
         updateSliderTextInput(
           session,
           inputId = "wl", label = "Window length:",
-          selected <- df_template()$template_wl
+          selected <- df_template()$detection_wl
         )
         # update spectrogram minimum frequency
         min_freq <- (df_template()$template_min_freq - 1) %>%
@@ -1555,18 +1555,22 @@ launch_validation_app <- function(
         # update the frequency band
         updateSliderInput(
           session, "zoom_freq", "Frequency band (kHz):",
-          min = 0, max = (min(df_cut()$detec_sample_rate) / 2000),
-          step = 1, value = c(template_min_freq, template_max_freq)
+          min = 0, max = (min(df_cut()$detection_sample_rate) / 2000),
+          step = 1, value = c(min_freq, max_freq)
         )
       })
 
       observeEvent(input$default_pars, {
         req(det_i())
         # todo Update pad slider
-        updateSliderInput(session, inputId = "dyn_range", value = c(-60, 0))
+        updateSliderInput(session, inputId = "dyn_range", value = c(0, 50))
         updateSliderTextInput(session, inputId = "wl", selected = 2048)
         updateSliderInput(session, inputId = "ovlp", value = 0)
         updateSelectInput(session, inputId = "color_scale", selected = "inferno")
+        updateSliderInput(session, inputId = "time_pads", value = 1)
+        updateSliderTextInput(session, inputId = "pitch_shift", selected = 1)
+        updateCheckboxInput(session, inputId = "visible_bp", value = FALSE)
+        updateCheckboxInput(session, inputId = "play_norm", value = FALSE)
         updateSliderInput(
           session, "zoom_freq",
           min = 0, max = (det_i()$detection_sample_rate / 2000),
@@ -1675,10 +1679,8 @@ launch_validation_app <- function(
               wl = input$wl, output = "Wave"
             )
           }
-          if (isTRUE(input$play_norm)) {
-            res <- normalize(
-              object = res, unit = as.character(res@bit), pcm = TRUE #
-            )
+          if (input$play_norm == TRUE) {
+            res <- normalize(object = res, unit = as.character(res@bit), pcm = TRUE)
           }
           seewave::savewav(res, f = res@samp.rate, filename = temp_file)
           removeUI(selector = "#detection_player_selector")
@@ -1907,24 +1909,23 @@ launch_validation_app <- function(
 
       # Template player (not HTML)
       observeEvent(input$play_template, {
-        req(rec_template())
-        res <- rec_template()
+        req(df_template())
+        res <- readWave(df_template()$template_path)
         pitch_shift <- abs(input$pitch_shift)
         if (input$pitch_shift < 1) {
           res@samp.rate <- res@samp.rate / pitch_shift
         }
         if (isTRUE(input$visible_bp)) { # ! Quebra quando filtra
-          res <- seewave::fir(
-            res,
-            f = res@samp.rate,
-            from = (input$zoom_freq[1] / pitch_shift) * 1000,
-            to = (input$zoom_freq[2] / pitch_shift) * 1000,
-            wl = input$wl, output = "Wave"
-          )
-        }
-        if (isTRUE(input$play_norm)) {
-          res <- tuneR::normalize(
-            object = res, unit = as.character(res@bit), pcm = TRUE
+          # templates are normalized by default
+          res <- normalize(
+            object = seewave::fir(
+              res,
+              f = res@samp.rate,
+              from = (input$zoom_freq[1] / pitch_shift) * 1000,
+              to = (input$zoom_freq[2] / pitch_shift) * 1000,
+              wl = input$wl, output = "Wave"
+            ),
+            unit = as.character(res@bit), pcm = TRUE #
           )
         }
         tuneR::play(object = res)
@@ -1935,23 +1936,23 @@ launch_validation_app <- function(
           rec_template(), input$hotkeys == "1",
           input$wav_player_type %in% c("R session", "External player")
         )
-        res <- rec_template()
+        req(df_template())
+        res <- readWave(df_template()$template_path)
         pitch_shift <- abs(input$pitch_shift)
         if (input$pitch_shift < 1) {
           res@samp.rate <- res@samp.rate / pitch_shift
         }
         if (isTRUE(input$visible_bp)) { # ! Quebra quando filtra
-          res <- seewave::fir(
-            res,
-            f = res@samp.rate,
-            from = (input$zoom_freq[1] / pitch_shift) * 1000,
-            to = (input$zoom_freq[2] / pitch_shift) * 1000,
-            wl = input$wl, output = "Wave"
-          )
-        }
-        if (isTRUE(input$play_norm)) {
+          # templates are normalized by default
           res <- normalize(
-            object = res, unit = as.character(res@bit), pcm = TRUE #
+            object = seewave::fir(
+              res,
+              f = res@samp.rate,
+              from = (input$zoom_freq[1] / pitch_shift) * 1000,
+              to = (input$zoom_freq[2] / pitch_shift) * 1000,
+              wl = input$wl, output = "Wave"
+            ),
+            unit = as.character(res@bit), pcm = TRUE #
           )
         }
         tuneR::play(object = res)
