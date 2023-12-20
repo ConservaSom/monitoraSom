@@ -11,6 +11,7 @@ fast_spectro(
   tlim = NULL,
   ovlp = 50,
   wl = 1024,
+  norm = FALSE,
   dyn_range = c(-60, 0),
   color_scale = "inferno",
   n_colors = 124,

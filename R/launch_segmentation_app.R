@@ -1750,7 +1750,13 @@ launch_segmentation_app <- function(
 
       spectro_soundscape <- reactiveVal(NULL)
 
-      observeEvent(roi_values()$soundscape_file == input$soundscape_file, {
+      observeEvent(
+        list(
+          roi_values()$soundscape_file == input$soundscape_file,
+          input$zoom_freq, input$zoom_time, input$show_label, input$label_angle,
+          input$wl, input$ovlp, input$color_scale, input$res_table_rows_selected
+          ),
+        {
         req(
           spectro_soundscape_raw(),
           rec_soundscape(),

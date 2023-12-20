@@ -5,16 +5,16 @@
 \title{Launch validation app}
 \usage{
 launch_validation_app(
+  project_path = NULL,
   preset_path = NULL,
-  preset_id = NULL,
   validation_user,
   templates_path,
   soundscapes_path,
   input_path,
   output_path,
-  wav_cuts_path,
-  spec_path,
-  diag_tab_path,
+  spec_path = NULL,
+  wav_cuts_path = NULL,
+  diag_tab_path = NULL,
   wav_player_path = "play",
   wav_player_type = "HTML player",
   val_subset = c("NA", "TP", "FP", "UN"),
@@ -22,22 +22,22 @@ launch_validation_app(
   time_pads = 1,
   ovlp = 0,
   wl = 2048,
-  dyn_range = c(-60, 0),
+  dyn_range = c(0, 50),
   color_scale = "inferno",
-  zoom_freq = c(0, 4),
+  zoom_freq = c(0, 10),
   nav_shuffle = FALSE,
   seed = 123,
   auto_next = FALSE,
   nav_autosave = FALSE,
   overwrite = FALSE,
-  session_notes
+  pitch_shift = 1,
+  visible_bp = FALSE,
+  play_norm = FALSE
 )
 }
 \arguments{
 \item{preset_path}{Path from which presets can be imported and to which new
 presets can be exported.}
-
-\item{preset_id}{Name of the preset to be exported.}
 
 \item{validation_user}{User name.}
 
@@ -49,9 +49,9 @@ presets can be exported.}
 
 \item{output_path}{Path to the output file.}
 
-\item{wav_cuts_path}{Path to the folder containing the cut wave files.}
-
 \item{spec_path}{Path to the folder containing the spectrogram images.}
+
+\item{wav_cuts_path}{Path to the folder containing the cut wave files.}
 
 \item{diag_tab_path}{Path to the folder containing the diagnostic tables.}
 
