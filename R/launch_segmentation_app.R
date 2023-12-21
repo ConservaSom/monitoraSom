@@ -1750,13 +1750,7 @@ launch_segmentation_app <- function(
 
       spectro_soundscape <- reactiveVal(NULL)
 
-      observeEvent(
-        list(
-          roi_values()$soundscape_file == input$soundscape_file,
-          input$zoom_freq, input$zoom_time, input$show_label, input$label_angle,
-          input$wl, input$ovlp, input$color_scale, input$res_table_rows_selected
-          ),
-        {
+      observe({
         req(
           spectro_soundscape_raw(),
           rec_soundscape(),
@@ -1792,62 +1786,63 @@ launch_segmentation_app <- function(
           labs(x = "Time (s)", y = "Frequency (kHz)") +
           theme(legend.position = "none")
 
-        if (nrow(roi_values()) > 0) {
+        rois_to_plot <- roi_values() |>
+          mutate(id = row_number()) |>
+          fsubset(
+            roi_start < zoom_time[2] & roi_end > zoom_time[1]
+          ) |>
+          fmutate(
+            roi_start = ifelse(
+              roi_start < zoom_time[1], zoom_time[1], roi_start
+            ),
+            roi_end = ifelse(
+              roi_end > zoom_time[2], zoom_time[2], roi_end
+            ),
+            roi_max_freq = ifelse(
+              roi_max_freq > zoom_freq[2], zoom_freq[2], roi_max_freq
+            ),
+            roi_min_freq = ifelse(
+              roi_min_freq < zoom_freq[1], zoom_freq[1], roi_min_freq
+            )
+          )
 
-          rois_to_plot <- roi_values() |>
-            mutate(id = row_number()) |>
-            fsubset(
-              roi_start < zoom_time[2] & roi_end > zoom_time[1]
-            ) |>
-            fmutate(
-              roi_start = ifelse(
-                roi_start < zoom_time[1], zoom_time[1], roi_start
-              ),
-              roi_end = ifelse(
-                roi_end > zoom_time[2], zoom_time[2], roi_end
-              ),
-              roi_max_freq = ifelse(
-                roi_max_freq > zoom_freq[2], zoom_freq[2], roi_max_freq
-              ),
-              roi_min_freq = ifelse(
-                roi_min_freq < zoom_freq[1], zoom_freq[1], roi_min_freq
+        if(nrow(rois_to_plot) > 0) { # todo CONTINUAR AQUI
+          if (unique(rois_to_plot$soundscape_file) == input$soundscape_file) {
+            spectro_plot <- spectro_plot +
+              {
+                if (input$show_label == TRUE) {
+                  annotate(
+                    "text",
+                    alpha = 1, vjust = "inward", hjust = "inward",
+                    angle = input$label_angle, color = selection_color,
+                    x = rois_to_plot$roi_start, y = rois_to_plot$roi_max_freq,
+                    label = paste0("(", rois_to_plot$id, ") ", rois_to_plot$roi_label),
+                    na.rm = TRUE
+                  )
+                }
+              } +
+              {
+                if (!is.null(input$res_table_rows_selected)) {
+                  annotate(
+                    "rect",
+                    alpha = 0.2, linewidth = 0.5, linetype = "solid",
+                    fill = selection_color, color = selection_color,
+                    xmin = rois_to_plot$roi_start[input$res_table_rows_selected],
+                    xmax = rois_to_plot$roi_end[input$res_table_rows_selected],
+                    ymin = rois_to_plot$roi_min_freq[input$res_table_rows_selected],
+                    ymax = rois_to_plot$roi_max_freq[input$res_table_rows_selected]
+                  )
+                }
+              } +
+              annotate(
+                "rect",
+                alpha = 0.05, linewidth = 0.3, linetype = "dashed",
+                fill = selection_color, color = selection_color,
+                xmin = rois_to_plot$roi_start, xmax = rois_to_plot$roi_end,
+                ymin = rois_to_plot$roi_min_freq, ymax = rois_to_plot$roi_max_freq
               )
-            )
-
-          spectro_plot <- spectro_plot +
-            {
-              if (input$show_label == TRUE) {
-                annotate(
-                  "text",
-                  alpha = 1, vjust = "inward", hjust = "inward",
-                  angle = input$label_angle, color = selection_color,
-                  x = rois_to_plot$roi_start, y = rois_to_plot$roi_max_freq,
-                  label = paste0("(", rois_to_plot$id, ") ", rois_to_plot$roi_label),
-                  na.rm = TRUE
-                )
-              }
-            } +
-            {
-              if (!is.null(input$res_table_rows_selected)) {
-                annotate(
-                  "rect",
-                  alpha = 0.2, linewidth = 0.5, linetype = "solid",
-                  fill = selection_color, color = selection_color,
-                  xmin = rois_to_plot$roi_start[input$res_table_rows_selected],
-                  xmax = rois_to_plot$roi_end[input$res_table_rows_selected],
-                  ymin = rois_to_plot$roi_min_freq[input$res_table_rows_selected],
-                  ymax = rois_to_plot$roi_max_freq[input$res_table_rows_selected]
-                )
-              }
-            } +
-            annotate(
-              "rect",
-              alpha = 0.05, linewidth = 0.3, linetype = "dashed",
-              fill = selection_color, color = selection_color,
-              xmin = rois_to_plot$roi_start, xmax = rois_to_plot$roi_end,
-              ymin = rois_to_plot$roi_min_freq, ymax = rois_to_plot$roi_max_freq
-            )
-          spectro_soundscape(spectro_plot)
+            spectro_soundscape(spectro_plot)
+          }
         } else {
           spectro_soundscape(spectro_plot)
         }
