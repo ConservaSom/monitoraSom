@@ -35,7 +35,6 @@ Imports:
     ROSE,
     seewave,
     shiny,
-    shinyalert,
     shinyBS,
     shinydashboard,
     shinyFiles,

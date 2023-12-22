@@ -43,7 +43,7 @@
 #'
 #' @export
 #' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR
-#'   collapse DT shinyWidgets shinydashboard shinyFiles shinyalert
+#'   collapse DT shinyWidgets shinydashboard shinyFiles
 #'   keys shinyjs shinyBS cutpointr
 #' @importFrom caret downSample upSample
 #' @importFrom ROSE ROSE
@@ -87,7 +87,6 @@ launch_validation_app <- function(
   # require(keys)
   # require(shinyFiles)
   # require(shinydashboard)
-  # require(shinyalert)
   # require(shinyBS)
 
   options(dplyr.summarise.inform = FALSE)
@@ -757,7 +756,6 @@ launch_validation_app <- function(
 
         # Set up shinyjs
         useShinyjs(),
-        useShinyalert(force = TRUE),
 
         # Make keyboard shotcuts available
         useKeys(),
@@ -1190,29 +1188,25 @@ launch_validation_app <- function(
         )
 
         if (input$input_path == input$output_path) {
-          shinyalert(
-            title = "Input and output files are the same",
-            text = "There is risk of overwritting previsous validations. Make sure the Overwrite check is not enabled to protect your data.",
-            size = "s", closeOnEsc = TRUE, closeOnClickOutside = TRUE,
-            html = FALSE, type = "warning", showConfirmButton = TRUE,
-            showCancelButton = FALSE, confirmButtonText = "OK",
-            confirmButtonCol = "#AEDEF4", timer = 0, imageUrl = "",
-            animation = TRUE
+          showModal(
+            modalDialog(
+              title = "Input and output files are the same",
+              "There is risk of overwritting previsous validations. Make sure the Overwrite check is not enabled to protect your data.",
+              easyClose = TRUE,
+              footer = NULL
+            )
           )
         }
-
         if (input$input_path != input$output_path) {
-          shinyalert(
-            title = "Input and output files are different",
-            text = "Proceed if you wish to create a new output file. If the output file already exists, consider choosing another name or make a backup copy, as exporting new detections may silently overwrite it.",
-            size = "s", closeOnEsc = TRUE, closeOnClickOutside = TRUE,
-            html = FALSE, type = "warning", showConfirmButton = TRUE,
-            showCancelButton = FALSE, confirmButtonText = "OK",
-            confirmButtonCol = "#AEDEF4", timer = 0, imageUrl = "",
-            animation = TRUE
+          showModal(
+            modalDialog(
+              title = "Input and output files are different",
+              "Proceed if you wish to create a new output file. If the output file already exists, consider choosing another name or make a backup copy, as exporting new detections may silently overwrite it.",
+              easyClose = TRUE,
+              footer = NULL
+            )
           )
         }
-
         df_soundscapes <- data.frame(
           soundscape_path = list.files(
             input$soundscapes_path,
@@ -1356,14 +1350,13 @@ launch_validation_app <- function(
           if (is.integer(input$seed)) {
             set.seed(input$seed)
           } else {
-            shinyalert(
-              title = "Seed not defined!",
-              text = "A numeric seed is needed to ensure reproducibility when shuffling the sequence of detections to be validated. The input will be updated to the default value (123). Provide another value if necessary.",
-              size = "s", closeOnEsc = TRUE, closeOnClickOutside = TRUE,
-              html = FALSE, type = "warning", showConfirmButton = TRUE,
-              showCancelButton = FALSE, confirmButtonText = "OK",
-              confirmButtonCol = "#AEDEF4", timer = 0, imageUrl = "",
-              animation = TRUE
+            showModal(
+              modalDialog(
+                title = "Seed not defined!",
+                "A numeric seed is needed to ensure reproducibility when shuffling the sequence of detections to be validated. The input will be updated to the default value (123). Provide another value if necessary.",
+                easyClose = TRUE,
+                footer = NULL
+              )
             )
             updateNumericInput(session, "seed", value = 123)
             set.seed(123)
@@ -2119,13 +2112,12 @@ launch_validation_app <- function(
             df_output(rows_update(df_output(), res_A, by = "detection_id", unmatched = "ignore"))
             validation_input(NULL) # reset after value is passed on forward
           } else {
-            shinyalert(
-              title = "This detection was already validated by another user!",
-              text = "Overwritting existing validations can only be performed when the user of the current session is the same specified in the input dataset",
-              size = "s", closeOnEsc = TRUE, closeOnClickOutside = TRUE,
-              html = FALSE, type = "warning", showConfirmButton = TRUE,
-              showCancelButton = FALSE, confirmButtonText = "OK",
-              confirmButtonCol = "#AEDEF4", timer = 0, animation = TRUE
+            showModal(
+              modalDialog(
+                title = "This detection was already validated by another user!",
+                "Overwritting existing validations can only be performed when the user of the current session is the same specified in the input dataset",
+                easyClose = TRUE, footer = NULL
+              )
             )
           }
         } else if (input$overwrite == FALSE) {
@@ -2195,12 +2187,12 @@ launch_validation_app <- function(
       observe({
         req(df_cut())
         if (sum(is.na(df_cut()$validation)) == 0) {
-          shinyalert(
-            title = "All detections from this template are validated",
-            text = "Review the session setup if there are detections from other templates to validate",
-            closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
-            type = "warning", animation = TRUE,
-            showConfirmButton = FALSE, showCancelButton = FALSE
+          showModal(
+            modalDialog(
+              title = "All detections from this template are validated",
+              "Review the session setup if there are detections from other templates to validate",
+              easyClose = TRUE, footer = NULL
+            )
           )
         }
       })
@@ -2968,17 +2960,15 @@ launch_validation_app <- function(
         #   message_settings <- paste0("No setting changes detected.")
         # }
 
-        shinyalert(
-          title = "Check out",
-          text = tagList(
-            h3(message_detecs),
-            # h3(message_settings),
-            actionButton("cancel_exit", "Cancel"),
-            actionButton("confirm_exit", "End session"),
-          ),
-          closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
-          type = "warning", animation = TRUE,
-          showConfirmButton = FALSE, showCancelButton = FALSE
+        showModal(
+          modalDialog(
+            title = "End session",
+            paste0(message_detecs),
+            footer = tagList(
+              actionButton("cancel_exit", "Cancel"),
+              actionButton("confirm_exit", "End session")
+            )
+          )
         )
       })
 

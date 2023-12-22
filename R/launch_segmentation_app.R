@@ -61,7 +61,7 @@
 #'
 #' @export
 #' @import shiny dplyr ggplot2 lubridate seewave stringr tuneR collapse DT
-#'  shinyWidgets shinydashboard shinyFiles shinyalert keys shinyjs shinyBS
+#'  shinyWidgets shinydashboard shinyFiles keys shinyjs shinyBS
 #' @importFrom data.table fread fwrite
 launch_segmentation_app <- function(
   project_path = NULL, preset_path = NULL, user = NULL,
@@ -89,7 +89,6 @@ launch_segmentation_app <- function(
   # require(shinyWidgets)
   # require(shinydashboard)
   # require(shinyFiles)
-  # require(shinyalert)
   # require(shiny)
   # require(keys)
   # require(shinyjs)
@@ -709,7 +708,6 @@ launch_segmentation_app <- function(
 
         # Set up shinyjs
         useShinyjs(),
-        useShinyalert(force = TRUE),
 
         tags$style(type = "text/css", ".recalculating {opacity: 1.0;}"),
 
@@ -1070,47 +1068,47 @@ launch_segmentation_app <- function(
             showNotification("Setup sucessfull!", type = "message")
             roi_tables_data(roi_tables)
           } else {
-            shinyalert(
-              title = "There are no readable WAV files in the provided Soundscape path",
-              text = "Review the provided path and confirm the setup again",
-              size = "s", closeOnEsc = TRUE, closeOnClickOutside = TRUE,
-              html = FALSE, type = "warning", showConfirmButton = FALSE,
-              showCancelButton = FALSE, timer = 0, animation = TRUE
+            showModal(
+              modalDialog(
+                title = "Setup error",
+                "There are no readable WAV files in the provided Soundscape path",
+                footer = tagList(modalButton("OK")), easyClose = TRUE
+              )
             )
           }
         } else if (!dir.exists(soundscape_path_val()) & dir.exists(roi_tables_path_val())) {
-          shinyalert(
-            title = "The provided Soundscape path does not exist",
-            text = "Review the provided path and confirm the setup again",
-            size = "s", closeOnEsc = TRUE, closeOnClickOutside = TRUE,
-            html = FALSE, type = "warning", showConfirmButton = FALSE,
-            showCancelButton = FALSE, timer = 0, animation = TRUE
+          showModal(
+            modalDialog(
+              title = "Setup error",
+              "The provided Soundscape path does not exist",
+              footer = tagList(modalButton("OK")), easyClose = TRUE
+            )
           )
         } else if (dir.exists(soundscape_path_val()) & !dir.exists(roi_tables_path_val())) {
-          shinyalert(
-            title = "The provided path to ROI tables does not exist",
-            text = "Review the provided path and confirm the setup again",
-            size = "s", closeOnEsc = TRUE, closeOnClickOutside = TRUE,
-            html = FALSE, type = "warning", showConfirmButton = FALSE,
-            showCancelButton = FALSE, timer = 0, animation = TRUE
+          showModal(
+            modalDialog(
+              title = "Setup error",
+              "The provided path to ROI tables does not exist",
+              footer = tagList(modalButton("OK")), easyClose = TRUE
+            )
           )
         } else if (!dir.exists(soundscape_path_val()) & !dir.exists(roi_tables_path_val())) {
-          shinyalert(
-            title = "The paths to Soundscapes and to ROI tables do not exist",
-            text = "Review the provided paths and confirm the setup again",
-            size = "s", closeOnEsc = TRUE, closeOnClickOutside = TRUE,
-            html = FALSE, type = "warning", showConfirmButton = FALSE,
-            showCancelButton = FALSE, timer = 0, animation = TRUE
+          showModal(
+            modalDialog(
+              title = "Setup error",
+              "The paths to Soundscapes and to ROI tables do not exist",
+              footer = tagList(modalButton("OK")), easyClose = TRUE
+            )
           )
         }
 
         if (!dir.exists(cuts_path_val())) {
-          shinyalert(
-            title = "The path to export audio and spectrograms from ROIs does not exist",
-            text = "If you wish to export it, review the provided path and confirm the setup again",
-            size = "s", closeOnEsc = TRUE, closeOnClickOutside = TRUE,
-            html = FALSE, type = "warning", showConfirmButton = FALSE,
-            showCancelButton = FALSE, timer = 0, animation = TRUE
+          showModal(
+            modalDialog(
+              title = "Setup error",
+              "The path to export audio and spectrograms from ROIs does not exist",
+              footer = tagList(modalButton("OK")), easyClose = TRUE
+            )
           )
           disable("export_selected_cut")
         } else {
@@ -2007,12 +2005,13 @@ launch_segmentation_app <- function(
       #     if (file.exists(preset_file)) {
       #       saved_preset <- readRDS(preset_file)
       #       if (identical(saved_preset, session_settings())) {
-      #         shinyalert(
-      #           title = "Nothing to be done",
-      #           text = tagList(h3("No changes were made in the current preset")),
-      #           closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
-      #           type = "warning", animation = TRUE, showConfirmButton = FALSE,
-      #           showCancelButton = FALSE
+      #         showModal(
+      #           modalDialog(
+      #             title = "Nothing to be done",
+      #             h3("No changes were made in the current preset"),
+      #             easyClose = TRUE,
+      #             footer = NULL
+      #           )
       #         )
       #       } else {
       #         what_changed <- rbind(saved_preset, session_settings()) %>%
@@ -2032,6 +2031,25 @@ launch_segmentation_app <- function(
       #           select_if(function(col) length(unique(col)) > 1) %>%
       #           colnames() %>%
       #           paste(collapse = "; ")
+
+      #         # showModal(
+      #         #   modalDialog(
+      #         #     title = "Changes detected in preset",
+      #         #     paste0(
+      #         #       "There are differences between settings in the current session and in the preset file:", what_changed,
+      #         #       "Exporting will overwrite the existing preset file. Provide a new name below if if you wish to create a new preset instead:"
+      #         #     )
+      #         #     footer = tagList(
+      #         #       textInput(
+      #         #         "new_preset_name",
+      #         #         label = NULL,
+      #         #         value = input$available_presets, placeholder = TRUE
+      #         #       ),
+      #         #       actionButton("confirm_export_preset", label = "Confirm & Export"),
+      #         #       modalButton("Cancel")
+      #         #     )
+      #         #   )
+      #         # )
 
       #         shinyalert(
       #           title = "Changes detected in preset",
@@ -2228,17 +2246,16 @@ launch_segmentation_app <- function(
         #   message_settings <- paste0("No preset file was found. Consider creating a new one before leaving the session.")
         # }
 
-        shinyalert(
-          title = "Check out",
-          text = tagList(
-            h3(message_rois),
-            # h3(message_settings),
-            actionButton("cancel_exit", "Cancel"),
-            actionButton("confirm_exit", "End session"),
-          ),
-          closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
-          type = "warning", animation = TRUE,
-          showConfirmButton = FALSE, showCancelButton = FALSE
+        showModal(
+          modalDialog(
+            title = "Check out",
+            message_rois,
+            # message_settings,
+            footer = tagList(
+              actionButton("cancel_exit", "Cancel"),
+              actionButton("confirm_exit", "End session")
+            )
+          )
         )
       })
 
