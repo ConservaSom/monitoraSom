@@ -39,7 +39,6 @@ Imports:
     shinyBS,
     shinydashboard,
     shinyFiles,
-    shinyjqui,
     shinyjs,
     shinyWidgets,
     slider,

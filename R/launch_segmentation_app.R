@@ -760,13 +760,13 @@ launch_segmentation_app <- function(
               ),
               column(
                 width = 11,
-                shinyjqui::jqui_resizable(
+                # shinyjqui::jqui_resizable(
                   plotOutput(
-                    "spectrogram_plot", brush = "roi_limits",
-                    height = "500px", width = "1400px"
-                  ),
-                  options = list(handles = "se")
-                )
+                    "spectrogram_plot", brush = "roi_limits", height = "500px"#, width = "1400px"
+                  )
+                #   ,
+                #   options = list(handles = "se")
+                # )
               )
             ),
             fluidRow(
