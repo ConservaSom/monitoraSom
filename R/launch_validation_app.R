@@ -50,10 +50,30 @@
 #' @importFrom data.table fread fwrite
 #' @importFrom farver encode_native
 #' @importFrom tuneR play setWavPlayer readWave
+#' @examples
+#' \dontrun{
+#' library(monitoraSom)
+#' library(usethis)
+#'
+#' # set the path to the diorectory where soundscapes are located (it is not recursive)
+#' soundscapes_path <- "path/to/soundscapes"
+#' # set the path to the project folder
+#' project_path <- "path/to/project"
+#'
+#' # in case the current working directory is not an active project, set it with the following command. it may be necessary to restart the R session after that.
+#' create_project(path = paste0(project_path, "/MyProject", open = TRUE, rstudio = TRUE)
+#'
+#' # launch the segmentation app
+#' launch_segmentation_app(
+#'   project_path = project_path,
+#'   user = "Identify the user here",
+#'   soundscapes_path = soundscapes_path
+#' )
+#' }
 launch_validation_app <- function(
     project_path = NULL, preset_path = NULL,
-    validation_user, templates_path, soundscapes_path, input_path, output_path,
-    spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
+    validation_user, templates_path, soundscapes_path, input_path,
+    output_path = NULL, spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
     val_subset = c("NA", "TP", "FP", "UN"), min_score = 0,
     time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(0, 50),
@@ -175,9 +195,16 @@ launch_validation_app <- function(
     # todo Add other checks for the input file
   }
 
-  session_data$output_path <- output_path
-  if (!file.exists(output_path)) {
-    warning("Warning! The output file was not found locally. It will be created automatically.")
+  if (is.null(output_path)) {
+    session_data$output_path <- input_path
+    warning(
+      "Warning! The output file was not provided. Using the input file as output."
+    )
+  } else {
+    session_data$output_path <- output_path
+    if (!file.exists(output_path)) {
+      warning("Warning! The output file was not found locally. It will be created automatically.")
+    }
   }
 
   if (all(val_subset %in% c("NA", "TP", "FP", "UN"))) {

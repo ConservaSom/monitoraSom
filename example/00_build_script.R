@@ -6,9 +6,9 @@
 
 library(devtools)
 load_all()
-# roxygen2::roxygenise(clean = TRUE)
-# document()
-# build()
+roxygen2::roxygenise(clean = TRUE)
+document()
+build()
 check()
 devtools::install()
 
