@@ -6,9 +6,9 @@
 
 library(devtools)
 load_all()
-roxygen2::roxygenise(clean = TRUE)
-document()
-build()
+# roxygen2::roxygenise(clean = TRUE)
+# document()
+# build()
 check()
 devtools::install()
 
@@ -47,12 +47,14 @@ use_package("shinyFiles")
 use_package("shinyWidgets")
 use_package("shinydashboard")
 use_package("shinyjs")
+use_package("shinyjqui")
 use_package("slider")
 use_package("stringr")
 use_package("tibble")
 use_package("tidyr")
 use_package("tuneR")
 use_package("viridis")
+use_package("readxl")
 
 # Documentation ----------------------------------------------------
 document()

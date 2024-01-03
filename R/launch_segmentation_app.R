@@ -83,7 +83,6 @@ launch_segmentation_app <- function(
   # require(collapse)
   # require(knitr)
   # require(rmarkdown)
-  # require(beepr)
   # require(DT)
   # require(data.table)
   # require(shinyWidgets)
@@ -148,6 +147,7 @@ launch_segmentation_app <- function(
     } else {
       session_data$roi_tables_path <- roi_tables_path
     }
+
   }
 
   if (is.null(cuts_path) && is.null(project_path)) {
@@ -715,96 +715,7 @@ launch_segmentation_app <- function(
 
         # Spectrogram box and time zoom slider
         box(
-          width = 12, height = "550px",
-          fluidRow(
-            column(
-              width = 1,
-              strong("seconds", style = "text-align:right;")
-            ),
-            column(
-              width = 11,
-              noUiSliderInput(
-                "zoom_time",
-                label = NULL, min = 0, max = 0.1, step = 0.05,
-                value = c(0, 0.1), width = "100%", behaviour = "drag",
-                update_on = "end"
-              )
-            )
-          ),
-          splitLayout(
-            cellWidths = c("7%", "93%"),
-            noUiSliderInput(
-              "zoom_freq", "kHz",
-              min = 0, max = 180, step = 1, value = session_data$zoom_freq,
-              direction = "rtl", orientation = "vertical", width = "100px",
-              height = "350px", behaviour = "drag", format = wNumbFormat(decimals = 0),
-              update_on = "end"
-            ),
-            plotOutput(
-              "spectrogram_plot",
-              brush = "roi_limits", height = "400px", width = "auto"
-            )
-          ),
-          fluidRow(
-            column(
-              width = 1,
-              checkboxInput(
-                "nav_autosave", "Autosave",
-                value = session_data$nav_autosave
-              )
-            ),
-            column(
-              width = 2,
-              actionButton(
-                "prev_soundscape_noroi", "Prev.Unsegmented",
-                width = "100%",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-backward"),
-                style = "height:54px;"
-              )
-            ),
-            column(
-              width = 1,
-              actionButton(
-                "prev_soundscape", "Prev.",
-                width = "100%",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-backward"),
-                style = "height:54px;"
-              )
-            ),
-            column(
-              width = 3,
-              actionButton(
-                "play_soundscape", "Play visible",
-                width = "100%", icon = icon("play"),
-                style = "height:54px;"
-              ),
-              tags$div(id = "visible_soundscape_clip") # set the location of the html player
-            ),
-            column(
-              width = 1,
-              actionButton(
-                "next_soundscape", "Next",
-                width = "100%",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-forward"),
-                style = "height:54px;"
-              )
-            ),
-            column(
-              width = 2,
-              actionButton(
-                "next_soundscape_noroi", "Next Unsegmented",
-                width = "100%",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-forward"),
-                style = "height:54px; width:100%"
-              )
-            )
-          )
-        ),
-        tabBox(
-          width = 12, height = "900px",
-          id = "tabset1",
-          tabPanel(
-            "Setup and Input",
+            width = "100%", height = "100%",
             fluidRow(
               column(
                 width = 5,
@@ -821,6 +732,103 @@ launch_segmentation_app <- function(
                 )
               )
             ),
+            fluidRow(
+              column(
+                width = 1,
+                strong("seconds", style = "text-align:right;")
+              ),
+              column(
+                width = 11,
+                noUiSliderInput(
+                  "zoom_time",
+                  label = NULL, min = 0, max = 0.1, step = 0.05,
+                  value = c(0, 0.1), width = "100%", behaviour = "drag",
+                  update_on = "end"
+                )
+              )
+            ),
+            fluidRow(
+              column(
+                width = 1,
+                noUiSliderInput(
+                  "zoom_freq", "kHz",
+                  min = 0, max = 180, step = 1, value = session_data$zoom_freq,
+                  direction = "rtl", orientation = "vertical", width = "100px",
+                  height = "25vh", behaviour = "drag", format = wNumbFormat(decimals = 0),
+                  update_on = "end"
+                )
+              ),
+              column(
+                width = 11,
+                shinyjqui::jqui_resizable(
+                  plotOutput(
+                    "spectrogram_plot", brush = "roi_limits",
+                    height = "500px", width = "1400px"
+                  ),
+                  options = list(handles = "se")
+                )
+              )
+            ),
+            fluidRow(
+              column(
+                width = 1,
+                checkboxInput(
+                  "nav_autosave", "Autosave",
+                  value = session_data$nav_autosave
+                )
+              ),
+              column(
+                width = 2,
+                actionButton(
+                  "prev_soundscape_noroi", "Prev.Unsegmented",
+                  width = "100%",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-backward"),
+                  style = "height:54px;"
+                )
+              ),
+              column(
+                width = 1,
+                actionButton(
+                  "prev_soundscape", "Prev.",
+                  width = "100%",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-backward"),
+                  style = "height:54px;"
+                )
+              ),
+              column(
+                width = 1,
+                actionButton(
+                  "next_soundscape", "Next",
+                  width = "100%",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-forward"),
+                  style = "height:54px;"
+                )
+              ),
+              column(
+                width = 2,
+                actionButton(
+                  "next_soundscape_noroi", "Next Unsegmented",
+                  width = "100%",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-forward"),
+                  style = "height:54px; width:100%"
+                )
+              ),
+              column(
+                width = 3,
+                actionButton(
+                  "play_soundscape", "Play visible",
+                  width = "100%", icon = icon("play"),
+                  style = "height:54px;"
+                ),
+                tags$div(id = "visible_soundscape_clip") # set the location of the html player
+              ),
+            )
+          ),
+        tabBox(
+          width = 12, height = "900px",
+          id = "tabset1",
+          tabPanel(
+            "Setup and Input",
             fluidRow(
               column(
                 width = 3,
