@@ -7,20 +7,27 @@ devtools::install_github("ConservaSom/monitoraSom",
                          dependencies = T,
                          auth_token = "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"
 )
+```
 
 
 Alternatively,
 
+Install the following packages
+
 ```r
-# instale estes dois pacotes
 install.packages("pak")
 install.packages("gitcreds")
+```
 
-# Execute esse comando e insira as credenciais para ter acesso ao pacote
-# monitoraSom. Quando executar, cole o token
-# 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 e pressione enter.
+Execute the following command and paste the token below in the prompt
+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
+
+```r
 gitcreds::gitcreds_set()
+```
 
-# Instale o pacote monitoraSom
+Install `monitoraSom`
+
+```r
 pak::pkg_install("ConservaSom/monitoraSom")
 ```
