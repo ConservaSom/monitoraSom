@@ -30,7 +30,7 @@
 #'   because the peak quantiles are callculated within each score vector, the
 #'   top_n parameter is applied to each score vector separately, and not to the
 #'   whole matching grid.
-#' @param save_res Character. Path to save the result as an .rds file.
+#' @param save_res Character. Path to save the result as an .rds or .csv file.
 #' @param recursive Set file search to recursive
 #'
 #' @return A Tibble containing the detections of all audio scores.
@@ -78,7 +78,15 @@ fetch_score_peaks_n <- function(
     ) |>
     list_rbind()
 
-  if (!is.null(save_res)) saveRDS(tib_detecs, save_res)
+  if (!is.null(save_res)) {
+    if (substr(save_res, nchar(save_res) - 3, nchar(save_res)) == ".rds") {
+      saveRDS(tib_detecs, save_res)
+    } else if (substr(save_res, nchar(save_res) - 3, nchar(save_res)) == ".csv") {
+      write.csv(tib_detecs, save_res)
+    } else {
+      stop("The file extension is not supported")
+    }
+  }
 
   message("Detections extracted from scores")
 
