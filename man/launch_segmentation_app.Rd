@@ -111,3 +111,24 @@ Todo
   regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
   be imported from presets or set manually.
 }
+\examples{
+\dontrun{
+library(monitoraSom)
+library(usethis)
+
+# set the path to the diorectory where soundscapes are located (it is not recursive)
+soundscapes_path <- "path/to/soundscapes"
+# set the path to the project folder
+project_path <- "path/to/project"
+
+# in case the current working directory is not an active project, set it with the following command. it may be necessary to restart the R session after that.
+create_project(path = "MyProject", open = TRUE, rstudio = TRUE)
+
+# launch the segmentation app
+launch_segmentation_app(
+  project_path = ".",
+  user = "Identify the user here",
+  soundscapes_path = soundscapes_path
+)
+}
+}
