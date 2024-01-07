@@ -17,17 +17,10 @@
 #' @export
 #'
 validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
-
-  # todo Fill names and paths to adapt to BirdNet standard
-
-  # todo Add an extra round of template matching between rois directly to
-  # complete empty score values
-
   df_rois <- df_rois %>%
     mutate(
-      # todo Solve extension cases
-      # todo Solve hard coded name to extract soundscape_file values
       soundscape_file = paste0(substr(roi_file, 1, 33), ".wav"),
+      soundscape_path = paste0("soundscapes//", soundscape_file),
       roi_id = paste0(
         paste0("roi", sprintf("%06d", 1:nrow(df_rois)))
       ),
@@ -37,9 +30,17 @@ validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
 
   df_detections <- df_detecs %>%
     mutate(
-      species = gsub(".wav|.WAV", "",
-        regmatches(template_file,
-          regexpr("(?<=_)[^_]+$", template_file, perl = TRUE)
+      soundscape_file = gsub(".WAV", ".wav", soundscape_file),
+      soundscape_path = paste0("soundscapes//", soundscape_file),
+      species = ifelse(
+        template_file == "BirdNet",
+        sub(".*_([^_]+)$", "\\1", template_name),
+        gsub(
+          ".wav|.WAV", "",
+          regmatches(
+            template_file,
+            regexpr("(?<=_)[^_]+$", template_file, perl = TRUE)
+          )
         )
       ),
       detection_id = paste0(
@@ -48,7 +49,8 @@ validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
     ) %>%
     filter(species == det_species) %>%
     group_by(template_name) %>%
-    group_split()
+    group_split() %>%
+      as.list()
 
   res <- map_dfr(
     df_detections,
@@ -77,37 +79,35 @@ validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
             ) %>%
             as.data.frame()
         )
-      # The next step is to recompose the metadata of detections and rois, as well
-      # as detections from soundscapes with no rois. Grouping the process by
-      # template_name is an essential step for a correct recomposition. Those
-      # detections are considered false positives (FP) and receive "no_match" as
-      # roi_id.
-      df_detec_proc <- suppressMessages(
-        full_join(
-          df_detec_inner, x,
-          by = colnames(df_detections),
-          suffix = c("", "_y")
-        )
-      ) %>%
-        mutate(
-          validation = ifelse(is.na(validation), "FP", validation),
-          roi_id = ifelse(validation == "FP", NA, roi_id)
-        ) %>%
-        select(-ends_with("_y"))
+      # TP prontos, checar se não tem duplicação
+      dfTP <- df_detec_inner %>%
+        filter(validation == "TP")
 
-      # Adding back rois from soundscapes with no detections from the target
-      # species. This process must be done for each template separately. The added
-      # rows will be validated as FN.
-      df_detec_val <- full_join(
-        df_detec_proc,
-        filter(df_rois, !roi_id %in% df_detec_proc$roi_id),
-        by = colnames(df_rois)
-      ) %>%
-        mutate_at(vars(starts_with("template")), ~ na.omit(unique(.))) %>%
-        mutate(validation = ifelse(is.na(validation), "FN", validation)) %>%
-        arrange(soundscape_file, detection_id)
+      # false positives from soudnscapes with rois
+      dfFP_a <- df_detec_inner |>
+        filter(validation == "FP", !(detection_id %in% dfTP$detection_id)) |>
+        select(-starts_with("roi_")) %>%
+        distinct()
 
-      return(df_detec_val)
+      # false positives from soundscapes without rois
+      dfFP_b <- x %>%
+        filter(!(detection_id %in% unique(c(dfTP$detection_id, dfFP_a$detection_id)))) %>%
+        distinct() %>%
+        mutate(validation = "FP")
+
+      res_raw <- dfTP %>%
+        full_join(dfFP_a, by = colnames(dfFP_a)) %>%
+        full_join(dfFP_b, by = colnames(dfFP_b))
+
+      dfFN <- df_rois[which(!(df_rois$roi_id %in% res_raw$roi_id)), ] %>%
+        mutate(validation = "FN")
+
+      res_i <- res_raw %>%
+        # remove for retrieval of multiple overlaps
+        filter(!duplicated(detection_id)) %>%
+        full_join(dfFN, by = colnames(dfFN))
+
+      return(res_i)
     }
   )
   return(res)

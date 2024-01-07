@@ -137,18 +137,18 @@ validate_by_overlap_i_v2 <- function(df_rois, df_detecs, det_species, min_score)
   )
 
   df_val <- df_all_overlaps %>%
-  group_by(template_name, detection_id, validation) %>%
-  summarise(peak_score = max(peak_score)) %>%
-  summarise(
-    validation = case_when(
-      any(validation == "TP") ~ "TP",
-      all(validation == "FN") ~ "FN",
-      all(validation == "FP") ~ "FP"
-    ),
-    peak_score = max(peak_score)
-  ) %>%
-  ungroup() %>%
-  arrange(peak_score)
+    group_by(template_name, detection_id, validation) %>%
+    summarise(peak_score = max(peak_score)) %>%
+    summarise(
+      validation = case_when(
+        any(validation == "TP") ~ "TP",
+        all(validation == "FN") ~ "FN",
+        all(validation == "FP") ~ "FP"
+      ),
+      peak_score = max(peak_score)
+    ) %>%
+    ungroup() %>%
+    arrange(peak_score)
 
   res_diags <- map_dfr(
     seq(0, 1, 0.01),
