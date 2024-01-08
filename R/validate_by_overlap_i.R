@@ -79,31 +79,40 @@ validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
             ) %>%
             as.data.frame()
         )
+
       # TP prontos, checar se não tem duplicação
       dfTP <- df_detec_inner %>%
-        filter(validation == "TP")
+        filter(validation == "TP") %>%
+          mutate(
+            validation_obs = "instersection with a ROI"
+          )
 
-      # false positives from soudnscapes with rois
-      dfFP_a <- df_detec_inner |>
-        filter(validation == "FP", !(detection_id %in% dfTP$detection_id)) |>
+      # false positives from all detections that have not overlapped a roi
+      # within soundscapes
+      dfFP_a <- df_detec_inner %>%
+        filter(validation == "FP", !(detection_id %in% dfTP$detection_id)) %>%
         select(-starts_with("roi_")) %>%
+        mutate(validation_obs = "no intersection with a ROI") %>%
         distinct()
 
-      # false positives from soundscapes without rois
+      # additional false positives
       dfFP_b <- x %>%
         filter(!(detection_id %in% unique(c(dfTP$detection_id, dfFP_a$detection_id)))) %>%
-        distinct() %>%
-        mutate(validation = "FP")
+        dplyr::distinct() %>%
+          mutate(
+            validation = "FP", validation_obs = "no ROIs to intersect with"
+          )
 
       res_raw <- dfTP %>%
         full_join(dfFP_a, by = colnames(dfFP_a)) %>%
         full_join(dfFP_b, by = colnames(dfFP_b))
 
       dfFN <- df_rois[which(!(df_rois$roi_id %in% res_raw$roi_id)), ] %>%
-        mutate(validation = "FN")
+        mutate(validation = "FN", validation_obs = "no detections to intersect with")
 
       res_i <- res_raw %>%
         # remove for retrieval of multiple overlaps
+        arrange(-detection_id, peak_score) %>% 
         filter(!duplicated(detection_id)) %>%
         full_join(dfFN, by = colnames(dfFN))
 

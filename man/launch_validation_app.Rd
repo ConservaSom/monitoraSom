@@ -11,7 +11,7 @@ launch_validation_app(
   templates_path,
   soundscapes_path,
   input_path,
-  output_path,
+  output_path = NULL,
   spec_path = NULL,
   wav_cuts_path = NULL,
   diag_tab_path = NULL,
@@ -102,4 +102,25 @@ todo
   for segemntation of WAV recorcings of soundscapes into tables containing
   regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
   be imported from presets or set manually.
+}
+\examples{
+\dontrun{
+library(monitoraSom)
+library(usethis)
+
+# set the path to the diorectory where soundscapes are located (it is not recursive)
+soundscapes_path <- "path/to/soundscapes"
+# set the path to the project folder
+project_path <- "path/to/project"
+
+# in case the current working directory is not an active project, set it with the following command. it may be necessary to restart the R session after that.
+create_project(path = paste0(project_path, "/MyProject", open = TRUE, rstudio = TRUE)
+
+# launch the segmentation app
+launch_segmentation_app(
+  project_path = project_path,
+  user = "Identify the user here",
+  soundscapes_path = soundscapes_path
+)
+}
 }

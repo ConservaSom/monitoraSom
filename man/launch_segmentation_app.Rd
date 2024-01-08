@@ -116,13 +116,15 @@ Todo
 library(monitoraSom)
 library(usethis)
 
-# set the path to the diorectory where soundscapes are located (it is not recursive)
-soundscapes_path <- "path/to/soundscapes"
 # set the path to the project folder
-project_path <- "path/to/project"
-
+# project_path <- "path/to/project"
 # in case the current working directory is not an active project, set it with the following command. it may be necessary to restart the R session after that.
-create_project(path = "MyProject", open = TRUE, rstudio = TRUE)
+create_project(path = project_path, open = TRUE, rstudio = TRUE)
+# check if the currently active working directory matches the project
+getwd()
+
+# set the path to the diorectory where soundscapes are located (it is not recursive)
+soundscapes_path <- "soundscapes/"
 
 # launch the segmentation app
 launch_segmentation_app(

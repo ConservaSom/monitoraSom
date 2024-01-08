@@ -45,7 +45,7 @@ because the peak quantiles are callculated within each score vector, the
 top_n parameter is applied to each score vector separately, and not to the
 whole matching grid.}
 
-\item{save_res}{Character. Path to save the result as an .rds file.}
+\item{save_res}{Character. Path to save the result as an .rds or .csv file.}
 }
 \value{
 A Tibble containing the detections of all audio scores.
