@@ -112,9 +112,10 @@ validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
 
       res_i <- res_raw %>%
         # remove for retrieval of multiple overlaps
-        arrange(-detection_id, peak_score) %>% 
+        arrange(desc(detection_id), peak_score) %>%
         filter(!duplicated(detection_id)) %>%
-        full_join(dfFN, by = colnames(dfFN))
+        full_join(dfFN, by = colnames(dfFN)) %>%
+          arrange(soundscape_file, detection_start)
 
       return(res_i)
     }
