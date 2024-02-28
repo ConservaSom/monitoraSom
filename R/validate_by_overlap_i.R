@@ -50,9 +50,9 @@ validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
     filter(species == det_species) %>%
     group_by(template_name) %>%
     group_split() %>%
-      as.list()
+    as.list()
 
-  res <- map_dfr(
+  validation_res <- map_dfr(
     df_detections,
     function(x) {
       # find macthes between detections and rois. This process is done grouping and
@@ -108,17 +108,28 @@ validate_by_overlap_i <- function(df_rois, df_detecs, det_species) {
         full_join(dfFP_b, by = colnames(dfFP_b))
 
       dfFN <- df_rois[which(!(df_rois$roi_id %in% res_raw$roi_id)), ] %>%
-        mutate(validation = "FN", validation_obs = "no detections to intersect with")
+        mutate(
+          template_path = unique(x$template_path),
+          template_file = unique(x$template_file),
+          template_name = unique(x$template_name),
+          template_min_freq = unique(x$template_min_freq),
+          template_max_freq = unique(x$template_max_freq),
+          template_start = unique(x$template_start),
+          template_end = unique(x$template_end),
+          validation = "FN",
+          validation_obs = "no detections to intersect with"
+        )
 
       res_i <- res_raw %>%
         # remove for retrieval of multiple overlaps
         arrange(desc(detection_id), peak_score) %>%
         filter(!duplicated(detection_id)) %>%
         full_join(dfFN, by = colnames(dfFN)) %>%
-          arrange(soundscape_file, detection_start)
+        arrange(soundscape_file, detection_start)
 
       return(res_i)
     }
   )
-  return(res)
+
+  return(validation_res)
 }

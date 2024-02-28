@@ -74,6 +74,8 @@ sp_labels <- readxl::read_xlsx(
 ) %>%
     as.data.frame() %>%
     glimpse()
+
+sp_labels$`CBRO-2021 (Birds - Brazil)` %>% tail
 usethis::use_data(sp_labels, overwrite = TRUE)
 
 # Tests ------------------------------------------------------------
