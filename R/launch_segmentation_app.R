@@ -519,6 +519,7 @@ launch_segmentation_app <- function(
     "w", # zoom in time
     "alt+w", # todo zoom out to full soundscape duration and frequency band
     "e", # store corrent selection as a ROI
+    "r", # measurements tool
     "a", # navigate backwards in in time within a sounscape
     "alt+a", # todo navigate to the previous soundscape
     "s", # zoom out in time
@@ -784,7 +785,7 @@ launch_segmentation_app <- function(
                 width = 11,
                 # shinyjqui::jqui_resizable(
                   plotOutput(
-                    "spectrogram_plot", brush = "roi_limits", height = "500px"#, width = "1400px"
+                    "spectrogram_plot", brush = "roi_limits", height = "500px" #, width = "1400px"
                   )
                 #   ,
                 #   options = list(handles = "se")
@@ -1392,6 +1393,8 @@ launch_segmentation_app <- function(
         }
       })
 
+      ruler <- reactiveVal(NULL)
+
       observeEvent(input$hotkeys, {
         req(roi_values())
         current_rois <- tibble(roi_values())
@@ -1471,6 +1474,24 @@ launch_segmentation_app <- function(
               )
               roi_values(roi_i_empty)
             }
+          }
+        }
+
+        if (input$hotkeys == "r") {
+          if (is.null(ruler())) {
+            res <- data.frame(
+              soundscape_path = wav_path_val(),
+              soundscape_file = input$soundscape_file,
+              start = input$roi_limits$xmin,
+              end = input$roi_limits$xmax,
+              duration = input$roi_limits$xmax - input$roi_limits$xmin,
+              min_freq = input$roi_limits$ymin,
+              max_freq = input$roi_limits$ymax,
+              bandwidth = input$roi_limits$ymax - input$roi_limits$ymin
+            )
+            ruler(res)
+          } else {
+            ruler(NULL)
           }
         }
 
@@ -1869,11 +1890,50 @@ launch_segmentation_app <- function(
                 xmin = rois_to_plot$roi_start, xmax = rois_to_plot$roi_end,
                 ymin = rois_to_plot$roi_min_freq, ymax = rois_to_plot$roi_max_freq
               )
-            spectro_soundscape(spectro_plot)
+            # spectro_soundscape(spectro_plot)
           }
-        } else {
-          spectro_soundscape(spectro_plot)
         }
+        #  else {
+        #   spectro_soundscape(spectro_plot)
+        # }
+
+        if (!is.null(ruler())) {
+          spectro_plot <- spectro_plot +
+            annotate(
+              "rect",
+              alpha = 0.2, linewidth = 0.5, linetype = "solid",
+              color = "yellow",
+              xmin = ruler()$start, xmax = ruler()$end,
+              ymin = ruler()$min_freq, ymax = ruler()$max_freq
+            ) +
+            annotate(
+              "text",
+              alpha = 1, color = "yellow",
+              hjust = c("right", "right", "right", "right", "right", "right"),
+              vjust = c("top", "top", "bottom", "bottom", "top", "top"),
+              angle = c(90, 90, 0, 0, 90, 0),
+              x = c(
+                ruler()$start, ruler()$end, ruler()$start, ruler()$start,
+                ruler()$end - (ruler()$duration/2),
+                ruler()$start
+                ),
+              y = c(
+                ruler()$min_freq, ruler()$min_freq,
+                ruler()$min_freq, ruler()$max_freq,
+                ruler()$min_freq,
+                ruler()$max_freq - (ruler()$bandwidth/2)
+                ),
+              label = c(
+                paste0("t0=", round(ruler()$start, 3)),
+                paste0("t=", round(ruler()$end, 3)),
+                paste0("f0=", round(ruler()$min_freq, 3)),
+                paste0("f=", round(ruler()$max_freq, 3)),
+                paste0("d=", round(ruler()$duration, 3)),
+                paste0("bw=", round(ruler()$bandwidth, 3))
+                )
+            )
+        }
+        spectro_soundscape(spectro_plot)
       })
 
       output$spectrogram_plot <- renderPlot(execOnResize = TRUE, {
