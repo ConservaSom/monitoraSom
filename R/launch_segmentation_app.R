@@ -1898,6 +1898,24 @@ launch_segmentation_app <- function(
         # }
 
         if (!is.null(ruler())) {
+
+          dom_freq <- mean(
+            cutw(
+              rec_soundscape(),
+              f = rec_soundscape()@samp.rate,
+              from = ruler()$start, to = ruler()$end,
+              units = "seconds", output = "Wave"
+            ) %>%
+              {
+                dfreq(
+                  .,
+                  f = .@samp.rate, wl = input$wl, ovlp = input$ovlp,
+                  bandpass = c(ruler()$min_freq, ruler()$max_freq) * 1000,
+                  plot = FALSE
+                )[, 2]
+              }
+          )
+
           spectro_plot <- spectro_plot +
             annotate(
               "rect",
@@ -1909,28 +1927,36 @@ launch_segmentation_app <- function(
             annotate(
               "text",
               alpha = 1, color = "yellow",
-              hjust = c("right", "right", "right", "right", "right", "right"),
-              vjust = c("top", "top", "bottom", "bottom", "top", "top"),
-              angle = c(90, 90, 0, 0, 90, 0),
+              hjust = c("right", "right", "right", "right", "right", "right", "left"),
+              vjust = c("top", "top", "bottom", "bottom", "top", "top", "center"),
+              angle = c(30, 90, 0, 0, 90, 0, 0),
               x = c(
-                ruler()$start, ruler()$end, ruler()$start, ruler()$start,
-                ruler()$end - (ruler()$duration/2),
-                ruler()$start
-                ),
+                ruler()$start, ruler()$end,
+                ruler()$start, ruler()$start,
+                ruler()$end - (ruler()$duration / 2),
+                ruler()$start, ruler()$end
+              ),
               y = c(
                 ruler()$min_freq, ruler()$min_freq,
                 ruler()$min_freq, ruler()$max_freq,
                 ruler()$min_freq,
-                ruler()$max_freq - (ruler()$bandwidth/2)
-                ),
+                ruler()$max_freq - (ruler()$bandwidth / 2),
+                dom_freq
+              ),
               label = c(
                 paste0("t0=", round(ruler()$start, 3)),
                 paste0("t=", round(ruler()$end, 3)),
                 paste0("f0=", round(ruler()$min_freq, 3)),
                 paste0("f=", round(ruler()$max_freq, 3)),
                 paste0("d=", round(ruler()$duration, 3)),
-                paste0("bw=", round(ruler()$bandwidth, 3))
-                )
+                paste0("bw=", round(ruler()$bandwidth, 3)),
+                paste0("fdom=", round(dom_freq, 3))
+              )
+            ) +
+            annotate(
+              "segment",
+              x = ruler()$start, xend = ruler()$end,
+              y = dom_freq, color = "yellow", size = 0.5
             )
         }
         spectro_soundscape(spectro_plot)
