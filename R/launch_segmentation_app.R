@@ -509,24 +509,22 @@ launch_segmentation_app <- function(
   shiny::addResourcePath("audio", temp_path)
   # resourcePaths()
 
-  # ! Atençao para o funcionamento dessa funçao quando o pacote estiver montado
-  # todo Adicionar aqui a definiçao de settings introduzidos ao ambiente por meio da funçao que chama o app ou de um preset com caminho especificado
-
-  # adicionar botao para deposito direto de paths nos caminhos
+    # adicionar botao para deposito direto de paths nos caminhos
   hotkeys <- c(
     "q", # delete active ROI
     "w", # zoom in time
-    "alt+w", # todo zoom out to full soundscape duration and frequency band
+    # "alt+w", # todo zoom out to full soundscape duration and frequency band
     "e", # store corrent selection as a ROI
+    "ctrl+e", # export current ROI table
     "r", # measurements tool
     "a", # navigate backwards in in time within a sounscape
-    "alt+a", # todo navigate to the previous soundscape
+    # "alt+a", # todo navigate to the previous soundscape
     "s", # zoom out in time
-    "alt+s", # todo zoom out to full soundscape duration
+    # "alt+s", # todo zoom out to full soundscape duration
     "d", # navigate forward in in time within a sounscape
-    "alt+d", # todo navigate to the next soudnscape
-    "1", # play audio of visible soundscape spectrogram
-    "2" # todo play concatenated audio of all selected rois (default to all if none selected)
+    # "alt+d", # todo navigate to the next soudnscape
+    "1" # play audio of visible soundscape spectrogram
+    # "2" # todo play concatenated audio of all selected rois (default to all if none selected)
   )
 
   shinyApp(
@@ -872,8 +870,31 @@ launch_segmentation_app <- function(
                 selectizeInput(
                   "signal_type", "Type",
                   choices = c(
-                    "call", "song", "mechanical", "multiple calls", "multiple songs",
-                    "call duet", "song duet", "choir", "anthropophony", "geophony",
+                    "anuran - advertisement",
+                    "anuran - advertisement - duet",
+                    "anuran - advertisement - multiple",
+                    "anuran - alarm",
+                    "anuran - amplectant",
+                    "anuran - courtship",
+                    "anuran - displacement",
+                    "anuran - distres",
+                    "anuran - encounter",
+                    "anuran - feeding",
+                    "anuran - fighting",
+                    "anuran - post - oviposition",
+                    "anuran - rain",
+                    "anuran - release",
+                    "anuran - territorial",
+                    "anuran - warning",
+                    "bird - call",
+                    "bird - call - duet",
+                    "bird - call - multiple",
+                    "bird - mechanical",
+                    "bird - song",
+                    "bird - song - duet",
+                    "bird - song - multiple",
+                    "anthopophony",
+                    "geophony",
                     "other"
                   ),
                   options = list(
@@ -964,27 +985,18 @@ launch_segmentation_app <- function(
             ),
             DTOutput("res_table")
           ),
-          # tabPanel(
-          #   "Progress Overview",
-          #   progressBar(
-          #     id = "progress_bar", value = 0, total = 1,
-          #     status = "info", display_pct = TRUE, striped = TRUE
-          #   )
-          # ),
           tabPanel(
             "User Manual",
-            p("Q - delete active ROI"),
-            p("W - zoom in time"),
-            # p("Alt+W - (inactive) zoom out to full soundscape duration and frequency band"),
-            p("E - store corrent selection as a ROI"),
+            p("Q - delete last the last created ROI"),
+            p("W - zoom in time in the spectrogram"),
+            p("E - store current selection as a ROI"),
+            p("Ctrl + E - export the current ROI table"),
             p("A - navigate backwards in in time within a sounscape"),
-            # p("Alt+A - (inactive) navigate to the previous soundscape"),
             p("S - zoom out in time"),
-            # p("Alt+S - (inactive) zoom out to full soundscape duration"),
             p("D - navigate forward in in time within a sounscape"),
-            # p("Alt+D - (inactive) navigate to the next soudnscape"),
-            p("1 - play audio of visible soundscape spectrogram")
-            # p("2 - (inactive) play concatenated audio of all selected rois (default to all if none selected)")
+            p("1 - play audio of visible soundscape spectrogram"),
+            p("Ctrl + - Zoom in the whole interface"),
+            p("Ctrl - - Zoom out the whole interface")
           )
         )
       ),
@@ -1557,6 +1569,27 @@ launch_segmentation_app <- function(
                 output = "Wave"
               )
             )
+          }
+        }
+
+        if (input$hotkeys == "ctrl+e") {
+          req(roi_values(), input$roi_table_name, alt_roitabs_meta())
+          if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
+            filename <- file.path(roi_tables_path_val(), input$roi_table_name)
+            data.table::fwrite(roi_values(), filename, row.names = FALSE)
+            progress_tracker$df$has_table[
+              which(soundscape_data()$soundscape_file == input$soundscape_file)
+            ] <- TRUE
+            n_done <- length(which(progress_tracker$df$has_table == TRUE))
+            n_total <- nrow(progress_tracker$df)
+            updateProgressBar(
+              session = session, id = "progress_bar",
+              value = n_done, total = n_total
+            )
+            showNotification("ROI table sucessfully exported", type = "message")
+            if (n_done == n_total) {
+              showNotification("All recordings were segmented!", type = "message")
+            }
           }
         }
       })
