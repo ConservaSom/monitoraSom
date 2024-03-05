@@ -881,18 +881,24 @@ launch_segmentation_app <- function(
                     "anuran - encounter",
                     "anuran - feeding",
                     "anuran - fighting",
-                    "anuran - post - oviposition",
+                    "anuran - post-oviposition",
                     "anuran - rain",
                     "anuran - release",
                     "anuran - territorial",
                     "anuran - warning",
-                    "bird - call",
-                    "bird - call - duet",
-                    "bird - call - multiple",
-                    "bird - mechanical",
-                    "bird - song",
-                    "bird - song - duet",
-                    "bird - song - multiple",
+                    "bats - echolocation call",
+                    "bats - echolocation call - mutiple",
+                    "bats - feed buzz",
+                    "bats - feed buzz - multiple",
+                    "bats - social call",
+                    "bats - social call - multiple",
+                    "birds - song",
+                    "birds - song - duet",
+                    "birds - song - multiple",
+                    "birds - call",
+                    "birds - call - duet",
+                    "birds - call - multiple",
+                    "birds - mechanical",
                     "anthopophony",
                     "geophony",
                     "other"
@@ -1919,31 +1925,43 @@ launch_segmentation_app <- function(
                 xmin = rois_to_plot$roi_start, xmax = rois_to_plot$roi_end,
                 ymin = rois_to_plot$roi_min_freq, ymax = rois_to_plot$roi_max_freq
               )
-            # spectro_soundscape(spectro_plot)
           }
         }
-        #  else {
-        #   spectro_soundscape(spectro_plot)
-        # }
 
         if (!is.null(ruler())) {
 
-          dom_freq <- mean(
-            cutw(
-              rec_soundscape(),
-              f = rec_soundscape()@samp.rate,
-              from = ruler()$start, to = ruler()$end,
-              units = "seconds", output = "Wave"
-            ) %>%
-              {
-                dfreq(
-                  .,
-                  f = .@samp.rate, wl = input$wl, ovlp = input$ovlp,
-                  bandpass = c(ruler()$min_freq, ruler()$max_freq) * 1000,
-                  plot = FALSE
-                )[, 2]
-              }
+          snd_to_measure <- cutw(
+            rec_soundscape(),
+            f = rec_soundscape()@samp.rate,
+            from = ruler()$start, to = ruler()$end,
+            units = "seconds", output = "Wave"
           )
+
+          dom_freq <- mean(
+            dfreq(
+              snd_to_measure,
+              f = snd_to_measure@samp.rate, wl = input$wl, ovlp = input$ovlp,
+              bandpass = c(ruler()$min_freq, ruler()$max_freq) * 1000,
+              plot = FALSE
+            )[, 2]
+          )
+
+          ac_stats <- seewave::acoustat(
+            snd_to_measure,
+            f = snd_to_measure@samp.rate, wl = input$wl, ovlp = input$ovlp,
+            fraction = 80, plot = FALSE,
+            # tlim = c(ruler()$start, ruler()$end),
+            flim = c(ruler()$min_freq, ruler()$max_freq)
+          ) %>%
+            .[-c(1, 2)] %>%
+            as.data.frame() %>%
+            transmute(
+              t10 = time.P1,
+              t90 = time.P2,
+              f10 = freq.P1,
+              f90 = freq.P2
+            ) %>%
+            glimpse()
 
           spectro_plot <- spectro_plot +
             annotate(
@@ -1956,9 +1974,15 @@ launch_segmentation_app <- function(
             annotate(
               "text",
               alpha = 1, color = "yellow",
-              hjust = c("right", "right", "right", "right", "right", "right", "left"),
-              vjust = c("top", "top", "bottom", "bottom", "top", "top", "center"),
-              angle = c(30, 90, 0, 0, 90, 0, 0),
+              hjust = c(
+                "right", "right", "right", "right", "right", "right", "left"
+              ),
+              vjust = c(
+                "top", "top", "bottom", "bottom", "top", "top", "center"
+              ),
+              angle = c(
+                30, 90, 0, 0, 90, 0, 0
+              ),
               x = c(
                 ruler()$start, ruler()$end,
                 ruler()$start, ruler()$start,
@@ -1984,8 +2008,19 @@ launch_segmentation_app <- function(
             ) +
             annotate(
               "segment",
-              x = ruler()$start, xend = ruler()$end,
-              y = dom_freq, color = "yellow", size = 0.5
+              color = "yellow", size = 0.5,
+              linetype = "solid",
+              x = ruler()$start,
+              xend = ruler()$end,
+              y = dom_freq
+            ) +
+            annotate(
+              "segment",
+              color = "yellow", size = 0.5, linetype = rep("dotted", 4),
+              x = c(ruler()$start, ruler()$start, ruler()$start + ac_stats$t10, ruler()$start + ac_stats$t90),
+              xend = c(ruler()$end, ruler()$end, ruler()$start + ac_stats$t10, ruler()$start + ac_stats$t90),
+              y = c(ac_stats$f10, ac_stats$f90, ruler()$min_freq, ruler()$min_freq),
+              yend = c(ac_stats$f10, ac_stats$f90, ruler()$max_freq, ruler()$max_freq)
             )
         }
         spectro_soundscape(spectro_plot)
