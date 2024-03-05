@@ -1147,11 +1147,6 @@ launch_segmentation_app <- function(
         }
       })
 
-      # todo - import labels dataframe from the global environment
-      # sp_lists <- reactive({
-      #   readxl::read_xlsx(labels_file, sheet = 1)
-      # })
-
       observe({
         updateSelectizeInput(
           session, "sp_list",
@@ -1856,7 +1851,7 @@ launch_segmentation_app <- function(
             )
           )
 
-        if(nrow(rois_to_plot) > 0) { # todo CONTINUAR AQUI
+        if(nrow(rois_to_plot) > 0) {
           if (unique(rois_to_plot$soundscape_file) == input$soundscape_file) {
             spectro_plot <- spectro_plot +
               {
