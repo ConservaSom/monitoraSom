@@ -412,7 +412,6 @@ launch_segmentation_app <- function(
   }
   sp_labels <- dplyr::coalesce(sp_labels_custom, sp_labels_default)
 
-
   if (!sp_list %in% colnames(sp_labels)) {
     warning("The selected species list is not among the available species lists. Using the default species list.")
   }
@@ -857,7 +856,8 @@ launch_segmentation_app <- function(
                 width = 3,
                 selectizeInput(
                   "sp_list", "Available species names",
-                  choices = session_data$sp_list, width = "100%"
+                  choices = session_data$sp_list, selected = sp_list,
+                  width = "100%"
                 )
               ),
               column(
@@ -1155,7 +1155,8 @@ launch_segmentation_app <- function(
       observe({
         updateSelectizeInput(
           session, "sp_list",
-          choices = colnames(sp_labels), server = TRUE
+          choices = colnames(sp_labels), selected = sp_list,
+          server = TRUE
         )
       })
 
