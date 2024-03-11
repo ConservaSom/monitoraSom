@@ -513,16 +513,16 @@ launch_segmentation_app <- function(
   hotkeys <- c(
     "q", # delete active ROI
     "w", # zoom in time
-    # "alt+w", # todo zoom out to full soundscape duration and frequency band
+    "alt+w", # zoom out to full soundscape duration and frequency band
     "e", # store corrent selection as a ROI
     "ctrl+e", # export current ROI table
     "r", # measurements tool
     "a", # navigate backwards in in time within a sounscape
-    # "alt+a", # todo navigate to the previous soundscape
+    "z", # navigate to the previous soundscape
     "s", # zoom out in time
-    # "alt+s", # todo zoom out to full soundscape duration
+    "alt+s", # zoom out to full soundscape duration
     "d", # navigate forward in in time within a sounscape
-    # "alt+d", # todo navigate to the next soudnscape
+    "c", # navigate to the next soudnscape
     "1" # play audio of visible soundscape spectrogram
     # "2" # todo play concatenated audio of all selected rois (default to all if none selected)
   )
@@ -798,9 +798,9 @@ launch_segmentation_app <- function(
                 )
               ),
               column(
-                width = 2,
+                width = 1,
                 actionButton(
-                  "prev_soundscape_noroi", "Prev.Unsegmented",
+                  "prev_soundscape_noroi", HTML("Previous<br/>unsegmented"),
                   width = "100%",
                   icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-backward"),
                   style = "height:54px;"
@@ -809,7 +809,7 @@ launch_segmentation_app <- function(
               column(
                 width = 1,
                 actionButton(
-                  "prev_soundscape", "Prev.",
+                  "prev_soundscape", "Previous",
                   width = "100%",
                   icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-backward"),
                   style = "height:54px;"
@@ -825,12 +825,20 @@ launch_segmentation_app <- function(
                 )
               ),
               column(
-                width = 2,
+                width = 1,
                 actionButton(
-                  "next_soundscape_noroi", "Next Unsegmented",
+                  "next_soundscape_noroi", HTML("Next<br/>unsegmented"),
                   width = "100%",
                   icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-forward"),
                   style = "height:54px; width:100%"
+                )
+              ),
+              column(
+                width = 1,
+                actionButton(
+                  "no_soi", HTML("No signals<br/>of interest"),
+                  width = "100%", icon = icon("remove"),
+                  style = "height:54px;"
                 )
               ),
               column(
@@ -1533,6 +1541,29 @@ launch_segmentation_app <- function(
           }
         }
 
+        if (input$hotkeys == "alt+s") {
+          req(duration_val())
+          if (duration_val() > 60) {
+            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, 60))
+          } else {
+            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, duration_val()))
+          }
+        }
+
+        if (input$hotkeys == "alt+w") {
+          req(duration_val(), rec_soundscape())
+          if (duration_val() > 60) {
+            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, 60))
+          } else {
+            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, duration_val()))
+          }
+
+          updateNoUiSliderInput(
+            session,
+            inputId = "zoom_freq", value = c(0, (rec_soundscape()@samp.rate / 2000) - 1)
+          )
+        }
+
         if (input$hotkeys == "d") {
           tlim <- input$zoom_time
           timepad <- tlim[2] - tlim[1]
@@ -1598,6 +1629,63 @@ launch_segmentation_app <- function(
             }
           }
         }
+
+        if (input$hotkeys == "z") {
+          vec_soundscapes <- soundscape_data()$soundscape_file
+          i <- which(vec_soundscapes == input$soundscape_file)
+          if (input$nav_autosave == TRUE) {
+            if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
+              filename <- file.path(roi_tables_path_val(), input$roi_table_name)
+              data.table::fwrite(roi_values(), filename, row.names = FALSE)
+              progress_tracker$df$has_table[i] <- TRUE
+              n_done <- length(which(progress_tracker$df$has_table == TRUE))
+              n_total <- nrow(progress_tracker$df)
+              updateProgressBar(
+                session = session, id = "progress_bar",
+                value = n_done, total = n_total
+              )
+              showNotification("ROI table sucessfully exported", type = "message")
+              if (n_done == n_total) {
+                showNotification("All recordings were segmented!", type = "message")
+              }
+            }
+          }
+          if (length(vec_soundscapes) >= i & i > 1) {
+            updateSelectInput(
+              session, "soundscape_file",
+              selected = vec_soundscapes[i - 1]
+            )
+          }
+        }
+
+        if (input$hotkeys == "c") {
+          vec_soundscapes <- soundscape_data()$soundscape_file
+          i <- which(vec_soundscapes == input$soundscape_file)
+          if (input$nav_autosave == TRUE) {
+            if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
+              filename <- file.path(roi_tables_path_val(), input$roi_table_name)
+              data.table::fwrite(roi_values(), filename, row.names = FALSE)
+              progress_tracker$df$has_table[i] <- TRUE
+              n_done <- length(which(progress_tracker$df$has_table == TRUE))
+              n_total <- nrow(progress_tracker$df)
+              updateProgressBar(
+                session = session, id = "progress_bar",
+                value = n_done, total = n_total
+              )
+              showNotification("ROI table sucessfully exported", type = "message")
+              if (n_done == n_total) {
+                showNotification("All recordings were segmented!", type = "message")
+              }
+            }
+          }
+          if (length(vec_soundscapes) > i & i >= 1) {
+            updateSelectInput(
+              session, "soundscape_file",
+              selected = vec_soundscapes[i + 1]
+            )
+          }
+        }
+
       })
 
       # Play the soundscape
@@ -1737,6 +1825,62 @@ launch_segmentation_app <- function(
             }
           }
         }
+        if (length(vec_soundscapes) > i & i >= 1) {
+          updateSelectInput(
+            session, "soundscape_file",
+            selected = vec_soundscapes[i + 1]
+          )
+        }
+      })
+
+      observeEvent(input$no_soi, {
+        req(
+          roi_values(), wav_path_val(), user_val(), rec_soundscape(),
+          soundscape_data()
+        )
+        # create it
+        roi_i <- tibble(
+          soundscape_path = wav_path_val(),
+          soundscape_file = input$soundscape_file,
+          roi_user = user_val(),
+          roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+          roi_label = "no signals of interest",
+          roi_start = 0,
+          roi_end = duration_val(),
+          roi_min_freq = input$zoom_freq[1],
+          roi_max_freq = input$zoom_freq[2],
+          roi_type = NA_character_,
+          roi_label_confidence = NA_character_,
+          roi_is_complete = NA_character_,
+          roi_comment = NA_character_,
+          roi_wl = input$wl,
+          roi_ovlp = input$ovlp,
+          roi_sample_rate = rec_soundscape()@samp.rate,
+          roi_pitch_shift = input$pitch_shift
+        )
+        roi_values(roi_i)
+        # save it
+        filename <- file.path(roi_tables_path_val(), input$roi_table_name)
+        data.table::fwrite(roi_values(), filename, row.names = FALSE)
+        progress_tracker$df$has_table[
+          which(soundscape_data()$soundscape_file == input$soundscape_file)
+        ] <- TRUE
+        n_done <- length(which(progress_tracker$df$has_table == TRUE))
+        n_total <- nrow(progress_tracker$df)
+        updateProgressBar(
+          session = session, id = "progress_bar",
+          value = n_done, total = n_total
+        )
+        showNotification(
+          "ROI table sucessfully exported (marked as dissmissed)",
+          type = "message"
+        )
+        if (n_done == n_total) {
+          showNotification("All recordings were segmented!", type = "message")
+        }
+        # next
+        vec_soundscapes <- soundscape_data()$soundscape_file
+        i <- which(vec_soundscapes == input$soundscape_file)
         if (length(vec_soundscapes) > i & i >= 1) {
           updateSelectInput(
             session, "soundscape_file",
