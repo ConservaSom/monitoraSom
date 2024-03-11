@@ -1832,27 +1832,20 @@ launch_segmentation_app <- function(
         spectro_soundscape_raw(res)
       })
 
-      spectro_soundscape <- reactiveVal(NULL)
+      spectro_soundscape_base <- reactiveVal(NULL)
+      rois_to_plot <- reactiveVal(NULL)
 
       observe({
         req(
-          spectro_soundscape_raw(),
-          rec_soundscape(),
-          duration_val(),
-          roi_values()
+          input$zoom_freq, input$zoom_time, roi_values(),
+          spectro_soundscape_raw()
         )
-
         zoom_freq <- input$zoom_freq
         if (zoom_freq[1] >= zoom_freq[2]) {
           zoom_freq[2] <- zoom_freq[1] + 1
         }
         zoom_freq <- sort(zoom_freq)
         zoom_time <- input$zoom_time
-
-        selection_color <- ifelse(
-          input$color_scale %in% c("greyscale 1", "greyscale 2"),
-          "black", "white"
-        )
 
         spectro_plot <- spectro_soundscape_raw() +
           scale_x_continuous(limits = zoom_time, expand = c(0, 0)) +
@@ -1869,6 +1862,8 @@ launch_segmentation_app <- function(
           ) +
           labs(x = "Time (s)", y = "Frequency (kHz)") +
           theme(legend.position = "none")
+
+        spectro_soundscape_base(spectro_plot)
 
         rois_to_plot <- roi_values() |>
           mutate(id = row_number()) |>
@@ -1889,6 +1884,22 @@ launch_segmentation_app <- function(
               roi_min_freq < zoom_freq[1], zoom_freq[1], roi_min_freq
             )
           )
+        rois_to_plot(rois_to_plot)
+      })
+
+
+      spectro_soundscape <- reactiveVal(NULL)
+
+      observe({
+        req(spectro_soundscape_base(), rec_soundscape(), rois_to_plot())
+
+        spectro_plot <- spectro_soundscape_base()
+        rois_to_plot <- rois_to_plot()
+
+        selection_color <- ifelse(
+          input$color_scale %in% c("greyscale 1", "greyscale 2"),
+          "black", "white"
+        )
 
         if(nrow(rois_to_plot) > 0) {
           if (unique(rois_to_plot$soundscape_file) == input$soundscape_file) {
@@ -1933,8 +1944,8 @@ launch_segmentation_app <- function(
           snd_to_measure <- cutw(
             rec_soundscape(),
             f = rec_soundscape()@samp.rate,
-            from = ruler()$start, to = ruler()$end,
-            units = "seconds", output = "Wave"
+            from = ruler()$start, to = ruler()$end, units = "seconds",
+            output = "Wave"
           )
 
           dom_freq <- mean(
@@ -2380,14 +2391,14 @@ launch_segmentation_app <- function(
 
             if (nrow_unsaved > 0) {
               message_rois <- paste0(
-                "There are ", nrow_unsaved, " unsaved ROIs in the current soundscape. Consider saving before leaving the session."
+                "There are ", nrow_unsaved, " unsaved ROIs in the current soundscape. Consider saving before leaving the session. Press ESC to get back to the session or END it in the button below."
               )
             } else {
-              message_rois <- paste0("There are no unsaved ROIs in the current soundscape.")
+              message_rois <- paste0("There are no unsaved ROIs in the current soundscape. Press ESC to get back to the session or END it in the button below.")
             }
           }
         } else {
-          message_rois <- paste0("ROIs in the current soundscape are not stored in a file. Consider exporting a new one before leaving the session.")
+          message_rois <- paste0("ROIs in the current soundscape are not stored in a file. Consider exporting a new one before leaving the session. Press ESC to get back to the session or END it in the button below.")
         }
 
         # # Check if there are settings to be saved on the preset file
@@ -2432,9 +2443,10 @@ launch_segmentation_app <- function(
             message_rois,
             # message_settings,
             footer = tagList(
-              actionButton("cancel_exit", "Cancel"),
+              # actionButton("cancel_exit", "Cancel"),
               actionButton("confirm_exit", "End session")
-            )
+            ),
+            easyClose = TRUE
           )
         )
       })
