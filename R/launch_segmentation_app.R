@@ -798,7 +798,7 @@ launch_segmentation_app <- function(
                 )
               ),
               column(
-                width = 1,
+                width = 2,
                 actionButton(
                   "prev_soundscape_noroi", HTML("Previous<br/>unsegmented"),
                   width = "100%",
@@ -809,7 +809,7 @@ launch_segmentation_app <- function(
               column(
                 width = 1,
                 actionButton(
-                  "prev_soundscape", "Previous",
+                  "prev_soundscape", "Prev.",
                   width = "100%",
                   icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-backward"),
                   style = "height:54px;"
@@ -825,7 +825,7 @@ launch_segmentation_app <- function(
                 )
               ),
               column(
-                width = 1,
+                width = 2,
                 actionButton(
                   "next_soundscape_noroi", HTML("Next<br/>unsegmented"),
                   width = "100%",
@@ -834,7 +834,7 @@ launch_segmentation_app <- function(
                 )
               ),
               column(
-                width = 1,
+                width = 2,
                 actionButton(
                   "no_soi", HTML("No signals<br/>of interest"),
                   width = "100%", icon = icon("remove"),
@@ -842,7 +842,7 @@ launch_segmentation_app <- function(
                 )
               ),
               column(
-                width = 3,
+                width = 2,
                 actionButton(
                   "play_soundscape", "Play visible",
                   width = "100%", icon = icon("play"),
@@ -999,16 +999,21 @@ launch_segmentation_app <- function(
             ),
             DTOutput("res_table")
           ),
-          tabPanel(
+          tabPanel(#
             "User Manual",
-            p("Q - delete last the last created ROI"),
-            p("W - zoom in time in the spectrogram"),
+            p("Q - delete the last created ROI"),
+            p("W - zoom in on the spectrogram time axis"),
+            p("A - navigate backwards in the time axis"),
+            p("S - zoom out on the spectrogram time axis"),
+            p("D - navigate forward in the time axis"),
             p("E - store current selection as a ROI"),
+            p("R - activate/deactivate the measurement tool"),
+            p("Z - navigate to the previous soundscape"),
+            p("C - navigate to the next seoundscape"),
+            p("Alt + W - reset zoom on the spectrogram time and frequency axes"),
+            p("Alt + S - reset zoom on the spectrogram time axis"),
             p("Ctrl + E - export the current ROI table"),
-            p("A - navigate backwards in in time within a sounscape"),
-            p("S - zoom out in time"),
-            p("D - navigate forward in in time within a sounscape"),
-            p("1 - play audio of visible soundscape spectrogram"),
+            # p("1 - play audio of visible soundscape spectrogram"),
             p("Ctrl + - Zoom in the whole interface"),
             p("Ctrl - - Zoom out the whole interface")
           )
