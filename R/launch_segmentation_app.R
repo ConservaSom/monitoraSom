@@ -1981,8 +1981,8 @@ launch_segmentation_app <- function(
         spectro_soundscape_raw(res)
       })
 
-      spectro_soundscape_base <- reactiveVal(NULL)
       rois_to_plot <- reactiveVal(NULL)
+      spectro_soundscape <- reactiveVal(NULL)
 
       observe({
         req(
@@ -1995,6 +1995,11 @@ launch_segmentation_app <- function(
         }
         zoom_freq <- sort(zoom_freq)
         zoom_time <- input$zoom_time
+
+        selection_color <- ifelse(
+          input$color_scale %in% c("greyscale 1", "greyscale 2"),
+          "black", "white"
+        )
 
         spectro_plot <- spectro_soundscape_raw() +
           scale_x_continuous(limits = zoom_time, expand = c(0, 0)) +
@@ -2012,7 +2017,6 @@ launch_segmentation_app <- function(
           labs(x = "Time (s)", y = "Frequency (kHz)") +
           theme(legend.position = "none")
 
-        spectro_soundscape_base(spectro_plot)
 
         rois_to_plot <- roi_values() |>
           mutate(id = row_number()) |>
@@ -2033,24 +2037,9 @@ launch_segmentation_app <- function(
               roi_min_freq < zoom_freq[1], zoom_freq[1], roi_min_freq
             )
           )
-        rois_to_plot(rois_to_plot)
-      })
 
 
-      spectro_soundscape <- reactiveVal(NULL)
-
-      observe({
-        req(spectro_soundscape_base(), rec_soundscape(), rois_to_plot())
-
-        spectro_plot <- spectro_soundscape_base()
-        rois_to_plot <- rois_to_plot()
-
-        selection_color <- ifelse(
-          input$color_scale %in% c("greyscale 1", "greyscale 2"),
-          "black", "white"
-        )
-
-        if(nrow(rois_to_plot) > 0) {
+        if (nrow(rois_to_plot) > 0) {
           if (unique(rois_to_plot$soundscape_file) == input$soundscape_file) {
             spectro_plot <- spectro_plot +
               {
@@ -2089,7 +2078,6 @@ launch_segmentation_app <- function(
         }
 
         if (!is.null(ruler())) {
-
           snd_to_measure <- cutw(
             rec_soundscape(),
             f = rec_soundscape()@samp.rate,
@@ -2185,6 +2173,7 @@ launch_segmentation_app <- function(
         }
         spectro_soundscape(spectro_plot)
       })
+
 
       output$spectrogram_plot <- renderPlot(execOnResize = TRUE, {
         req(spectro_soundscape())
