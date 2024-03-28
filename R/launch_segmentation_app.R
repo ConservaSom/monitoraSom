@@ -61,7 +61,8 @@
 #'
 #' @export
 #' @import shiny dplyr ggplot2 lubridate seewave stringr tuneR collapse DT
-#'  shinyWidgets shinydashboard shinyFiles keys shinyjs shinyBS
+#'  shinyWidgets shinydashboard shinyFiles keys shinyjs shinyBS openxlsx
+#'  readxl
 #' @importFrom data.table fread fwrite
 #' @examples
 #' \dontrun{
@@ -400,17 +401,17 @@ launch_segmentation_app <- function(
   sp_labels_default <- sp_labels
   if (!is.null(labels_file)) {
     stopifnot(file.exists(labels_file))
-    sp_labels_custom <- readxl::read_xlsx(labels_file)
+    sp_labels_custom <- read_xlsx(labels_file)
   } else if (!is.null(project_path)) {
     sp_labels_custom <- file.path(project_path, "app_presets/sp_labels.xlsx")
     if (file.exists(sp_labels_custom)) {
-      sp_labels_custom <- readxl::read_xlsx(sp_labels_custom)
+      sp_labels_custom <- read_xlsx(sp_labels_custom)
     } else {
-      openxlsx::write.xlsx(sp_labels_default, sp_labels_custom)
+      write.xlsx(sp_labels_default, sp_labels_custom)
       sp_labels_custom <- sp_labels_default
     }
   }
-  sp_labels <- dplyr::coalesce(sp_labels_custom, sp_labels_default)
+  sp_labels <- coalesce(sp_labels_custom, sp_labels_default)
 
   if (!sp_list %in% colnames(sp_labels)) {
     warning("The selected species list is not among the available species lists. Using the default species list.")
@@ -480,10 +481,10 @@ launch_segmentation_app <- function(
               soundscape_file, ".wav|.WAV",
               paste0(
                 "_",
-                stringr::str_pad(sprintf("%.3f", round(roi_start, 3)), 7, pad = "0"), "-",
-                stringr::str_pad(sprintf("%.3f", round(roi_end, 3)), 7, pad = "0"), "s_",
-                stringr::str_pad(sprintf("%.3f", round(roi_min_freq, 3)), 6, pad = "0"), "-",
-                stringr::str_pad(sprintf("%.3f", round(roi_max_freq, 3)), 6, pad = "0"), "kHz_",
+                str_pad(sprintf("%.3f", round(roi_start, 3)), 7, pad = "0"), "-",
+                str_pad(sprintf("%.3f", round(roi_end, 3)), 7, pad = "0"), "s_",
+                str_pad(sprintf("%.3f", round(roi_min_freq, 3)), 6, pad = "0"), "-",
+                str_pad(sprintf("%.3f", round(roi_max_freq, 3)), 6, pad = "0"), "kHz_",
                 roi_wl, "wl_", roi_ovlp, "ovlp_",
                 roi_label, ".wav"
               )
@@ -493,20 +494,20 @@ launch_segmentation_app <- function(
         rowwise() %>%
         group_split()
 
-      purrr::map(
+      map(
         rois_list,
-        ~ seewave::cutw(
+        ~ cutw(
           wav,
           f = wav@samp.rate, output = "Wave",
           from = .x$roi_start, to = .x$roi_end
         ) %>%
-          seewave::savewav(filename = file.path(path, .x$cut_name))
+          savewav(filename = file.path(path, .x$cut_name))
       )
     }
   }
 
   # This function defines where embedded html wav players will look for the files
-  shiny::addResourcePath("audio", temp_path)
+  addResourcePath("audio", temp_path)
   # resourcePaths()
 
     # adicionar botao para deposito direto de paths nos caminhos
@@ -553,7 +554,7 @@ launch_segmentation_app <- function(
               ),
               tags$style(type = "text/css", "#preset_path_load { margin-top: 50px;}")
             ),
-            shinyBS::bsTooltip("preset_path",
+            bsTooltip("preset_path",
               title = "Paste the path to app acessory files here.",
               placement = "right", trigger = "hover",
               options = list(delay = list(show = 1000, hide = 0))
@@ -780,7 +781,7 @@ launch_segmentation_app <- function(
               ),
               column(
                 width = 11,
-                # shinyjqui::jqui_resizable(
+                # jqui_resizable(
                   plotOutput(
                     "spectrogram_plot", brush = "roi_limits", height = "500px" #, width = "1400px"
                   )
@@ -1022,7 +1023,7 @@ launch_segmentation_app <- function(
       skin = "black"
     ),
     server = function(input, output, session) {
-      volumes <- shinyFiles::getVolumes()()
+      volumes <- getVolumes()()
 
       # Path inputs
       shinyDirChoose(input, "soundscapes_path_load", roots = volumes)
@@ -1218,7 +1219,7 @@ launch_segmentation_app <- function(
               "Soundscape (", i, " of ", nrow(soundscape_data()), ")"
             )
           )
-          duration_val(seewave::duration(res))
+          duration_val(duration(res))
           rec_soundscape(res)
           updateNoUiSliderInput(
             session,
@@ -1255,7 +1256,7 @@ launch_segmentation_app <- function(
               res_cut@samp.rate <- res_cut@samp.rate / pitch_shift
             }
             if (isTRUE(input$visible_bp)) {
-              res_cut <- seewave::fir(
+              res_cut <- fir(
                 res_cut,
                 f = res_cut@samp.rate,
                 from = (input$zoom_freq[1] / pitch_shift) * 1000,
@@ -1270,7 +1271,7 @@ launch_segmentation_app <- function(
                 pcm <- TRUE
               )
             }
-            seewave::savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
+            savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
             removeUI(selector = "#visible_soundscape_clip_selector")
             insertUI(
               selector = "#visible_soundscape_clip", where = "afterEnd",
@@ -1293,12 +1294,12 @@ launch_segmentation_app <- function(
         x <- input$wav_player_type
         if (x == "R session") {
           updateTextInput(session, "wav_player_path", value = "play")
-          tuneR::setWavPlayer("play")
+          setWavPlayer("play")
           # todo Adicionar aqui uma opçao para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
           showElement("play_soundscape")
         } else if (x == "External player" & !is.null(input$wav_player_path)) {
           if (file.exists(input$wav_player_path)) {
-            tuneR::setWavPlayer(input$wav_player_path)
+            setWavPlayer(input$wav_player_path)
             showElement("play_soundscape")
           } else {
             updateRadioButtons(session, "wav_player_type", selected = "R session")
@@ -1604,8 +1605,8 @@ launch_segmentation_app <- function(
             !is.null(rec_soundscape()) &
               input$wav_player_type %in% c("R session", "External player")
           ) {
-            tuneR::play(
-              seewave::cutw(
+            play(
+              cutw(
                 rec_soundscape(),
                 from = input$zoom_time[1], to = input$zoom_time[2],
                 output = "Wave"
@@ -1618,7 +1619,7 @@ launch_segmentation_app <- function(
           req(roi_values(), input$roi_table_name, alt_roitabs_meta())
           if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
             filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            data.table::fwrite(roi_values(), filename, row.names = FALSE)
+            fwrite(roi_values(), filename, row.names = FALSE)
             progress_tracker$df$has_table[
               which(soundscape_data()$soundscape_file == input$soundscape_file)
             ] <- TRUE
@@ -1641,7 +1642,7 @@ launch_segmentation_app <- function(
           if (input$nav_autosave == TRUE) {
             if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
               filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-              data.table::fwrite(roi_values(), filename, row.names = FALSE)
+              fwrite(roi_values(), filename, row.names = FALSE)
               progress_tracker$df$has_table[i] <- TRUE
               n_done <- length(which(progress_tracker$df$has_table == TRUE))
               n_total <- nrow(progress_tracker$df)
@@ -1669,7 +1670,7 @@ launch_segmentation_app <- function(
           if (input$nav_autosave == TRUE) {
             if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
               filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-              data.table::fwrite(roi_values(), filename, row.names = FALSE)
+              fwrite(roi_values(), filename, row.names = FALSE)
               progress_tracker$df$has_table[i] <- TRUE
               n_done <- length(which(progress_tracker$df$has_table == TRUE))
               n_total <- nrow(progress_tracker$df)
@@ -1704,13 +1705,13 @@ launch_segmentation_app <- function(
         if (input$pitch_shift < 1) {
           rec_to_play@samp.rate <- rec_to_play@samp.rate / pitch_shift
         }
-        rec_to_play <- seewave::cutw(
+        rec_to_play <- cutw(
           rec_to_play,
           from = input$zoom_time[1] * pitch_shift, to = input$zoom_time[2] * pitch_shift,
           output = "Wave"
         )
         if (isTRUE(input$visible_bp)) {
-          rec_to_play <- seewave::fir(
+          rec_to_play <- fir(
             rec_to_play,
             f = rec_to_play@samp.rate,
             from = (input$zoom_freq[1] / pitch_shift) * 1000,
@@ -1723,7 +1724,7 @@ launch_segmentation_app <- function(
             object = rec_to_play, unit = as.character(rec_to_play@bit), pcm = TRUE #
           )
         }
-        tuneR::play(rec_to_play,player = "play")
+        play(rec_to_play,player = "play")
       })
 
       progress_tracker <- reactiveValues(df = NULL)
@@ -1744,7 +1745,7 @@ launch_segmentation_app <- function(
               )
             )
           )
-          data.table::fwrite(roi_values(), filename, row.names = FALSE)
+          fwrite(roi_values(), filename, row.names = FALSE)
           progress_tracker$df$has_table[
             which(soundscape_data()$soundscape_file == input$soundscape_file)
           ] <- TRUE
@@ -1765,7 +1766,7 @@ launch_segmentation_app <- function(
         req(roi_values(), input$roi_table_name, alt_roitabs_meta())
         if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
           filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-          data.table::fwrite(roi_values(), filename, row.names = FALSE)
+          fwrite(roi_values(), filename, row.names = FALSE)
           progress_tracker$df$has_table[
             which(soundscape_data()$soundscape_file == input$soundscape_file)
           ] <- TRUE
@@ -1788,7 +1789,7 @@ launch_segmentation_app <- function(
         if (input$nav_autosave == TRUE) {
           if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
             filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            data.table::fwrite(roi_values(), filename, row.names = FALSE)
+            fwrite(roi_values(), filename, row.names = FALSE)
             progress_tracker$df$has_table[i] <- TRUE
             n_done <- length(which(progress_tracker$df$has_table == TRUE))
             n_total <- nrow(progress_tracker$df)
@@ -1816,7 +1817,7 @@ launch_segmentation_app <- function(
         if (input$nav_autosave == TRUE) {
           if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
             filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            data.table::fwrite(roi_values(), filename, row.names = FALSE)
+            fwrite(roi_values(), filename, row.names = FALSE)
             progress_tracker$df$has_table[i] <- TRUE
             n_done <- length(which(progress_tracker$df$has_table == TRUE))
             n_total <- nrow(progress_tracker$df)
@@ -1866,7 +1867,7 @@ launch_segmentation_app <- function(
         roi_values(roi_i)
         # save it
         filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-        data.table::fwrite(roi_values(), filename, row.names = FALSE)
+        fwrite(roi_values(), filename, row.names = FALSE)
         progress_tracker$df$has_table[
           which(soundscape_data()$soundscape_file == input$soundscape_file)
         ] <- TRUE
@@ -1908,7 +1909,7 @@ launch_segmentation_app <- function(
             vec_soundscapes <- soundscape_data()$soundscape_file
             i <- which(vec_soundscapes == input$soundscape_file)
             filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            data.table::fwrite(roi_values(), filename, row.names = FALSE)
+            fwrite(roi_values(), filename, row.names = FALSE)
             progress_tracker$df$has_table[i] <- TRUE
             n_done <- length(which(progress_tracker$df$has_table == TRUE))
             n_total <- nrow(progress_tracker$df)
@@ -1944,7 +1945,7 @@ launch_segmentation_app <- function(
             vec_soundscapes <- soundscape_data()$soundscape_file
             i <- which(vec_soundscapes == input$soundscape_file)
             filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            data.table::fwrite(roi_values(), filename, row.names = FALSE)
+            fwrite(roi_values(), filename, row.names = FALSE)
             progress_tracker$df$has_table[i] <- TRUE
             n_done <- length(which(progress_tracker$df$has_table == TRUE))
             n_total <- nrow(progress_tracker$df)
@@ -2094,7 +2095,7 @@ launch_segmentation_app <- function(
             )[, 2]
           )
 
-          ac_stats <- seewave::acoustat(
+          ac_stats <- acoustat(
             snd_to_measure,
             f = snd_to_measure@samp.rate, wl = input$wl, ovlp = input$ovlp,
             fraction = 80, plot = FALSE,
@@ -2219,7 +2220,7 @@ launch_segmentation_app <- function(
           input$res_table_cell_edit$value
         roi_values(df)
         if (input$nav_autosave == TRUE) {
-          data.table::fwrite(
+          fwrite(
             roi_values(), file.path(roi_tables_path_val(), input$roi_table_name),
             row.names = FALSE
           )
@@ -2606,101 +2607,101 @@ launch_segmentation_app <- function(
       pop_up_opt <- list(delay = list(show = 1000, hide = 0))
 
       # Side bar menu - User setup
-      # shinyBS::addTooltip(session,
+      # addTooltip(session,
       #   id = "available_presets",
       #   title = "Select a preset or type a new name to create a new one.",
       #   placement = "right", trigger = "hover", options = pop_up_opt
       # )
-      # shinyBS::addTooltip(session,
+      # addTooltip(session,
       #   id = "import_preset",
       #   title = "Apply stored settings to the current session",
       #   placement = "right", trigger = "hover", options = pop_up_opt
       # )
-      # shinyBS::addTooltip(session,
+      # addTooltip(session,
       #   id = "export_preset",
       #   title = "Store the current session settings to a preset file. Existing files will be overwritten",
       #   placement = "right", trigger = "hover", options = pop_up_opt
       # )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "user",
         title = "Identify yourself in the recommended format: 'Rosa G. L. M. (avoid commas)",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "soundscapes_path",
         title = "Parent location that contains only template files or folders of these",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "roi_tables_path",
         title = "Path to the location where ROI tables will be exported to",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "cuts_path",
         title = "Path to the location where audio cuts and spectrograms will be exported to",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "user_setup_confirm",
         title = "Setup confirmation required to start the segmentation",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
 
       #  # Side bar menu - Session setup
-      # shinyBS::addTooltip(
+      # addTooltip(
       #   session,
       #   id = "fastdisp",
       #   title = "Requires que 'fftw' package",
       #   placement = "right", trigger = "hover", options = pop_up_opt
       # )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "label_angle",
         title = "Adjust the angle of labels in the spectrogram. Recommended 90º for a less cluttering.",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "wl",
         title = "Tradeoff between time and frequency resolution",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "ovlp",
         title = "Increase if more resultion is needed. Performance may decrease for values above 80%",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "pitch_shift",
         title = "Adjust the pitch of ultrasound recordings to improve visualization",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
 
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "dyn_range",
         title = "Adjust what portion of the amplitude scale is shown in the spectrograms",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "show_label",
         title = "Show the label alongside the ROI. Hide in case of ROI cluttering",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "color_scale",
         title = "Available palettes for representing spectrogram colors",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "wav_player_type",
         title = "Select the method to play wav files",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "wav_player_path",
         title = "Necessary when 'External plyer' is selected. If the executable is not available, 'HTML player' will be automatically selected",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "default_pars",
         title = "Set spectrogram parameters back to the default",
         placement = "right", trigger = "hover", options = pop_up_opt
@@ -2708,12 +2709,12 @@ launch_segmentation_app <- function(
 
       # Body - Spectrogram parameters
 
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "zoom_freq",
         title = "Zoom in, zoom out and slide to navigate in the fdrequency axis (affects exported spectrograms)",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "zoom_time",
         title = "Zoom in, zoom out and slide to navigate in the time axis",
         placement = "bottom", trigger = "hover", options = pop_up_opt
@@ -2721,27 +2722,27 @@ launch_segmentation_app <- function(
 
       # Box - Soundscape spectrogram
 
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "prev_soundscape_noroi",
         title = "Navigate to the previous soundscape",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "prev_soundscape",
         title = "Navigate to the previous soundscape without ROIs",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "play_soundscape",
         title = "Play visible portion of the soundscape",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "next_soundscape",
         title = "Navigate to the next soundscape",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "next_soundscape_noroi",
         title = "Navigate to the next soundscape without ROIs",
         placement = "bottom", trigger = "hover", options = pop_up_opt
@@ -2749,42 +2750,42 @@ launch_segmentation_app <- function(
 
       # Box - Setup and Input
 
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "soundscape_file",
         title = "Select one of the available soundscapes",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "roi_table_name",
         title = "Alternative ROI tables available for the selected soundscape",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "sp_list",
         title = "Select available lists of labels for autocompletion",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "label_name",
         title = "Label the content of the next roi",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "signal_type",
         title = "Identify the signal type",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "label_certainty",
         title = "Inform the certainty level for the label",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "signal_is_complete",
         title = "Inform if the entire target signal is clearly within ROI limits",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "label_comment",
         title = 'Provide additional information (avoid "quotation marks" and separate different fields of content with "_" or ";") ',
         placement = "bottom", trigger = "hover", options = pop_up_opt
@@ -2792,22 +2793,22 @@ launch_segmentation_app <- function(
 
       # Box - ROI table
 
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "save_roi",
         title = "Export the changes made to the currently active ROI table",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "export_new_roi_table",
         title = "Export new ROI table",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "export_selected_cut",
         title = "Export audio cuts of the ROIs selected in the table below",
         placement = "bottom", trigger = "hover", options = pop_up_opt
       )
-      shinyBS::addTooltip(session,
+      addTooltip(session,
         id = "delete_selected_rois",
         title = "Delete the ROIs selected in the table below",
         placement = "bottom", trigger = "hover", options = pop_up_opt

@@ -10,7 +10,8 @@ roxygen2::roxygenise(clean = TRUE)
 document()
 build()
 check()
-devtools::install()
+devtools::install(dependencies = FALSE)
+
 
 
 
