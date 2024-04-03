@@ -737,6 +737,7 @@ launch_segmentation_app <- function(
         # Spectrogram box and time zoom slider
         box(
             width = "100%", height = "100%",
+            # verbatimTextOutput("checagem1"),
             fluidRow(
               column(
                 width = 5,
@@ -1212,6 +1213,14 @@ launch_segmentation_app <- function(
 
         if (!is.null(wav_path) & length(wav_path) == 1) {
           res <- readWave(wav_path)
+          duration_val(duration(res))
+
+          updateNoUiSliderInput(
+            session,
+            inputId = "zoom_time",
+            range = c(0, duration_val()),
+            value = c(0, ifelse(duration_val() >= 60, 60, duration_val()))
+          )
           updateSelectizeInput(
             session,
             inputId = "soundscape_file",
@@ -1219,19 +1228,12 @@ launch_segmentation_app <- function(
               "Soundscape (", i, " of ", nrow(soundscape_data()), ")"
             )
           )
-          duration_val(duration(res))
-          rec_soundscape(res)
-          updateNoUiSliderInput(
-            session,
-            inputId = "zoom_time",
-            range = c(0, duration_val()),
-            value = c(0, ifelse(duration_val() >= 60, 60, duration_val()))
-          )
           updateNoUiSliderInput(
             session,
             inputId = "zoom_freq",
             range = c(0, (res@samp.rate / 2000) - 1)
           )
+          rec_soundscape(res)
         }
       })
 
@@ -1967,6 +1969,8 @@ launch_segmentation_app <- function(
         }
       })
 
+      # Spectrogram ----------------------------------------------------------------
+
       spectro_soundscape_raw <- reactiveVal(NULL)
       observe({
         req(
@@ -1982,13 +1986,16 @@ launch_segmentation_app <- function(
         spectro_soundscape_raw(res)
       })
 
-      rois_to_plot <- reactiveVal(NULL)
-      spectro_soundscape <- reactiveVal(NULL)
+      # # IN case necessary, process the spectrogram outside of the output object
+      # rois_to_plot <- reactiveVal(NULL)
+      # spectro_soundscape <- reactiveVal(NULL)
+      # observe({
+      # })
 
-      observe({
+      output$spectrogram_plot <- renderPlot(execOnResize = TRUE, {
         req(
           input$zoom_freq, input$zoom_time, roi_values(),
-          spectro_soundscape_raw()
+          spectro_soundscape_raw(), rec_soundscape(), duration_val()
         )
         zoom_freq <- input$zoom_freq
         if (zoom_freq[1] >= zoom_freq[2]) {
@@ -2001,10 +2008,13 @@ launch_segmentation_app <- function(
           input$color_scale %in% c("greyscale 1", "greyscale 2"),
           "black", "white"
         )
+        # Sys.sleep(0.3)
+
 
         spectro_plot <- spectro_soundscape_raw() +
-          scale_x_continuous(limits = zoom_time, expand = c(0, 0)) +
-          scale_y_continuous(limits = zoom_freq, expand = c(0, 0)) +
+          coord_cartesian(
+            xlim = zoom_time, ylim = zoom_freq
+          ) +
           annotate(
             "label",
             label = paste0(
@@ -2023,20 +2033,6 @@ launch_segmentation_app <- function(
           mutate(id = row_number()) |>
           fsubset(
             roi_start < zoom_time[2] & roi_end > zoom_time[1]
-          ) |>
-          fmutate(
-            roi_start = ifelse(
-              roi_start < zoom_time[1], zoom_time[1], roi_start
-            ),
-            roi_end = ifelse(
-              roi_end > zoom_time[2], zoom_time[2], roi_end
-            ),
-            roi_max_freq = ifelse(
-              roi_max_freq > zoom_freq[2], zoom_freq[2], roi_max_freq
-            ),
-            roi_min_freq = ifelse(
-              roi_min_freq < zoom_freq[1], zoom_freq[1], roi_min_freq
-            )
           )
 
 
@@ -2172,13 +2168,9 @@ launch_segmentation_app <- function(
               yend = c(ac_stats$f10, ac_stats$f90, ruler()$max_freq, ruler()$max_freq)
             )
         }
-        spectro_soundscape(spectro_plot)
-      })
 
 
-      output$spectrogram_plot <- renderPlot(execOnResize = TRUE, {
-        req(spectro_soundscape())
-        spectro_soundscape()
+        spectro_plot
       })
 
       output$res_table <- renderDT(
@@ -2598,9 +2590,8 @@ launch_segmentation_app <- function(
 
       # teste_val <- reactiveVal(NULL)
       # output$checagem1 <- renderPrint({
-      #   req(session_settings())
-      #   list(session_data, session_settings()) %>%
-      #     glimpse()
+      #   req(duration_val())
+      #   duration_val()
       # })
 
       # General popover options
