@@ -50,7 +50,7 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
     get_metadata_safely <- safely(
       function(x) {
         res <- as.data.frame(readWave(x, header = TRUE))
-        res$path <- x
+        res$template_path <- x
         return(res)
       }
     )
@@ -60,11 +60,12 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
       ~ get_metadata_safely(.x)$result
     ) %>%
       collapse::fmutate(
-        template_path = path,
-        template_file = basename(path),
-        template_name = basename(path),
-        template_label = tail(
-          unlist(strsplit(gsub(".WAV|.wav", "", basename(path)), split = "_")), 1
+        template_path = template_path,
+        template_file = basename(template_path),
+        template_name = basename(template_path),
+        template_label = gsub(
+            ".WAV|.wav", "",
+            purrr::map(stringr::str_split(template_path, "_"), tail, 1)
         ),
         template_start = 0,
         template_end = samples / sample.rate,
