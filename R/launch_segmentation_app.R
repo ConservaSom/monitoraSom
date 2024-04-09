@@ -743,7 +743,8 @@ launch_segmentation_app <- function(
                 width = 5,
                 selectizeInput(
                   "soundscape_file", "Soundscape (0 of 0)",
-                  choices = NULL, width = "100%"
+                  choices = NULL, width = "100%",
+                  options = list(maxOptions = 10000)
                 )
               ),
               column(
