@@ -42,7 +42,7 @@
 #'   from the template are added to the beginning and end of the
 #'
 #' @export
-#' @import dplyr future pbapply foreach parabar progressr
+#' @import dplyr future pbapply foreach parabar progressr furrr purrr
 #' @importFrom furrr future_map
 #' @importFrom purrr list_rbind
 match_n <- function(
@@ -51,8 +51,8 @@ match_n <- function(
   grid_list <- group_split(rowwise(df_grid))
 
   if (par_strat %in% c("future", "foreach")) {
-    handlers(
-      handler_pbcol(
+    progressr::handlers(
+      progressr::handler_pbcol(
         adjust = 1.0,
         complete = function(s) cli::bg_cyan(cli::col_black(s)),
         incomplete = function(s) cli::bg_red(cli::col_black(s))
@@ -88,27 +88,32 @@ match_n <- function(
 
   if (par_strat == "foreach") {
       if (ncores > 1) {
-        cl <- makeCluster(ncores)
+        require(future)
+        require(progressr)
+        require(doParallel)
+        cl <- parallel::makeCluster(ncores)
         plan(cluster, workers = cl)
         with_progress({
-          p <- progressor(along = 1:length(grid_list)) # iniciando a barra
+          p <- progressor(
+            along = 1:length(grid_list)
+          ) # iniciando a barra
           res <- foreach(i = 1:length(grid_list), .combine = rbind) %dopar% {
-            source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
-            # source("C:/R_repos/monitoraSom/R/match_i.R")
             require(parallel)
-            require(doParallel)
             require(foreach)
             require(dplyr)
             p(message = "Template matching")
-            res <- match_i(grid_list[[i]], score_method = score_method)
+            res <- monitoraSom::match_i(
+              grid_list[[i]],
+              score_method = score_method
+            )
             return(res)
           }
         })
         # todo Adicionar método para parar os clusters no caso de interrupção do processo
-        stopCluster(cl)
       } else {
         stop("The number of cores must be greater than 1")
       }
+      stopCluster(cl)
   }
 
   if (par_strat == "pbapply") {

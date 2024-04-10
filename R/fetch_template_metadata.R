@@ -49,7 +49,7 @@ fetch_template_metadata <- function(path, recursive = TRUE, method = "standalone
 
     get_metadata_safely <- safely(
       function(x) {
-        res <- as.data.frame(readWave(x, header = TRUE))
+        res <- as.data.frame(tuneR::readWave(x, header = TRUE))
         res$template_path <- x
         return(res)
       }
