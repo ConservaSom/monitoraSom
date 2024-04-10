@@ -93,14 +93,14 @@ match_n <- function(
         with_progress({
           p <- progressor(along = 1:length(grid_list)) # iniciando a barra
           res <- foreach(i = 1:length(grid_list), .combine = rbind) %dopar% {
-            source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
+            # source("/home/grosa/R_repos/monitoraSom/R/match_i.R")
             # source("C:/R_repos/monitoraSom/R/match_i.R")
             require(parallel)
             require(doParallel)
             require(foreach)
             require(dplyr)
             p(message = "Template matching")
-            res <- match_i(grid_list[[i]], score_method = score_method)
+            res <- monitoraSom::match_i(grid_list[[i]], score_method = score_method)
             return(res)
           }
         })

@@ -56,6 +56,7 @@ use_package("tidyr")
 use_package("tuneR")
 use_package("viridis")
 use_package("readxl")
+use_package("openxlsx")
 
 # Documentation ----------------------------------------------------
 document()
