@@ -333,10 +333,13 @@ launch_segmentation_app <- function(
     if (all(is.numeric(zoom_freq))) {
       if (zoom_freq[1] < zoom_freq[2]) {
         if (zoom_freq[1] >= 0 & zoom_freq[2] <= 180) {
-          if (zoom_freq[1] %% 1 == 0 & zoom_freq[2] %% 1 == 0) {
-            session_data$zoom_freq <- zoom_freq
-          } else {
-            stop("Error! 'zoom_freq' must be an integer.")
+          # round to .5 intervals
+          session_data$zoom_freq <- round(zoom_freq * 2) / 2
+          if (any(session_data$zoom_freq != zoom_freq)) {
+            warning(
+              "Warning! The values of 'zoom_freq' were rounded to the nearest 0.5 interval. The values are now: ",
+              session_data$zoom_freq[1], " and ", session_data$zoom_freq[2]
+            )
           }
         } else {
           stop("Error! 'zoom_freq' must be between 0 and 180.")
@@ -775,9 +778,9 @@ launch_segmentation_app <- function(
                 width = 1,
                 noUiSliderInput(
                   "zoom_freq", "kHz",
-                  min = 0, max = 180, step = 1, value = session_data$zoom_freq,
+                  min = 0, max = 180, step = 0.5, value = session_data$zoom_freq,
                   direction = "rtl", orientation = "vertical", width = "100px",
-                  height = "25vh", behaviour = "drag", format = wNumbFormat(decimals = 0),
+                  height = "25vh", behaviour = "drag", format = wNumbFormat(decimals = 1),
                   update_on = "end"
                 )
               ),
@@ -2119,7 +2122,7 @@ launch_segmentation_app <- function(
             ) +
             annotate(
               "text",
-              alpha = 1, color = "yellow",
+              alpha = 1, color = "yellow", size = 4,
               hjust = c(
                 "right", "right", "right", "right", "right", "right", "left"
               ),

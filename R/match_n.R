@@ -62,6 +62,19 @@ match_n <- function(
 
   # todo Adicionar ponto de checagem para a quantidade de nucleos disponíveis quando processamento paralelo for solicitado
 
+  if (par_strat == "parallel") {
+    require(parallel)
+    if (is.null(ncores)) ncores <- detectCores() - 1
+    match_i <- monitoraSom::match_i
+    cl <- parallel::makeCluster(ncores)
+    plan(cluster, workers = cl)
+    clusterExport(cl, "match_i")
+    df_grid_ls <- group_split(rowwise(df_grid))
+    res_list <- parLapply(cl = cl, df_grid_ls, match_i)
+    stopCluster(cl)
+    res <- list_rbind(res_list)
+  }
+
   if (par_strat == "future") {
     match_i_wrap <- function(grid_list, score_method) {
       p <- progressor(along = grid_list)
