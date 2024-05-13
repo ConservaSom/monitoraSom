@@ -677,7 +677,7 @@ launch_segmentation_app <- function(
             ),
             radioButtons(
               "wav_player_type", "Sound player",
-              choices = c("HTML player", "R session", "External player"),
+              choices = c("HTML player", "External player", "R session"),
               selected = session_data$wav_player_type, inline = TRUE
             ),
             checkboxInput(
@@ -707,16 +707,6 @@ launch_segmentation_app <- function(
               style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
             )
           )
-          # ,
-          # menuItem(
-          #   "Session Notes",
-          #   icon = icon(lib = "glyphicon", "glyphicon glyphicon-pencil"),
-          #   tabName = "tab_notes",
-          #   textAreaInput("session_notes", "Session notes",
-          #     value = session_data$session_notes, placeholder = "Write session notes here", width = "100%",
-          #     height = "150px", resize = "vertical"
-          #   )
-          # )
         ),
         actionButton(
           "end_session", "End Session",
@@ -855,7 +845,7 @@ launch_segmentation_app <- function(
                   style = "height:54px;"
                 )
               ),
-              column(
+              column( # activate when the R session player is ready
                 width = 2,
                 actionButton(
                   "play_soundscape", "Play visible",
@@ -863,7 +853,7 @@ launch_segmentation_app <- function(
                   style = "height:54px;"
                 ),
                 tags$div(id = "visible_soundscape_clip") # set the location of the html player
-              ),
+              )
             )
           ),
         tabBox(
@@ -2303,16 +2293,16 @@ launch_segmentation_app <- function(
       # todo update here
       observeEvent(input$default_pars, {
         req(rec_soundscape())
-        updateSliderInput(session, inputId = "dyn_range", value = c(0, 50))
-        updateSliderTextInput(session, inputId = "wl", selected = 1024)
-        updateSliderInput(session, inputId = "ovlp", value = 0)
-        updateSelectInput(session, inputId = "color_scale", selected = "inferno")
-        updateSliderInput(session, inputId = "label_angle", value = 90)
-        updateCheckboxInput(session, inputId = "show_label", value = TRUE)
-        updateRadioButtons(session, inputId = "wav_player_type", selected = "R session")
-        updateNoUiSliderInput(session, inputId = "zoom_freq", value = c(0, 180))
-        updateCheckboxInput(session, inputId = "nav_autosave", value = TRUE)
-        updateSliderTextInput(session, inputId = "pitch_shift", selected = 1)
+        updateSliderInput(session, inputId = "dyn_range", value = session_data$dyn_range)
+        updateSliderTextInput(session, inputId = "wl", selected = session_data$wl)
+        updateSliderInput(session, inputId = "ovlp", value = session_data$ovlp)
+        updateSelectInput(session, inputId = "color_scale", selected = session_data$color_scale)
+        updateSliderInput(session, inputId = "label_angle", value = session_data$label_angle)
+        updateCheckboxInput(session, inputId = "show_label", value = session_data$show_label)
+        updateRadioButtons(session, inputId = "wav_player_type", selected = session_data$wav_player_type)
+        updateNoUiSliderInput(session, inputId = "zoom_freq", value = session_data$zoom_freq)
+        updateCheckboxInput(session, inputId = "nav_autosave", value = session_data$nav_autosave)
+        updateSliderTextInput(session, inputId = "pitch_shift", selected = session_data$pitch_shift)
       })
 
       session_settings <- reactiveVal(NULL)
