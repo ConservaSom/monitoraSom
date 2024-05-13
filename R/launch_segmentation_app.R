@@ -2146,34 +2146,37 @@ launch_segmentation_app <- function(
               ymin = ruler()$min_freq, ymax = ruler()$max_freq
             ) +
             annotate(
-              "text",
-              alpha = 1, color = "yellow", size = 4,
+              "label",
+              alpha = 1, color = "black",
               hjust = c(
-                "right", "right", "right", "right", "right", "right", "left"
+                "right", "right", "right", "right", "right", "left"
               ),
               vjust = c(
-                "top", "top", "bottom", "bottom", "top", "top", "center"
+                "top", "bottom", "bottom", "top", "top", "center"
               ),
+              size = rep(5, 6),
               angle = c(
-                30, 90, 0, 0, 90, 0, 0
+                90, 0, 0, 90, 0, 0
               ),
               x = c(
-                ruler()$start, ruler()$end,
+                ruler()$end,
                 ruler()$start, ruler()$start,
                 ruler()$end - (ruler()$duration / 2),
                 ruler()$start, ruler()$end
               ),
               y = c(
-                ruler()$min_freq, ruler()$min_freq,
+                ruler()$min_freq,
                 ruler()$min_freq, ruler()$max_freq,
                 ruler()$min_freq,
                 ruler()$max_freq - (ruler()$bandwidth / 2),
                 dom_freq
               ),
               label = c(
-                paste0("t0=", round(ruler()$start, 3)),
                 paste0("t=", round(ruler()$end, 3)),
-                paste0("f0=", round(ruler()$min_freq, 3)),
+                paste0(
+                  "f0=", round(ruler()$min_freq, 3), "\n",
+                  "t0=", round(ruler()$start, 3)
+                ),
                 paste0("f=", round(ruler()$max_freq, 3)),
                 paste0("d=", round(ruler()$duration, 3)),
                 paste0("bw=", round(ruler()$bandwidth, 3)),
