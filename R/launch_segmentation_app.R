@@ -743,7 +743,7 @@ launch_segmentation_app <- function(
             # verbatimTextOutput("checagem1"),
             fluidRow(
               column(
-                width = 5,
+                width = 4,
                 selectizeInput(
                   "soundscape_file", "Soundscape (0 of 0)",
                   choices = NULL, width = "100%",
@@ -751,10 +751,18 @@ launch_segmentation_app <- function(
                 )
               ),
               column(
-                width = 7,
+                width = 6,
                 selectizeInput(
                   "roi_table_name", "Active ROI table",
                   choices = NULL, width = "100%"
+                )
+              ),
+              column(
+                width = 2,
+                selectizeInput(
+                  "sp_list", "Available species names",
+                  choices = session_data$sp_list, selected = sp_list,
+                  width = "100%"
                 )
               )
             ),
@@ -867,20 +875,12 @@ launch_segmentation_app <- function(
               column(
                 width = 3,
                 selectizeInput(
-                  "sp_list", "Available species names",
-                  choices = session_data$sp_list, selected = sp_list,
-                  width = "100%"
-                )
-              ),
-              column(
-                width = 3,
-                selectizeInput(
                   "label_name", "Label",
                   choices = NULL, selected = NULL, width = "100%"
                 )
               ),
               column(
-                width = 2,
+                width = 3,
                 selectizeInput(
                   "signal_type", "Type",
                   choices = c(
@@ -931,11 +931,15 @@ launch_segmentation_app <- function(
                   "label_certainty", "ID certainty",
                   width = "100%",
                   choices = c("certain", "uncertain"),
-                  options = list(
-                    placeholder = "ex.: certain",
-                    onInitialize = I('function() { this.setValue(""); }'),
-                    "create" = TRUE, "persist" = FALSE
-                  )
+                  selected = "certain"
+                )
+              ),
+              column(
+                width = 1,
+                checkboxInput(
+                  "lock_label_certainty",
+                  label = icon(lib = "glyphicon", "glyphicon glyphicon-lock"),
+                  value = FALSE
                 )
               ),
               column(
@@ -944,21 +948,33 @@ launch_segmentation_app <- function(
                   "signal_is_complete", "Complete",
                   width = "100%",
                   choices = c("complete", "incomplete"),
-                  options = list(
-                    placeholder = "ex.: complete",
-                    onInitialize = I('function() { this.setValue(""); }'),
-                    "create" = TRUE, "persist" = FALSE
-                  )
+                  selected = "complete"
+                )
+              ),
+              column(
+                width = 1,
+                checkboxInput(
+                  "lock_is_complete",
+                  label = icon(lib = "glyphicon", "glyphicon glyphicon-lock"),
+                  value = FALSE
                 )
               )
             ),
             fluidRow(
               column(
-                width = 12,
+                width = 11,
                 textInput(
                   "label_comment", "Additional comments",
                   value = NULL, placeholder = "Type comments here",
                   width = "100%"
+                )
+              ),
+              column(
+                width = 1,
+                checkboxInput(
+                  "lock_comment",
+                  label = icon(lib = "glyphicon", "glyphicon glyphicon-lock"),
+                  value = FALSE
                 )
               )
             ),
@@ -1511,6 +1527,16 @@ launch_segmentation_app <- function(
           }
         }
 
+        if (input$lock_label_certainty == FALSE) {
+          updateSelectInput(session, "label_certainty", selected = "certain")
+        }
+        if (input$lock_is_complete == FALSE) {
+          updateSelectInput(session, "signal_is_complete", selected = "complete")
+        }
+        if (input$lock_comment == FALSE) {
+          updateTextInput(session, "label_comment", value = NA)
+        }
+
         if (input$hotkeys == "r") {
           if (is.null(ruler())) {
             res <- data.frame(
@@ -1697,7 +1723,6 @@ launch_segmentation_app <- function(
             )
           }
         }
-
       })
 
       # Play the soundscape

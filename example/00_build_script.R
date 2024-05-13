@@ -4,13 +4,15 @@
 # library(available)
 # library(roxygen2)
 
+install.packages("devtools")
 library(devtools)
+devtools::install()
+
 load_all()
 roxygen2::roxygenise(clean = TRUE)
 document()
 build()
 check()
-devtools::install()
 
 
 
