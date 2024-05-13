@@ -2134,8 +2134,7 @@ launch_segmentation_app <- function(
               t90 = time.P2,
               f10 = freq.P1,
               f90 = freq.P2
-            ) %>%
-            glimpse()
+            )
 
           spectro_plot <- spectro_plot +
             annotate(
