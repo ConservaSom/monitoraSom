@@ -796,127 +796,138 @@ launch_validation_app <- function(
         # box(width = 6, verbatimTextOutput("checagem2")),
 
         box(
-          width = 1, height = "450px",
-          noUiSliderInput(
-            "zoom_freq", "Frequency zoom",
-            min = 0, max = 18, step = 1, direction = "rtl",
-            orientation = "vertical", width = "100px", height = "300px",
-            value = session_data$zoom_freq
+          width = 12, height = "550px",
+          splitLayout(
+            cellWidths = c("6%", "94%"),
+            noUiSliderInput(
+              "zoom_freq", "Frequency zoom",
+              min = 0, max = 18, step = 1, direction = "rtl",
+              orientation = "vertical", width = "100px", height = "425px",
+              value = session_data$zoom_freq
+            ),
+            column(
+              width = 12,
+              column(
+                width = 6,
+                plotOutput("TemplateSpectrogram", height = "475px"),
+                tags$div(id = "template_player"),
+                actionButton(
+                  "play_template", "Play Template (1)",
+                  icon = icon("play"), width = "100%", style = "height:50px"
+                )
+              ),
+              column(
+                width = 6,
+                plotOutput("DetectionSpectrogram", height = "475px"),
+                column(
+                  width = 8, offset = 0,
+                  tags$div(id = "detection_player"),
+                  actionButton(
+                    "play_detec", "Play Detection (2)",
+                    icon = icon("play"), width = "100%", style = "height:50px"
+                  )
+                ),
+                column(
+                  width = 4, offset = 0,
+                  actionButton(
+                    "prev_detec", "",
+                    icon = icon("backward", lib = "font-awesome"),
+                    width = "45%", style = "height:50px"
+                  ),
+                  actionButton(
+                    "next_detec", "",
+                    icon = icon("forward", lib = "font-awesome"),
+                    width = "45%", style = "height:50px"
+                  )
+                )
+              )
+            )
           )
         ),
         box(
-          width = 4, height = "475px",
-          title = "Template Spectrogram", status = "success", solidHeader = TRUE,
-          plotOutput("TemplateSpectrogram", height = "350px"),
+          width = 12,
           column(
-            width = 9,
+            width = 3,
             actionButton(
-              "play_template", "Play Template (1)",
-              icon = icon("play"), width = "100%", style = "height:50px"
-            ),
-            tags$div(id = "template_player")
-          )
-        ),
-        box(
-          width = 4, height = "475px",
-          title = "Detection Spectrogram", status = "success", solidHeader = TRUE,
-          plotOutput("DetectionSpectrogram", height = "350px"),
-          column(
-            width = 9,
-            tags$div(id = "detection_player"),
-            actionButton(
-              "play_detec", "Play Detection (2)",
-              icon = icon("play"), width = "100%", style = "height:50px"
+              "button_tp",
+              HTML("<b>TRUE POSITIVE (Q)</b>"),
+              icon = icon("check", lib = "font-awesome"),
+              width = "100%", style =
+                "color: #000000; background-color: #6ae46a; height: 55px" #
             )
           ),
           column(
-            width = 3, offset = 0, style = "padding:0px;",
+            width = 3,
             actionButton(
-              "prev_detec", "",
-              icon = icon("backward", lib = "font-awesome"),
-              width = "45%", style = "height:50px"
-            ),
+              "button_un", HTML("<b>UNKNOWN (W)</b>"),
+              icon = icon("question", lib = "font-awesome"),
+              width = "100%", style =
+                "color: #000000; background-color: #ffba52; height: 55px" #
+            )
+          ),
+          column(
+            width = 3,
             actionButton(
-              "next_detec", "",
-              icon = icon("forward", lib = "font-awesome"),
-              width = "45%", style = "height:50px"
-            )
-          )
-        ),
-        box(
-          width = 3, height = "475px",
-          title = "Validation Input", status = "success", solidHeader = TRUE,
-          disabled( # todo: enable this
-            selectizeInput(
-              "soundscape_file", "Soundscape file",
-              choices = NULL, width = "100%"
+              "button_fp",
+              HTML("<b>FALSE POSITIVE (E)</b>"),
+              icon = icon("x", lib = "font-awesome"),
+              width = "100%", style =
+                "color: #000000; background-color: #ff7e7e; height: 55px" #
             )
           ),
-          fluidRow(
-            column(
-              width = 4,
-              selectInput("detec", "Detection ID", choices = NULL, width = "100%")
-            ),
-            column(
-              width = 4,
-              numericInput("seed", "Seed", value = session_data$seed)
-            ),
-            column(
-              width = 4,
-              checkboxInput(
-                "nav_shuffle", HTML("<b>Shuffle</b>"),
-                value = session_data$nav_shuffle
+          column(
+            width = 3,
+            actionButton(
+              "button_save", HTML("<b>Export output</b>"),
+              icon = icon("save", lib = "font-awesome"),
+              width = "100%", style =
+                "color: #ffffff; background-color: #000000; height: 55px" #
+            )
+          ),
+          column(
+            width = 4,
+            disabled( # todo: enable this
+              selectizeInput(
+                "soundscape_file", "Soundscape file",
+                choices = NULL, width = "100%"
               )
             )
           ),
-          fluidRow(
-            column(
-              width = 4,
-              checkboxInput(
-                "auto_next", HTML("<b>Autonavigate</b>"),
-                value = session_data$auto_next
-              )
-            ),
-            column(
-              width = 4,
-              checkboxInput(
-                "overwrite", HTML("<b>Overwrite</b>"),
-                value = session_data$overwrite
-              )
-            ),
-            column(
-              width = 4,
-              checkboxInput(
-                "nav_autosave", HTML("<b>Autosave</b>"),
-                value = session_data$nav_autosave
-              )
+          column(
+            width = 2,
+            selectInput("detec", "Detection ID", choices = NULL, width = "100%")
+          ),
+          column(
+            width = 2,
+            numericInput("seed", "Seed", value = session_data$seed)
+          ),
+          column(
+            width = 1,
+            checkboxInput(
+              "nav_shuffle", HTML("<b>Shuffle</b>"),
+              value = session_data$nav_shuffle
             )
           ),
-          actionButton(
-            "button_tp",
-            HTML("<b>TRUE POSITIVE</b>"),
-            icon = icon("check", lib = "font-awesome"),
-            width = "100%", style =
-              "color: #000000; background-color: #6ae46a; height: 55px" #
+          column(
+            width = 1,
+            checkboxInput(
+              "auto_next", HTML("<b>Autonavigate</b>"),
+              value = session_data$auto_next
+            )
           ),
-          actionButton(
-            "button_un", HTML("<b>UNKNOWN</b>"),
-            icon = icon("question", lib = "font-awesome"),
-            width = "100%", style =
-              "color: #000000; background-color: #ffba52; height: 55px" #
+          column(
+            width = 1,
+            checkboxInput(
+              "overwrite", HTML("<b>Overwrite</b>"),
+              value = session_data$overwrite
+            )
           ),
-          actionButton(
-            "button_fp",
-            HTML("<b>FALSE POSITIVE</b>"),
-            icon = icon("x", lib = "font-awesome"),
-            width = "100%", style =
-              "color: #000000; background-color: #ff7e7e; height: 55px" #
-          ),
-          actionButton(
-            "button_save", HTML("<b>Export output</b>"),
-            icon = icon("save", lib = "font-awesome"),
-            width = "100%", style =
-              "color: #ffffff; background-color: #000000; height: 55px" #
+          column(
+            width = 1,
+            checkboxInput(
+              "nav_autosave", HTML("<b>Autosave</b>"),
+              value = session_data$nav_autosave
+            )
           )
         ),
         tabBox(
@@ -1616,6 +1627,7 @@ launch_validation_app <- function(
           color_scale = input$color_scale,
           pitch_shift = input$pitch_shift
         ) +
+          labs(title = "Template spectrogram") +
           annotate(
             "label",
             label = paste0("Template: '", df_template()$template_name, "'"),
@@ -1737,6 +1749,7 @@ launch_validation_app <- function(
           dyn_range = c(input$dyn_range[1], input$dyn_range[2]),
           color_scale = input$color_scale, pitch_shift = input$pitch_shift
         ) +
+          labs(title = "Detection spectrogram") +
           annotate(
             "label",
             label = paste0(
@@ -1776,6 +1789,14 @@ launch_validation_app <- function(
               "#ffba52"
             },
             fontface = "bold"
+          ) +
+          annotate(
+            "label",
+            x = Inf, y = -Inf, vjust = 0, hjust = 1,
+            fontface = "bold",
+            label = paste0(
+              "Score: ", round(det_i()$peak_score, 3)
+            )
           )
       })
 
