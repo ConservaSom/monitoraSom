@@ -120,8 +120,11 @@ fast_spectro <- function(
       scale_fill_gradientn(
         colors = colormap, limits = amp_range, na.value = "#00000000"
       ) +
-      scale_x_continuous(limits = c(xmin, xmax), expand = c(0, 0)) +
-      scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0)) +
+      coord_cartesian(
+        xlim = c(xmin, xmax), ylim = c(ymin, ymax)
+      ) +
+      scale_x_continuous(expand = c(0, 0)) +
+      scale_y_continuous(expand = c(0, 0)) +
       labs(x = "seconds", y = "kHz", fill = "dB")
   )
 }

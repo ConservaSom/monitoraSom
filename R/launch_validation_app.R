@@ -75,7 +75,7 @@ launch_validation_app <- function(
     validation_user, templates_path, soundscapes_path, input_path,
     output_path = NULL, spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
-    val_subset = c("NA", "TP", "FP", "UN"), min_score = 0,
+    val_subset = c("NA", "TP", "FP", "UN"), min_score = -1,
     time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(0, 50),
     color_scale = "inferno", zoom_freq = c(0, 10),
     nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
@@ -217,16 +217,16 @@ launch_validation_app <- function(
 
   # todo Adicionar os outros filtros de detecções
   if (is.numeric(min_score)) {
-    if (0 <= min_score & min_score < 1) {
+    if (-1 <= min_score & min_score < 1) {
       session_data$min_score <- min_score
     } else {
       stop(
-        "Error! The value assigned to 'min_score' is not within the expected interval. Provide a numeric value equal to or higher than zero and smaller than one"
+        "Error! The value assigned to 'min_score' is not within the expected interval. Provide a numeric value between -1 and 1."
       )
     }
   } else {
     stop(
-      "Error! The value assigned to 'min_score' is not numeric. Provide a numeric value equal to or higher than zero and smaller than one"
+      "Error! The value assigned to 'min_score' is not numeric. Provide a numeric value between -1 and 1."
     )
   }
 
@@ -326,6 +326,8 @@ launch_validation_app <- function(
     )
   }
 
+  # todo Icrease step resolution to 0.5
+  # todo Cincrease maximum frequency to 180
   if (length(zoom_freq) == 2) {
     if (all(is.numeric(zoom_freq))) {
       if (zoom_freq[1] < zoom_freq[2]) {
@@ -646,12 +648,12 @@ launch_validation_app <- function(
               ),
               tags$style(type = "text/css", "#output_path_load { margin-top: 40px;}")
             ),
-                        # todo Mudar de input path para "user_setup"
-            actionButton("input_path_confirm", "Confirm Paths",
+            # todo Mudar de input path para "user_setup"
+            actionButton("user_setup_confirm", "Confirm Paths",
               icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
               style = "color: #000000; background-color: #33b733; border-color: #288d28; width: 360px;"
             ),
-            shinyBS::bsTooltip("input_path_confirm",
+            shinyBS::bsTooltip("user_setup_confirm",
               title = "<b>Part 1 of 2 required to start the session</b>. All inputs marked with (*) are required for this step",
               placement = "right", trigger = "hover",
               options = list(delay = list(show = 1000, hide = 0))
@@ -663,7 +665,6 @@ launch_validation_app <- function(
             "Session Setup",
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
             tabName = "sect_setup_tab",
-            # todo Template name is not among validation presets. Is is a must?
             selectInput(
               "template_name", "Template file (*)",
               choices = NULL, width = "100%"
@@ -678,7 +679,7 @@ launch_validation_app <- function(
             ),
             sliderInput(
               "min_score", "Minimum correlation (*)",
-              width = "100%", min = 0, max = 1, step = 0.01,
+              width = "100%", min = -1, max = 1, step = 0.01,
               value = session_data$min_score
             ),
             actionButton(
@@ -798,7 +799,7 @@ launch_validation_app <- function(
         box(
           width = 12, height = "550px",
           splitLayout(
-            cellWidths = c("6%", "94%"),
+            cellWidths = c("8%", "92%"),
             noUiSliderInput(
               "zoom_freq", "Frequency zoom",
               min = 0, max = 18, step = 1, direction = "rtl",
@@ -885,7 +886,7 @@ launch_validation_app <- function(
             )
           ),
           column(
-            width = 4,
+            width = 3,
             disabled( # todo: enable this
               selectizeInput(
                 "soundscape_file", "Soundscape file",
@@ -894,40 +895,51 @@ launch_validation_app <- function(
             )
           ),
           column(
-            width = 2,
+            width = 1,
             selectInput("detec", "Detection ID", choices = NULL, width = "100%")
           ),
           column(
-            width = 2,
+            width = 1,
             numericInput("seed", "Seed", value = session_data$seed)
           ),
           column(
             width = 1,
-            checkboxInput(
-              "nav_shuffle", HTML("<b>Shuffle</b>"),
-              value = session_data$nav_shuffle
+            column(
+              width = 12,
+              checkboxInput(
+                "nav_shuffle", HTML("<b>Shuffle</b>"),
+                value = session_data$nav_shuffle
+              ),
+              checkboxInput(
+                "auto_next", HTML("<b>Autonavigate</b>"),
+                value = session_data$auto_next
+              )
             )
           ),
           column(
             width = 1,
-            checkboxInput(
-              "auto_next", HTML("<b>Autonavigate</b>"),
-              value = session_data$auto_next
+            column(
+              width = 12,
+              checkboxInput(
+                "overwrite", HTML("<b>Overwrite</b>"),
+                value = session_data$overwrite
+              ),
+              checkboxInput(
+                "nav_autosave", HTML("<b>Autosave</b>"),
+                value = session_data$nav_autosave
+              )
+            )
+          ),
+          column(
+            width = 4,
+            textInput(
+              "detec_note", "Detection notes",
+              placeholder = "Write detection notes here", width = "100%"
             )
           ),
           column(
             width = 1,
-            checkboxInput(
-              "overwrite", HTML("<b>Overwrite</b>"),
-              value = session_data$overwrite
-            )
-          ),
-          column(
-            width = 1,
-            checkboxInput(
-              "nav_autosave", HTML("<b>Autosave</b>"),
-              value = session_data$nav_autosave
-            )
+            checkboxInput("lock_detec_note", icon("lock", lib = "font-awesome"), value = FALSE)
           )
         ),
         tabBox(
@@ -1219,7 +1231,7 @@ launch_validation_app <- function(
       df_full <- reactiveValues(data = NULL)
       df_output <- reactiveVal(NULL)
       # On confirmation of the provided path...
-      observeEvent(input$input_path_confirm, {
+      observeEvent(input$user_setup_confirm, {
         req(
           input$input_path, input$output_path, input$soundscapes_path,
           input$templates_path, input$validation_user
@@ -1248,7 +1260,8 @@ launch_validation_app <- function(
         df_soundscapes <- data.frame(
           soundscape_path = list.files(
             input$soundscapes_path,
-            pattern = ".wav|.WAV", recursive = TRUE, full.names = TRUE
+            pattern = ".wav$", recursive = TRUE, full.names = TRUE,
+            ignore.case = TRUE
           )
         ) %>%
           mutate(soundscape_file = basename(soundscape_path))
@@ -1256,7 +1269,8 @@ launch_validation_app <- function(
         df_templates <- data.frame(
           template_path = list.files(
             input$templates_path,
-            pattern = ".wav|.WAV", recursive = TRUE, full.names = TRUE
+            pattern = ".wav$", recursive = TRUE, full.names = TRUE,
+            ignore.case = TRUE
           )
         ) %>%
           mutate(template_file = basename(template_path))
@@ -1270,7 +1284,8 @@ launch_validation_app <- function(
           rows_update(df_soundscapes, by = "soundscape_file", unmatched = "ignore")
 
         var_names <- c(
-          "detection_id", "validation_user", "validation_time", "validation"
+          "detection_id", "validation_user", "validation_time", "validation",
+          "validation_note"
         )
 
         # Add variables for review inputs in case those are not in res
@@ -1278,9 +1293,10 @@ launch_validation_app <- function(
           res <- res %>%
             mutate(
               detection_id = 1:nrow(.),
-              validation_user = as.character(NA),
-              validation_time = as.character(NA),
-              validation = as.character(NA)
+              validation_user = NA_character_,
+              validation_time = NA_character_,
+              validation = NA_character_,
+              validation_note = NA_character_
             )
         } else if ("validation_time" %in% colnames(res)) {
           res <- res %>%
@@ -1316,6 +1332,7 @@ launch_validation_app <- function(
         ]
         updateSliderInput(
           session, "min_score",
+          min = round(head(head(sort(df_ref$peak_score), 2), 1), 2),
           max = round(head(tail(sort(df_ref$peak_score), 2), 1), 2)
         )
       })
@@ -1346,7 +1363,8 @@ launch_validation_app <- function(
           # filter by correlation threshold
           filter(peak_score >= input$min_score) %>%
           # filter by validation outcome
-          filter(validation %in% val_subset)
+          filter(validation %in% val_subset) %>%
+            mutate(validation_note = NA_character_)
 
         # if the filtering process result is not null, get some more information
         if (!is.null(res)) {
@@ -1414,7 +1432,7 @@ launch_validation_app <- function(
       det_counter <- reactiveVal(1)
       # Upon initialization and under these conditions, det_counter is set to 1
       observeEvent(
-        list(input$min_score, input$input_path_confirm), det_counter(1)
+        list(input$min_score, input$user_setup_confirm), det_counter(1)
       )
       # Create a reactive object to store the data of the active detection
       det_i <- reactiveVal(NULL)
@@ -1593,16 +1611,17 @@ launch_validation_app <- function(
 
       observeEvent(input$default_pars, {
         req(det_i())
+        # todo Update defaults to session_data
         # todo Update pad slider
-        updateSliderInput(session, inputId = "dyn_range", value = c(0, 50))
-        updateSliderTextInput(session, inputId = "wl", selected = 2048)
-        updateSliderInput(session, inputId = "ovlp", value = 0)
-        updateSelectInput(session, inputId = "color_scale", selected = "inferno")
-        updateSliderInput(session, inputId = "time_pads", value = 1)
-        updateSliderTextInput(session, inputId = "pitch_shift", selected = 1)
-        updateCheckboxInput(session, inputId = "visible_bp", value = FALSE)
-        updateCheckboxInput(session, inputId = "play_norm", value = FALSE)
-        updateSliderInput(
+        updateSliderInput(session, inputId = "dyn_range", value = session_data$dyn_range)
+        updateSliderTextInput(session, inputId = "wl", selected = session_data$wl)
+        updateSliderInput(session, inputId = "ovlp", value = session_data$ovlp)
+        updateSelectInput(session, inputId = "color_scale", selected = session_data$color_scale)
+        updateSliderInput(session, inputId = "time_pads", value = session_data$time_pads)
+        updateSliderTextInput(session, inputId = "pitch_shift", selected = session_data$pitch_shift)
+        updateCheckboxInput(session, inputId = "visible_bp", value = session_data$visible_bp)
+        updateCheckboxInput(session, inputId = "play_norm", value = session_data$play_norm)
+        updateNoUiSliderInput(
           session, "zoom_freq",
           min = 0, max = (det_i()$detection_sample_rate / 2000),
           step = 1, value = c(0, 10)
@@ -2149,16 +2168,19 @@ launch_validation_app <- function(
           mutate(
             validation = validation_input(),
             validation_time = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-            validation_user = input$validation_user
+            validation_user = input$validation_user,
+            validation_note = input$detec_note
           )
 
         if (input$overwrite == TRUE) {
-          if (res_A$validation_user == det_i()$validation_user ||
-            is.na(det_i()$validation_user)) {
+          if (res_A$validation_user == det_i()$validation_user || is.na(det_i()$validation_user)) {
             det_i(res_A)
             df_cut(rows_update(df_cut(), res_A, by = "detection_id", unmatched = "ignore"))
             df_output(rows_update(df_output(), res_A, by = "detection_id", unmatched = "ignore"))
             validation_input(NULL) # reset after value is passed on forward
+            if (input$lock_detec_note == FALSE) {
+              updateTextInput(session, "detec_note", value = NA)
+            }
           } else {
             showModal(
               modalDialog(
@@ -2173,6 +2195,9 @@ launch_validation_app <- function(
           df_cut(rows_patch(df_cut(), res_A, by = "detection_id", unmatched = "ignore"))
           df_output(rows_patch(df_output(), res_A, by = "detection_id", unmatched = "ignore"))
           validation_input(NULL) # reset after value is passed on forward
+          if (input$lock_detec_note == FALSE) {
+            updateTextInput(session, "detec_note", value = NA)
+          }
         }
 
         if (input$nav_autosave == TRUE) {
@@ -2253,7 +2278,8 @@ launch_validation_app <- function(
             select(
               template_name, soundscape_file, detection_id,
               detection_start, detection_end, template_min_freq, template_max_freq,
-              peak_score, validation_user, validation_time, validation
+              peak_score, validation_user, validation_time, validation,
+              validation_note
             ) %>%
             datatable(
               editable = FALSE, style = "bootstrap4",
@@ -2261,7 +2287,7 @@ launch_validation_app <- function(
               colnames = c(
                 "Template", "Soundscape", "ID", "Start", "End",
                 "Min. Freq.", "Max. Freq.", "Score", "User",
-                "Time Stamp", "Validation"
+                "Time Stamp", "Validation", "Note"
               )
             ) %>%
             formatRound(c("detection_start", "detection_end", "peak_score"), 3) %>%
