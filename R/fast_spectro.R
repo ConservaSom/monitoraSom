@@ -62,7 +62,8 @@ fast_spectro <- function(
   spec_raw <- seewave::spectro(
     rec, f = rec@samp.rate,
     ovlp = ovlp, wl = wl, flim = flim, tlim = tlim,
-    norm = norm, fftw = FALSE, plot = FALSE, interpolate = FALSE, ...
+    norm = norm, fftw = FALSE, plot = FALSE, interpolate = FALSE,
+    dB=NULL, ...
   )
   spec_raw$time <- spec_raw$time / pitch_shift
   spec_raw$freq <- spec_raw$freq * pitch_shift
