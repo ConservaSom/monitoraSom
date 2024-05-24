@@ -652,7 +652,7 @@ launch_segmentation_app <- function(
             ),
             sliderInput(
               "dyn_range", "Dynamic range (dB)",
-              min = -120, max = 120, step = 10, value = session_data$dyn_range, width = "100%"
+              min = -200, max = 0, step = 10, value = session_data$dyn_range, width = "100%"
             ),
             sliderTextInput(
               "wl", "Window length",
