@@ -34,7 +34,7 @@
 #' @export
 fast_spectro <- function(
     rec, f, flim = NULL, tlim = NULL,
-    ovlp = 50, wl = 1024, norm = FALSE, dyn_range = c(-60, 0),
+    ovlp = 50, wl = 1024, norm = FALSE, dyn_range = c(-80, 0),
     color_scale = "inferno", n_colors = 124, interpolate = FALSE,
     pitch_shift = 1, ...
     ) {
