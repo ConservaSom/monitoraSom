@@ -41,3 +41,6 @@ vignettes/*.pdf
 .Rdata
 .DS_Store
 example/build_script.R
+
+#Personal folder
+NoSync_extras&tests/
