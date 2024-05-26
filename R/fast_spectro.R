@@ -67,7 +67,9 @@ fast_spectro <- function(
   )
   spec_raw$time <- spec_raw$time / pitch_shift
   spec_raw$freq <- spec_raw$freq * pitch_shift
-  spec_raw$amp <- spec_raw$amp / 2^(rec@bit - 1) #amplitude to floating (-1 to 1)
+  if(!norm){
+    spec_raw$amp <- spec_raw$amp / 2^(rec@bit - 1) #amplitude to floating (-1 to 1)
+  }
   spec_raw$amp <- 20 * log10(spec_raw$amp) #amplitude to dBFS
 
   # mat <- pmax(pmin(spec_raw$amp, dyn_range[2]), dyn_range[1]) # ou...
