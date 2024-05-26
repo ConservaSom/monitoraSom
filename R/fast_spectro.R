@@ -79,7 +79,7 @@ fast_spectro <- function(
 
   mat <- t(mat)
 
-  amp_range <- range(mat)
+  amp_range <- range(dyn_range) #change from range(mat) to be consistent with the color scale
   if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
     colormap <- viridis::viridis(n_colors, option = color_scale)
   } else if (color_scale == "greyscale 1") {
