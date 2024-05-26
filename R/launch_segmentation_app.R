@@ -32,9 +32,12 @@
 #'   calculate the spectrogram.
 #' @param ovlp A numeric value between 0 and 90 specifying the percentage
 #'   overlap of windows for computing the spectrogram.
-#' @param dyn_range A numeric vector of length 2 between -100 and 0, specifying
-#'   the minimum and maximum relative amplitudes to be displayed in the
-#'   spectrogram
+#' @param dyn_range A numeric vector of length 2 specifying the minimum and
+#'   maximum relative amplitudes (in dBFS) to be displayed on the spectrogram.
+#'   By default c(-80, 0).
+#' @param dyn_range_bar A numeric vector of length 2 specifying the limits
+#'   to be diplayed on the the bar that controls the dinamic range on the app.
+#'   By default c(-200, 10).
 #' @param color_scale A character string specifying the color scale to be used
 #'   in the spectrogram. Possible values are "viridis", "magma", "inferno",
 #'   "cividis", "greyscale 1", or "greyscale 2".
@@ -90,7 +93,8 @@ launch_segmentation_app <- function(
   project_path = NULL, preset_path = NULL, user = NULL,
   soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
   labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)", label_angle = 90,
-  show_label = TRUE, dyn_range = c(-80, 0), wl = 1024, ovlp = 0, color_scale = "inferno",
+  show_label = TRUE, dyn_range = c(-80, 0), dyn_range_bar = c(-200, 10),
+  wl = 1024, ovlp = 0, color_scale = "inferno",
   wav_player_type = "HTML player", wav_player_path = "play",
   visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
   nav_autosave = TRUE, pitch_shift = 1
@@ -652,7 +656,7 @@ launch_segmentation_app <- function(
             ),
             sliderInput(
               "dyn_range", "Dynamic range (dB)",
-              min = -200, max = 0, step = 10, value = session_data$dyn_range, width = "100%"
+              min = dyn_range_bar[1], max = dyn_range_bar[2], step = 10, value = session_data$dyn_range, width = "100%"
             ),
             sliderTextInput(
               "wl", "Window length",
