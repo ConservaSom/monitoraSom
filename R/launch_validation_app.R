@@ -28,6 +28,8 @@
 #' @param ovlp Overlap between consecutive cuts.
 #' @param wl Window length for the spectrogram.
 #' @param dyn_range Dynamic range for the spectrogram.
+#' @param dyn_range_bar Adjustment of the maximum range of the dynamic range
+#'  slider.
 #' @param color_scale Color scale for the spectrogram.
 #' @param zoom_freq Frequency range to zoom in the spectrogram.
 #' @param nav_shuffle If TRUE, the files will be shuffled before navigation.
@@ -76,7 +78,8 @@ launch_validation_app <- function(
     output_path = NULL, spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
     val_subset = c("NA", "TP", "FP", "UN"), min_score = -1,
-    time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(0, 50),
+    time_pads = 1, ovlp = 0, wl = 2048,
+    dyn_range = c(-100, 0), dyn_range_bar = c(-200, 10),
     color_scale = "inferno", zoom_freq = c(0, 10),
     nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
     overwrite = FALSE, pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
@@ -250,7 +253,7 @@ launch_validation_app <- function(
         if (dyn_range[1] %% 10 == 0 & dyn_range[2] %% 10 == 0) {
           session_data$dyn_range <- dyn_range
         } else {
-          stop("Error! 'dyn_range' must be a multiple of 10.")
+          stop("Error! 'dyn_range' values must be multiples of 10.")
         }
       } else {
         session_data$dyn_range <- sort(dyn_range)
@@ -265,6 +268,29 @@ launch_validation_app <- function(
     }
   } else {
     stop("Error! The 'dyn_range' must be a numeric vector of length equals 2.")
+  }
+
+  if (length(dyn_range_bar) == 2) {
+    if (all(is.numeric(dyn_range_bar))) {
+      if (dyn_range_bar[1] < dyn_range_bar[2]) {
+        if (dyn_range_bar[1] %% 10 == 0 & dyn_range_bar[2] %% 10 == 0) {
+          session_data$dyn_range_bar <- dyn_range_bar
+        } else {
+          stop("Error! 'dyn_range' values must be multiples of 10.")
+        }
+      } else {
+        session_data$dyn_range_bar <- sort(dyn_range_bar)
+        warning(
+          "Warning! The first value of 'dyn_range_bar' must be smaller than the second. Sorting to match the expected order"
+        )
+      }
+    } else {
+      stop(
+        "Error! At least one value of 'dyn_range_bar' is not numeric"
+      )
+    }
+  } else {
+    stop("Error! The 'dyn_range_bar' must be a numeric vector of length equals 2.")
   }
 
   if (is.numeric(wl)) {
@@ -699,7 +725,8 @@ launch_validation_app <- function(
             ),
             sliderInput(
               "dyn_range", "Dynamic range (dB)",
-              min = -120, max = 120, step = 10, value = session_data$dyn_range, width = "100%"
+              min = session_data$dyn_range_bar[1], max = session_data$dyn_range_bar[2],
+              step = 10, value = session_data$dyn_range, width = "100%"
             ),
             sliderTextInput(
               "wl", "Window length:",

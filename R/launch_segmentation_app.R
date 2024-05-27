@@ -225,7 +225,7 @@ launch_segmentation_app <- function(
           if (dyn_range[1] %% 10 == 0 & dyn_range[2] %% 10 == 0) {
             session_data$dyn_range <- dyn_range
           } else {
-            stop("Error! 'dyn_range' must be a multiple of 10.")
+            stop("Error! 'dyn_range' values must be multiples of 10.")
           }
       } else {
         session_data$dyn_range <- sort(dyn_range)
@@ -240,6 +240,29 @@ launch_segmentation_app <- function(
     }
   } else {
     stop("Error! The 'dyn_range' must be a numeric vector of length equals 2.")
+  }
+
+  if (length(dyn_range_bar) == 2) {
+    if (all(is.numeric(dyn_range_bar))) {
+      if (dyn_range_bar[1] < dyn_range_bar[2]) {
+        if (dyn_range_bar[1] %% 10 == 0 & dyn_range_bar[2] %% 10 == 0) {
+          session_data$dyn_range_bar <- dyn_range_bar
+        } else {
+          stop("Error! 'dyn_range_bar' values must be multiples of 10.")
+        }
+      } else {
+        session_data$dyn_range_bar <- sort(dyn_range_bar)
+        warning(
+          "Warning! The first value of 'dyn_range_bar' must be smaller than the second. Sorting to match the expected order"
+        )
+      }
+    } else {
+      stop(
+        "Error! At least one value of 'dyn_range_bar' is not numeric"
+      )
+    }
+  } else {
+    stop("Error! The 'dyn_range_bar' must be a numeric vector of length equals 2.")
   }
 
   if (is.numeric(wl)) {
@@ -656,7 +679,8 @@ launch_segmentation_app <- function(
             ),
             sliderInput(
               "dyn_range", "Dynamic range (dB)",
-              min = dyn_range_bar[1], max = dyn_range_bar[2], step = 10, value = session_data$dyn_range, width = "100%"
+              min = session_data$dyn_range_bar[1], max = session_data$dyn_range_bar[2], step = 10,
+              value = session_data$dyn_range, width = "100%"
             ),
             sliderTextInput(
               "wl", "Window length",
