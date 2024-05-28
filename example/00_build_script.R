@@ -8,13 +8,14 @@ install.packages("devtools")
 library(devtools)
 devtools::install()
 
-load_all()
+
+use_version()
+
+# load_all()
 roxygen2::roxygenise(clean = TRUE)
 document()
 build()
 check()
-
-
 
 
 use_gpl3_license()
