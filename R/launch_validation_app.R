@@ -27,7 +27,8 @@
 #'   files.
 #' @param ovlp Overlap between consecutive cuts.
 #' @param wl Window length for the spectrogram.
-#' @param dyn_range Dynamic range for the spectrogram.
+#' @param dyn_range_templ Dynamic range for the template spectrogram.
+#' @param dyn_range_detec Dynamic range for the detection spectrogram.
 #' @param dyn_range_bar Adjustment of the maximum range of the dynamic range
 #'  slider.
 #' @param color_scale Color scale for the spectrogram.
@@ -78,9 +79,9 @@ launch_validation_app <- function(
     output_path = NULL, spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
     val_subset = c("NA", "TP", "FP", "UN"), min_score = -1,
-    time_pads = 1, ovlp = 0, wl = 2048,
-    dyn_range = c(-100, 0), dyn_range_bar = c(-200, 10),
-    color_scale = "inferno", zoom_freq = c(0, 10),
+    time_pads = 1, ovlp = 0, wl = 2048, dyn_range_bar = c(-150, 10),
+    dyn_range_templ = c(-50, 0), dyn_range_detec = c(-100, -50),
+    color_scale = "inferno", zoom_freq = c(0, 23),
     nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
     overwrite = FALSE, pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
     ) {
@@ -247,27 +248,51 @@ launch_validation_app <- function(
     )
   }
 
-  if (length(dyn_range) == 2) {
-    if (all(is.numeric(dyn_range))) {
-      if (dyn_range[1] < dyn_range[2]) {
-        if (dyn_range[1] %% 10 == 0 & dyn_range[2] %% 10 == 0) {
-          session_data$dyn_range <- dyn_range
+  if (length(dyn_range_templ) == 2) {
+    if (all(is.numeric(dyn_range_templ))) {
+      if (dyn_range_templ[1] < dyn_range_templ[2]) {
+        if (dyn_range_templ[1] %% 10 == 0 & dyn_range_templ[2] %% 10 == 0) {
+          session_data$dyn_range_templ <- dyn_range_templ
         } else {
-          stop("Error! 'dyn_range' values must be multiples of 10.")
+          stop("Error! 'dyn_range_templ' values must be multiples of 10.")
         }
       } else {
-        session_data$dyn_range <- sort(dyn_range)
+        session_data$dyn_range_templ <- sort(dyn_range_templ)
         warning(
-          "Warning! The first value of 'dyn_range' must be smaller than the second. Sorting to match the expected order"
+          "Warning! The first value of 'dyn_range_templ' must be smaller than the second. Sorting to match the expected order"
         )
       }
     } else {
       stop(
-        "Error! At least one value of 'dyn_range' is not numeric"
+        "Error! At least one value of 'dyn_range_templ' is not numeric"
       )
     }
   } else {
-    stop("Error! The 'dyn_range' must be a numeric vector of length equals 2.")
+    stop("Error! The 'dyn_range_templ' must be a numeric vector of length equals 2.")
+  }
+
+
+  if (length(dyn_range_detec) == 2) {
+    if (all(is.numeric(dyn_range_detec))) {
+      if (dyn_range_detec[1] < dyn_range_detec[2]) {
+        if (dyn_range_detec[1] %% 10 == 0 & dyn_range_detec[2] %% 10 == 0) {
+          session_data$dyn_range_detec <- dyn_range_detec
+        } else {
+          stop("Error! 'dyn_range_detec' values must be multiples of 10.")
+        }
+      } else {
+        session_data$dyn_range_detec <- sort(dyn_range_detec)
+        warning(
+          "Warning! The first value of 'dyn_range_detec' must be smaller than the second. Sorting to match the expected order"
+        )
+      }
+    } else {
+      stop(
+        "Error! At least one value of 'dyn_range_detec' is not numeric"
+      )
+    }
+  } else {
+    stop("Error! The 'dyn_range_detec' must be a numeric vector of length equals 2.")
   }
 
   if (length(dyn_range_bar) == 2) {
@@ -353,18 +378,17 @@ launch_validation_app <- function(
   }
 
   # todo Icrease step resolution to 0.5
-  # todo Cincrease maximum frequency to 180
   if (length(zoom_freq) == 2) {
     if (all(is.numeric(zoom_freq))) {
       if (zoom_freq[1] < zoom_freq[2]) {
-        if (zoom_freq[1] >= 0 & zoom_freq[2] <= 10) {
+        if (zoom_freq[1] >= 0 & zoom_freq[2] <= 180) {
           if (zoom_freq[1] %% 1 == 0 & zoom_freq[2] %% 1 == 0) {
             session_data$zoom_freq <- zoom_freq
           } else {
             stop("Error! 'zoom_freq' must be an integer.")
           }
         } else {
-          stop("Error! 'zoom_freq' must be between 0 and 10.")
+          stop("Error! 'zoom_freq' must be between 0 and 180.")
         }
       } else {
         session_data$zoom_freq <- sort(zoom_freq)
@@ -522,7 +546,7 @@ launch_validation_app <- function(
 #     time_pads = session_data$time_pads,
 #     ovlp = session_data$ovlp,
 #     wl = session_data$wl,
-#     dyn_range = session_data$dyn_range,
+#     dyn_range_templ = session_data$dyn_range_templ,
 #     color_scale = session_data$color_scale,
 #     zoom_freq = session_data$zoom_freq,
 #     nav_shuffle = session_data$nav_shuffle,
@@ -724,9 +748,18 @@ launch_validation_app <- function(
               value = session_data$time_pads
             ),
             sliderInput(
-              "dyn_range", "Dynamic range (dB)",
-              min = session_data$dyn_range_bar[1], max = session_data$dyn_range_bar[2],
-              step = 10, value = session_data$dyn_range, width = "100%"
+              "dyn_range_templ", "Template dynamic range (dB)",
+              min = session_data$dyn_range_bar[1],
+              max = session_data$dyn_range_bar[2],
+              value = session_data$dyn_range_templ, step = 10,
+              width = "100%"
+            ),
+            sliderInput(
+              "dyn_range_detec", "Detection dynamic range (dB)",
+              min = session_data$dyn_range_bar[1],
+              max = session_data$dyn_range_bar[2],
+              value = session_data$dyn_range_detec, step = 10,
+              width = "100%"
             ),
             sliderTextInput(
               "wl", "Window length:",
@@ -829,7 +862,7 @@ launch_validation_app <- function(
             cellWidths = c("8%", "92%"),
             noUiSliderInput(
               "zoom_freq", "Frequency zoom",
-              min = 0, max = 18, step = 1, direction = "rtl",
+              min = 0, max = 18, step = 0.5, direction = "rtl",
               orientation = "vertical", width = "100px", height = "425px",
               value = session_data$zoom_freq
             ),
@@ -1467,6 +1500,10 @@ launch_validation_app <- function(
       observeEvent(det_counter(), {
         req(df_cut())
         det_i(df_cut()[det_counter(), ])
+        updateNoUiSliderInput(
+          session, "zoom_freq",
+          range = c(0, (min(df_cut()$detection_sample_rate) / 2000) - 1)
+        )
       })
 
       # Add 1 to the counter to navigate forward
@@ -1629,10 +1666,10 @@ launch_validation_app <- function(
           round(0) %>%
           ifelse(. > 23, 23, .)
         # update the frequency band
-        updateSliderInput(
+        updateNoUiSliderInput(
           session, "zoom_freq", "Frequency band (kHz):",
-          min = 0, max = (min(df_cut()$detection_sample_rate) / 2000),
-          step = 1, value = c(min_freq, max_freq)
+          range = c(0, (min(df_cut()$detection_sample_rate) / 2000) - 1),
+          value = c(min_freq, max_freq)
         )
       })
 
@@ -1640,7 +1677,8 @@ launch_validation_app <- function(
         req(det_i())
         # todo Update defaults to session_data
         # todo Update pad slider
-        updateSliderInput(session, inputId = "dyn_range", value = session_data$dyn_range)
+        updateSliderInput(session, inputId = "dyn_range_templ", value = session_data$dyn_range_templ)
+        updateSliderInput(session, inputId = "dyn_range_detec", value = session_data$dyn_range_detec)
         updateSliderTextInput(session, inputId = "wl", selected = session_data$wl)
         updateSliderInput(session, inputId = "ovlp", value = session_data$ovlp)
         updateSelectInput(session, inputId = "color_scale", selected = session_data$color_scale)
@@ -1649,9 +1687,9 @@ launch_validation_app <- function(
         updateCheckboxInput(session, inputId = "visible_bp", value = session_data$visible_bp)
         updateCheckboxInput(session, inputId = "play_norm", value = session_data$play_norm)
         updateNoUiSliderInput(
-          session, "zoom_freq",
-          min = 0, max = (det_i()$detection_sample_rate / 2000),
-          step = 1, value = c(0, 10)
+          session, "zoom_freq", "Frequency band (kHz):",
+          range = c(0, (min(df_cut()$detection_sample_rate) / 2000) - 1),
+          value = c(0, (min(df_cut()$detection_sample_rate) / 2000) - 1)
         )
       })
 
@@ -1669,7 +1707,7 @@ launch_validation_app <- function(
         fast_spectro(
           rec = temp_rec, f = df_template()$sample_rate, wl = input$wl,
           ovlp = input$ovlp, flim = c(input$zoom_freq[1], input$zoom_freq[2]),
-          dyn_range = c(input$dyn_range[1], input$dyn_range[2]),
+          dyn_range = c(input$dyn_range_templ[1], input$dyn_range_templ[2]),
           color_scale = input$color_scale,
           pitch_shift = input$pitch_shift
         ) +
@@ -1792,8 +1830,9 @@ launch_validation_app <- function(
           rec = rec_detection(), f = det_i()$detection_sample_rate,
           wl = input$wl, ovlp = input$ovlp,
           flim = c(input$zoom_freq[1], input$zoom_freq[2]),
-          dyn_range = c(input$dyn_range[1], input$dyn_range[2]),
-          color_scale = input$color_scale, pitch_shift = input$pitch_shift
+          dyn_range = c(input$dyn_range_detec[1], input$dyn_range_detec[2]),
+          color_scale = input$color_scale, pitch_shift = input$pitch_shift,
+          norm = FALSE
         ) +
           labs(title = "Detection spectrogram") +
           annotate(
@@ -1910,9 +1949,9 @@ launch_validation_app <- function(
             rec = rec_soundscape(), f = df_soundscape()$sample_rate,
             wl = input$wl, ovlp = input$ovlp,
             flim = c(input$zoom_freq[1], input$zoom_freq[2]),
-            dyn_range = c(input$dyn_range[1], input$dyn_range[2]),
-            color_scale = input$color_scale,
-            pitch_shift = input$pitch_shift
+            dyn_range = c(input$dyn_range_detec[1], input$dyn_range_detec[2]),
+            color_scale = input$color_scale, pitch_shift = input$pitch_shift,
+            norm = FALSE
           )
         } else {
           return()
@@ -2692,7 +2731,7 @@ launch_validation_app <- function(
       #     time_pads = as.numeric(input$time_pads),
       #     ovlp = as.numeric(input$ovlp),
       #     wl = as.numeric(input$wl),
-      #     dyn_range = as.numeric(input$dyn_range),
+      #     dyn_range = as.numeric(input$dyn_range_templ),
       #     color_scale = input$color_scale,
       #     zoom_freq = as.numeric(input$zoom_freq),
       #     nav_shuffle = input$nav_shuffle,
@@ -3165,8 +3204,13 @@ launch_validation_app <- function(
         placement = "right", trigger = "hover", options = pop_up_opt
       )
       shinyBS::addTooltip(session,
-        id = "dyn_range",
-        title = "Adjust what portion of the amplitude scale is shown in the spectrograms",
+        id = "dyn_range_templ",
+        title = "Adjust what portion of the amplitude scale is shown in the template spectrogram",
+        placement = "right", trigger = "hover", options = pop_up_opt
+      )
+      shinyBS::addTooltip(session,
+        id = "dyn_range_detec",
+        title = "Adjust what portion of the amplitude scale is shown in the detection spectrogram",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
       shinyBS::addTooltip(session,
