@@ -23,7 +23,7 @@ use_gpl3_license()
 use_package("dplyr")
 
 
-
+packageVersion("monitoraSom")
 
 check()
 use_package("DT")

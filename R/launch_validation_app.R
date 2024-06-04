@@ -2069,16 +2069,12 @@ launch_validation_app <- function(
           res@samp.rate <- res@samp.rate / pitch_shift
         }
         if (isTRUE(input$visible_bp)) { # ! Quebra quando filtra
-          # templates are normalized by default
-          res <- normalize(
-            object = seewave::fir(
+          res <- ffilter(
               res,
               f = res@samp.rate,
               from = (input$zoom_freq[1] / pitch_shift) * 1000,
               to = (input$zoom_freq[2] / pitch_shift) * 1000,
-              wl = input$wl, output = "Wave"
-            ),
-            unit = as.character(res@bit), pcm = TRUE #
+              wl = input$wl, output = "Wave", bandpass = TRUE
           )
         }
         tuneR::play(object = res)
@@ -2102,12 +2098,12 @@ launch_validation_app <- function(
           res@samp.rate <- res@samp.rate / pitch_shift
         }
         if (isTRUE(input$visible_bp)) {
-          res <- seewave::fir(
+          res <- ffilter(
             res,
             f = res@samp.rate,
             from = (input$zoom_freq[1] / pitch_shift) * 1000,
             to = (input$zoom_freq[2] / pitch_shift) * 1000,
-            wl = input$wl, output = "Wave"
+            wl = input$wl, output = "Wave", bandpass = TRUE
           )
         }
         if (isTRUE(input$play_norm)) {
