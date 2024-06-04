@@ -79,8 +79,8 @@ launch_validation_app <- function(
     output_path = NULL, spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
     val_subset = c("NA", "TP", "FP", "UN"), min_score = -1,
-    time_pads = 1, ovlp = 0, wl = 2048, dyn_range_bar = c(-150, 10),
-    dyn_range_templ = c(-50, 0), dyn_range_detec = c(-100, -50),
+    time_pads = 1, ovlp = 0, wl = 2048, dyn_range_bar = c(-144, 0),
+    dyn_range_templ = c(-60, 0), dyn_range_detec = c(-120, -60),
     color_scale = "inferno", zoom_freq = c(0, 23),
     nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
     overwrite = FALSE, pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
@@ -251,11 +251,7 @@ launch_validation_app <- function(
   if (length(dyn_range_templ) == 2) {
     if (all(is.numeric(dyn_range_templ))) {
       if (dyn_range_templ[1] < dyn_range_templ[2]) {
-        if (dyn_range_templ[1] %% 10 == 0 & dyn_range_templ[2] %% 10 == 0) {
           session_data$dyn_range_templ <- dyn_range_templ
-        } else {
-          stop("Error! 'dyn_range_templ' values must be multiples of 10.")
-        }
       } else {
         session_data$dyn_range_templ <- sort(dyn_range_templ)
         warning(
@@ -275,11 +271,7 @@ launch_validation_app <- function(
   if (length(dyn_range_detec) == 2) {
     if (all(is.numeric(dyn_range_detec))) {
       if (dyn_range_detec[1] < dyn_range_detec[2]) {
-        if (dyn_range_detec[1] %% 10 == 0 & dyn_range_detec[2] %% 10 == 0) {
           session_data$dyn_range_detec <- dyn_range_detec
-        } else {
-          stop("Error! 'dyn_range_detec' values must be multiples of 10.")
-        }
       } else {
         session_data$dyn_range_detec <- sort(dyn_range_detec)
         warning(
@@ -298,11 +290,7 @@ launch_validation_app <- function(
   if (length(dyn_range_bar) == 2) {
     if (all(is.numeric(dyn_range_bar))) {
       if (dyn_range_bar[1] < dyn_range_bar[2]) {
-        if (dyn_range_bar[1] %% 10 == 0 & dyn_range_bar[2] %% 10 == 0) {
           session_data$dyn_range_bar <- dyn_range_bar
-        } else {
-          stop("Error! 'dyn_range' values must be multiples of 10.")
-        }
       } else {
         session_data$dyn_range_bar <- sort(dyn_range_bar)
         warning(
@@ -744,22 +732,22 @@ launch_validation_app <- function(
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
             sliderInput(
               "time_pads", "Pad size (s):",
-              min = 0, max = 16, width = "100%",
-              value = session_data$time_pads
+              min = 0, max = 16, width = "100%", step = 0.5,
+              value = session_data$time_pads, post = "s"
             ),
             sliderInput(
               "dyn_range_templ", "Template dynamic range (dB)",
               min = session_data$dyn_range_bar[1],
               max = session_data$dyn_range_bar[2],
-              value = session_data$dyn_range_templ, step = 10,
-              width = "100%"
+              value = session_data$dyn_range_templ, step = 6,
+              width = "100%", post = "dB"
             ),
             sliderInput(
               "dyn_range_detec", "Detection dynamic range (dB)",
               min = session_data$dyn_range_bar[1],
               max = session_data$dyn_range_bar[2],
-              value = session_data$dyn_range_detec, step = 10,
-              width = "100%"
+              value = session_data$dyn_range_detec, step = 6,
+              width = "100%", post = "dB"
             ),
             sliderTextInput(
               "wl", "Window length:",
@@ -770,12 +758,12 @@ launch_validation_app <- function(
             sliderInput(
               "ovlp", "Overlap (%):",
               min = 0, max = 80, step = 10, width = "100%",
-              value = session_data$ovlp
+              value = session_data$ovlp, post = "%"
             ),
             sliderTextInput(
               "pitch_shift", "Pitch shift (octaves) and slow down (factor)",
               choices = c(-8, -6, -4, -2, 1), selected = session_data$pitch_shift,
-              grid = TRUE, width = "100%"
+              grid = TRUE, width = "100%", post = " octaves"
             ),
             selectInput(
               "color_scale", "Color:",

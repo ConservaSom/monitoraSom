@@ -93,7 +93,7 @@ launch_segmentation_app <- function(
   project_path = NULL, preset_path = NULL, user = NULL,
   soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
   labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)", label_angle = 90,
-  show_label = TRUE, dyn_range = c(-100, 0), dyn_range_bar = c(-200, 10),
+  show_label = TRUE, dyn_range = c(-60, 0), dyn_range_bar = c(-144, 0),
   wl = 1024, ovlp = 0, color_scale = "inferno",
   wav_player_type = "HTML player", wav_player_path = "play",
   visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
@@ -222,11 +222,7 @@ launch_segmentation_app <- function(
   if (length(dyn_range) == 2) {
     if (all(is.numeric(dyn_range))) {
       if (dyn_range[1] < dyn_range[2]) {
-          if (dyn_range[1] %% 10 == 0 & dyn_range[2] %% 10 == 0) {
-            session_data$dyn_range <- dyn_range
-          } else {
-            stop("Error! 'dyn_range' values must be multiples of 10.")
-          }
+        session_data$dyn_range <- dyn_range
       } else {
         session_data$dyn_range <- sort(dyn_range)
         warning(
@@ -245,11 +241,7 @@ launch_segmentation_app <- function(
   if (length(dyn_range_bar) == 2) {
     if (all(is.numeric(dyn_range_bar))) {
       if (dyn_range_bar[1] < dyn_range_bar[2]) {
-        if (dyn_range_bar[1] %% 10 == 0 & dyn_range_bar[2] %% 10 == 0) {
           session_data$dyn_range_bar <- dyn_range_bar
-        } else {
-          stop("Error! 'dyn_range_bar' values must be multiples of 10.")
-        }
       } else {
         session_data$dyn_range_bar <- sort(dyn_range_bar)
         warning(
@@ -672,15 +664,19 @@ launch_segmentation_app <- function(
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
             splitLayout(
               cellWidths = c("75%", "25%"),
-              sliderInput("label_angle", "Adjust label angle (º)",
-                min = 0, max = 180, step = 10, value = session_data$label_angle
+              sliderInput(
+                "label_angle", "Adjust label angle (º)",
+                min = 0, max = 180, step = 10, value = session_data$label_angle,
+                post = "º"
               ),
               checkboxInput("show_label", "Show label", value = session_data$show_label)
             ),
             sliderInput(
               "dyn_range", "Dynamic range (dB)",
-              min = session_data$dyn_range_bar[1], max = session_data$dyn_range_bar[2], step = 10,
-              value = session_data$dyn_range, width = "100%"
+              min = session_data$dyn_range_bar[1],
+              max = session_data$dyn_range_bar[2],
+              step = 6, value = session_data$dyn_range,
+              width = "100%", post = "dB"
             ),
             sliderTextInput(
               "wl", "Window length",
@@ -689,12 +685,14 @@ launch_segmentation_app <- function(
             ),
             sliderInput(
               "ovlp", "Overlap (%)",
-              min = 0, max = 80, value = session_data$ovlp, step = 10, width = "100%"
+              min = 0, max = 80, value = session_data$ovlp,
+              post = "%", step = 10, width = "100%"
             ),
             sliderTextInput(
               "pitch_shift", "Pitch shift (octaves) and slow down (factor)",
-              choices = c(-8, -6, -4, -2, 1), selected = session_data$pitch_shift,
-              grid = TRUE, width = "100%"
+              choices = c(-8, -6, -4, -2, 1),
+              selected = session_data$pitch_shift,
+              post = " octaves", grid = TRUE, width = "100%"
             ),
             selectInput("color_scale", "Color scale",
               choices = c(
@@ -1296,12 +1294,12 @@ launch_segmentation_app <- function(
               res_cut@samp.rate <- res_cut@samp.rate / pitch_shift
             }
             if (isTRUE(input$visible_bp)) {
-              res_cut <- fir(
+              res_cut <- ffilter(
                 res_cut,
                 f = res_cut@samp.rate,
                 from = (input$zoom_freq[1] / pitch_shift) * 1000,
                 to = (input$zoom_freq[2] / pitch_shift) * 1000,
-                wl = input$wl, output = "Wave"
+                wl = input$wl, output = "Wave", bandpass = TRUE
               )
             }
             if (isTRUE(input$play_norm)) {
