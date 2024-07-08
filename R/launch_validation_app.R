@@ -2219,7 +2219,7 @@ launch_validation_app <- function(
             validation = validation_input(),
             validation_time = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
             validation_user = input$validation_user,
-            validation_note = input$detec_note
+            validation_note = as.character(input$detec_note)
           )
 
         if (input$overwrite == TRUE) {

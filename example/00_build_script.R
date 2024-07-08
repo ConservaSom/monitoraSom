@@ -8,7 +8,7 @@ install.packages("devtools")
 library(devtools)
 devtools::install()
 
-
+utils::packageVersion("monitoraSom")
 use_version()
 
 # load_all()
