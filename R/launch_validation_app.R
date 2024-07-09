@@ -22,7 +22,7 @@
 #' @param wav_player_type The type of wav player. "R session" for R
 #'   session-based player, "system" for system player.
 #' @param val_subset Subset of detections to be validated.
-#' @param min_score Minimum score of the detections to be validated.
+#' @param score_interval Interval of scores to be validated.
 #' @param time_pads Time pads to be added to the start and end of the cut wave
 #'   files.
 #' @param ovlp Overlap between consecutive cuts.
@@ -34,13 +34,16 @@
 #' @param color_scale Color scale for the spectrogram.
 #' @param zoom_freq Frequency range to zoom in the spectrogram.
 #' @param nav_shuffle If TRUE, the files will be shuffled before navigation.
-#' @param seed Seed for the random shuffling.
+#' @param subset_seed Seed for the random shuffling.
 #' @param auto_next If TRUE, the next file is automatically displayed when the
 #'   user validates a cut.
 #' @param nav_autosave If TRUE, the current validation is saved when the user
 #'   navigates to another file.
 #' @param overwrite If TRUE, the output file is overwritten.
+#' @param pitch_shift Pitch shift for the audio cuts.
 #' @param session_notes Notes related to the validation session.
+#' @param visible_bp If TRUE, the bandpass filter is visible in the spectrogram.
+#' @param play_norm If TRUE, the played audio is normalized.
 #'
 #' @return todo
 #'
@@ -78,15 +81,13 @@ launch_validation_app <- function(
     validation_user, templates_path, soundscapes_path, input_path,
     output_path = NULL, spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
-    val_subset = c("NA", "TP", "FP", "UN"), min_score = -1,
+    val_subset = c("NA", "TP", "FP", "UN"), score_interval = c(-1, 1),
     time_pads = 1, ovlp = 0, wl = 2048, dyn_range_bar = c(-144, 0),
-    dyn_range_templ = c(-60, 0), dyn_range_detec = c(-120, -60),
+    dyn_range_templ = c(-84, 0), dyn_range_detec = c(-84, 0),
     color_scale = "inferno", zoom_freq = c(0, 23),
-    nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
+    nav_shuffle = FALSE, subset_seed = 123, auto_next = TRUE, nav_autosave = TRUE,
     overwrite = FALSE, pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
     ) {
-
-      # todo Adicionar informações de pitch_shift
 
   library(dplyr, warn.conflicts = FALSE)
   # require(tidyr)
@@ -219,18 +220,26 @@ launch_validation_app <- function(
     )
   }
 
-  # todo Adicionar os outros filtros de detecções
-  if (is.numeric(min_score)) {
-    if (-1 <= min_score & min_score < 1) {
-      session_data$min_score <- min_score
+  if (all(is.numeric(score_interval))) {
+    if (all(score_interval <= 1) & all(score_interval >= -1)) {
+      if (dyn_range_detec[1] == dyn_range_detec[2]) {
+        stop("Error! The values provided in 'score_interval' must be different.")
+      } else if (dyn_range_detec[1] < dyn_range_detec[2]) {
+        session_data$score_interval <- score_interval
+      } else {
+        session_data$score_interval <- sort(score_interval)
+        warning(
+          "Warning! The first value of 'score_interval' must be smaller than the second. Sorting to match the expected order"
+        )
+      }
     } else {
       stop(
-        "Error! The value assigned to 'min_score' is not within the expected interval. Provide a numeric value between -1 and 1."
+        "Error! At least one value assigned to 'score_interval' is not within the expected interval. Provide only numeric values between -1 and 1."
       )
     }
   } else {
     stop(
-      "Error! The value assigned to 'min_score' is not numeric. Provide a numeric value between -1 and 1."
+      "Error! At least one value assigned to 'score_interval' is not numeric. Provide only numeric values between -1 and 1."
     )
   }
 
@@ -414,8 +423,8 @@ launch_validation_app <- function(
     stop("Error! 'nav_shuffle' must be set to TRUE or FALSE.")
   }
 
-  if (is.numeric(seed)) {
-    session_data$seed <- seed
+  if (is.numeric(subset_seed)) {
+    session_data$subset_seed <- subset_seed
   } else {
     stop("Error! Non-numeric value input provided to 'seed'")
   }
@@ -530,7 +539,8 @@ launch_validation_app <- function(
 #     wav_player_path = session_data$wav_player_path,
 #     wav_player_type = session_data$wav_player_type,
 #     val_subset = session_data$val_subset,
-#     min_score = session_data$min_score,
+#     min_score = session_data$score_interval[1],
+#     max_score = session_data$score_interval[2],
 #     time_pads = session_data$time_pads,
 #     ovlp = session_data$ovlp,
 #     wl = session_data$wl,
@@ -538,7 +548,7 @@ launch_validation_app <- function(
 #     color_scale = session_data$color_scale,
 #     zoom_freq = session_data$zoom_freq,
 #     nav_shuffle = session_data$nav_shuffle,
-#     seed = session_data$seed,
+#     subset_seed = session_data$subset_seed,
 #     auto_next = session_data$auto_next,
 #     nav_autosave = session_data$nav_autosave,
 #     overwrite = session_data$overwrite,
@@ -715,10 +725,45 @@ launch_validation_app <- function(
               ),
               selected = session_data$val_subset, multiple = TRUE, width = "100%"
             ),
+            # convert in an interval
             sliderInput(
-              "min_score", "Minimum correlation (*)",
+              "score_interval", "Score interval (*)",
               width = "100%", min = -1, max = 1, step = 0.01,
-              value = session_data$min_score
+              value = session_data$score_interval
+            ),
+            # top n detections
+            column(
+              width = 6,
+              textInput("top_n_detecs", "Top detections", value = 0, width = "100%")
+            ),
+            column(width = 6, checkboxInput(
+              "top_by_file", "Search top scores within soundscape files",
+              value = FALSE, width = "100%"
+            )),
+            # arrange the order of validation per score
+            selectInput(
+              "order_by", "Order by",
+              choices = c(
+                "Original file order",
+                "Soundscape file name (ASC)",
+                "Soundscape file name (DESC)",
+                "Score (ASC)",
+                "Score (DESC)",
+                "Soundscape file name (ASC) and Score (ASC)",
+                "Soundscape file name (ASC) and Score (DESC)",
+                "Soundscape file name (DESC) and Score (ASC)",
+                "Soundscape file name (DESC) and Score (DESC)",
+                "Score (ASC) and Soundscape file name (ASC)",
+                "Score (ASC) and Soundscape file name (DESC)",
+                "Score (DESC) and Soundscape file name (ASC)",
+                "Score (DESC) and Soundscape file name (DESC)",
+                "Random"
+                ),
+              selected = "Score", width = "100%"
+            ),
+            numericInput(
+              "subset_seed", "Seed for random subsetting",
+              value = session_data$subset_seed
             ),
             actionButton(
               "confirm_session_setup", "Confirm validation setup",
@@ -948,16 +993,8 @@ launch_validation_app <- function(
           ),
           column(
             width = 1,
-            numericInput("seed", "Seed", value = session_data$seed)
-          ),
-          column(
-            width = 1,
             column(
               width = 12,
-              checkboxInput(
-                "nav_shuffle", HTML("<b>Shuffle</b>"),
-                value = session_data$nav_shuffle
-              ),
               checkboxInput(
                 "auto_next", HTML("<b>Autonavigate</b>"),
                 value = session_data$auto_next
@@ -982,6 +1019,7 @@ launch_validation_app <- function(
             width = 4,
             textInput(
               "detec_note", "Detection notes",
+              value = NA_character_,
               placeholder = "Write detection notes here", width = "100%"
             )
           ),
@@ -1107,7 +1145,7 @@ launch_validation_app <- function(
           tabPanel(
             "Diagnostics",
             column(
-              width = 3,
+              width = 4,
               selectInput(
                 "diag_balance", "Dataset balance method",
                 choices = c(
@@ -1115,20 +1153,21 @@ launch_validation_app <- function(
                 ),
                 selected = "None", width = "100%"
               ),
-              selectInput(
+            ),
+            column(width = 4, selectInput(
                 "diag_method", "Cutpoint detection method",
                 choices = c("Manual", "Error = 0.05", "Error = 0.1"),
                 width = "100%"
-              ),
-              sliderInput(
+              )),
+            column(width = 4, sliderInput(
                 "diag_cut", "Cutpoint threshold",
                 min = 0, max = 1, step = 0.001, value = 0.2, width = "100%"
-              )
-            ),
-            tableOutput("cut_i_tab"),
+              )),
+            column(width = 3, plotOutput("plot_dens", height = "340px")),
             column(width = 3, plotOutput("plot_binomial", height = "340px")),
             column(width = 3, plotOutput("plot_roc", height = "340px")),
             column(width = 3, plotOutput("plot_prec_rec", height = "340px")),
+            tableOutput("cut_i_tab"),
             column(
               width = 6,
               splitLayout(
@@ -1345,6 +1384,7 @@ launch_validation_app <- function(
               validation_time = NA_character_,
               validation = NA_character_,
               validation_note = NA_character_
+              # todo colocar "validation_label"
             )
         } else if ("validation_time" %in% colnames(res)) {
           res <- res %>%
@@ -1379,7 +1419,7 @@ launch_validation_app <- function(
           which(df_full$data$template_name == input$template_name),
         ]
         updateSliderInput(
-          session, "min_score",
+          session, "score_interval",
           min = round(head(head(sort(df_ref$peak_score), 2), 1), 2),
           max = round(head(tail(sort(df_ref$peak_score), 2), 1), 2)
         )
@@ -1404,31 +1444,99 @@ launch_validation_app <- function(
         val_subset <- input$val_subset
         val_subset[val_subset == "NA"] <- NA
 
+        order_options <- list(
+          "Original file order" = function(res) res,
+          "Random" = function(res, seed = input$subset_seed) {
+            set.seed(input$subset_seed)
+            res[sample(nrow(res)), ]
+            },
+          "Soundscape file name (ASC)" =
+            function(res) res[order(res$soundscape_file), ],
+          "Soundscape file name (DESC)" =
+            function(res) res[order(res$soundscape_file, decreasing = TRUE), ],
+          "Score (ASC)" =
+            function(res) res[order(res$peak_score), ],
+          "Score (DESC)" =
+            function(res) res[order(res$peak_score, decreasing = TRUE), ],
+          "Soundscape file name (ASC) and Score (ASC)" =
+            function(res) res[order(res$soundscape_file, res$peak_score), ],
+          "Soundscape file name (ASC) and Score (DESC)" =
+            function(res) res[order(res$soundscape_file, -res$peak_score), ],
+          "Soundscape file name (DESC) and Score (ASC)" =
+            function(res) res[order(-res$soundscape_file, res$peak_score), ],
+          "Soundscape file name (DESC) and Score (DESC)" =
+            function(res) res[order(-res$soundscape_file, -res$peak_score), ],
+          "Score (ASC) and Soundscape file name (ASC)" =
+            function(res) res[order(res$peak_score, res$soundscape_file), ],
+          "Score (ASC) and Soundscape file name (DESC)" =
+            function(res) res[order(res$peak_score, -res$soundscape_file), ],
+          "Score (DESC) and Soundscape file name (ASC)" =
+            function(res) res[order(-res$peak_score, res$soundscape_file), ],
+          "Score (DESC) and Soundscape file name (DESC)" =
+            function(res) res[order(-res$peak_score, -res$soundscape_file), ]
+        )
+        top_n_detecs_val <- as.numeric(input$top_n_detecs)
+
         # Gather the metadata to validate the active template
         res <- df_full$data %>%
           # filter by template name
           filter(template_name == input$template_name) %>%
           # filter by correlation threshold
-          filter(peak_score >= input$min_score) %>%
+          filter(
+            peak_score >= input$score_interval[1] &
+              peak_score <= input$score_interval[2]
+          ) %>%
           # filter by validation outcome
           filter(validation %in% val_subset) %>%
-            mutate(validation_note = NA_character_)
+          # filter by top n detections
+          {
+            if (input$top_by_file == TRUE) {
+              group_by(., soundscape_file)
+            } else {
+              .
+            }
+          } %>%
+          {
+            if (top_n_detecs_val > 0) {
+              top_n(., top_n_detecs_val, wt = peak_score)
+            } else {
+              .
+            }
+          } %>%
+          ungroup()
+          #  %>%
+          # mutate(validation_note = NA_character_)
+
+          res <- order_options[[input$order_by]](res)
+
+
 
         # if the filtering process result is not null, get some more information
         if (!is.null(res)) {
-          updateSelectInput(
-            session, "detec",
-            choices = res$detection_id, selected = res$detection_id[1]
-          )
-          res_soundscapes <- unique(res$soundscape_file)
-          vec_soundscapes(res_soundscapes)
-          updateSelectInput(session, "soundscape_file", choices = res_soundscapes)
-          df_cut(res)
-          updateProgressBar(
-            session = session, id = "prog_bar_subset",
-            value = length(which(res$validation %in% c("TP", "FP", "UN"))),
-            total = nrow(res)
-          )
+          if (nrow(res) == 0) {
+            showModal(
+              modalDialog(
+                title = "No detections found",
+                "No detections were found with the provided parameters. Please, review the validation setup.",
+                easyClose = TRUE,
+                footer = NULL
+              )
+            )
+          } else {
+            updateSelectInput(
+              session, "detec",
+              choices = res$detection_id, selected = res$detection_id[1]
+            )
+            res_soundscapes <- unique(res$soundscape_file)
+            vec_soundscapes(res_soundscapes)
+            updateSelectInput(session, "soundscape_file", choices = res_soundscapes)
+            df_cut(res)
+            updateProgressBar(
+              session = session, id = "prog_bar_subset",
+              value = length(which(res$validation %in% c("TP", "FP", "UN"))),
+              total = nrow(res)
+            )
+          }
         }
         # Reactive object to update info about the active template
         df_template({
@@ -1445,42 +1553,42 @@ launch_validation_app <- function(
         showNotification("Validation session updated")
       })
 
-      # If the user sets the random order review mode, it will randomize rows of df_cut()
-      observeEvent(input$nav_shuffle, {
-        req(df_cut())
+      # # If the user sets the random order review mode, it will randomize rows of df_cut()
+      # observeEvent(input$nav_shuffle, {
+      #   req(df_cut())
 
-        if (input$nav_shuffle == TRUE) {
-          req(input$confirm_session_setup)
-          if (is.integer(input$seed)) {
-            set.seed(input$seed)
-          } else {
-            showModal(
-              modalDialog(
-                title = "Seed not defined!",
-                "A numeric seed is needed to ensure reproducibility when shuffling the sequence of detections to be validated. The input will be updated to the default value (123). Provide another value if necessary.",
-                easyClose = TRUE,
-                footer = NULL
-              )
-            )
-            updateNumericInput(session, "seed", value = 123)
-            set.seed(123)
-          }
-          random_index <- sample(1:nrow(df_cut()))
-          df_cut(df_cut()[random_index, ])
-          det_counter(random_index[1]) # ! corrigir erro de nevagação aqui
-          updateSelectInput(session, "detec", selected = df_cut()$detection_id[1])
-        } else if (input$nav_shuffle == FALSE) {
-          df_cut(df_cut()[order(df_cut()$detection_id), ])
-          det_counter(1)
-          updateSelectInput(session, "detec", selected = df_cut()$detection_id[1])
-        }
-      })
+      #   if (input$nav_shuffle == TRUE) {
+      #     req(input$confirm_session_setup)
+      #     if (is.integer(input$seed)) {
+      #       set.seed(input$seed)
+      #     } else {
+      #       showModal(
+      #         modalDialog(
+      #           title = "Seed not defined!",
+      #           "A numeric seed is needed to ensure reproducibility when shuffling the sequence of detections to be validated. The input will be updated to the default value (123). Provide another value if necessary.",
+      #           easyClose = TRUE,
+      #           footer = NULL
+      #         )
+      #       )
+      #       updateNumericInput(session, "seed", value = 123)
+      #       set.seed(123)
+      #     }
+      #     random_index <- sample(1:nrow(df_cut()))
+      #     df_cut(df_cut()[random_index, ])
+      #     det_counter(random_index[1]) # ! corrigir erro de nevagação aqui
+      #     updateSelectInput(session, "detec", selected = df_cut()$detection_id[1])
+      #   } else if (input$nav_shuffle == FALSE) {
+      #     df_cut(df_cut()[order(df_cut()$detection_id), ])
+      #     det_counter(1)
+      #     updateSelectInput(session, "detec", selected = df_cut()$detection_id[1])
+      #   }
+      # })
 
       # Reactive object to store the detection index within df_cut()
       det_counter <- reactiveVal(1)
       # Upon initialization and under these conditions, det_counter is set to 1
       observeEvent(
-        list(input$min_score, input$user_setup_confirm), det_counter(1)
+        list(input$score_interval, input$user_setup_confirm), det_counter(1)
       )
       # Create a reactive object to store the data of the active detection
       det_i <- reactiveVal(NULL)
@@ -2242,8 +2350,22 @@ launch_validation_app <- function(
           }
         } else if (input$overwrite == FALSE) {
           det_i(res_A)
-          df_cut(rows_patch(df_cut(), res_A, by = "detection_id", unmatched = "ignore"))
-          df_output(rows_patch(df_output(), res_A, by = "detection_id", unmatched = "ignore"))
+          df_cut(
+            rows_patch(
+              df_cut() %>%
+                mutate(validation_note = as.character(validation_note)),
+              res_A,
+              by = "detection_id", unmatched = "ignore"
+            )
+          )
+          df_output(
+            rows_patch(
+              df_output() %>%
+                mutate(validation_note = as.character(validation_note)),
+                res_A,
+              by = "detection_id", unmatched = "ignore"
+            )
+          )
           validation_input(NULL) # reset after value is passed on forward
           if (input$lock_detec_note == FALSE) {
             updateTextInput(session, "detec_note", value = NA)
@@ -2414,6 +2536,7 @@ launch_validation_app <- function(
       mod_res_react <- reactiveVal(NULL)
       mod_plot_react <- reactiveVal(NULL)
       roc_plot_react <- reactiveVal(NULL)
+      plot_dens_react <- reactiveVal(NULL)
       precrec_plot_react <- reactiveVal(NULL)
       cut_full_tab <- reactiveVal(NULL)
       cut_i_tab <- reactiveVal(NULL)
@@ -2489,7 +2612,7 @@ launch_validation_app <- function(
               mutate(
                 template_name = input$template_name,
                 precision = tp / (tp + fp),
-                recall = tp / (tp + fn),
+                relative_recall = tp / (tp + fn),
                 sensitivity = tp / (tp + fn),
                 specificity = tn / (tn + fp),
                 selected = FALSE
@@ -2521,15 +2644,15 @@ launch_validation_app <- function(
             roc_plot_react(roc_plot)
 
             precrec_data <- diag_out %>%
-              select(peak_score, precision, recall, selected) %>%
+              select(peak_score, precision, relative_recall, selected) %>%
               filter(is.finite(peak_score)) %>%
               tidyr::drop_na()
 
             precrec_plot <- precrec_data %>%
-              ggplot(aes(recall, precision)) +
+              ggplot(aes(relative_recall, precision)) +
               geom_line() +
               geom_point(
-                data = precrec_data[sel_i, ], aes(recall, precision)
+                data = precrec_data[sel_i, ], aes(relative_recall, precision)
               ) +
               annotate(
                 "label",
@@ -2537,17 +2660,38 @@ launch_validation_app <- function(
                 label = paste0(
                   "prAUC = ",
                   round(
-                    auc_trap(precrec_data$recall, precrec_data$precision), 3
+                    auc_trap(precrec_data$relative_recall, precrec_data$precision), 3
                   )
                 )
               ) +
-              labs(title = "Precision and Recall") +
+              labs(
+                title = "Precision and Relative Recall", x = "Relative Recall",
+                y = "Precision"
+              ) +
               ylim(0, 1) +
               xlim(0, 1) +
               coord_equal() +
               theme_bw()
+
+            plot_dens <- df_diag_input() %>%
+              filter(!is.na(validation)) %>%
+              ggplot(aes(x = peak_score, fill = validation)) +
+              geom_density(alpha = 0.5) +
+              geom_vline(
+                xintercept = binom_cut, color = "red", linetype = 2,
+                linewidth = 1
+              ) +
+              labs(
+                title = "Peak score density",
+                y = "Density", x = "Peak score"
+              ) +
+              theme_bw() +
+              theme(legend.position = c(0.8, 0.8))
+
+
             precrec_plot_react(precrec_plot)
             cut_i_tab(diag_out[sel_i, ])
+            plot_dens_react(plot_dens)
           }
         }
       })
@@ -2566,6 +2710,7 @@ launch_validation_app <- function(
           enable("diag_balance")
           enable("diag_method")
           enable("diag_cut")
+          enable("plot_dens")
           enable("plot_binomial")
           enable("plot_roc")
           enable("plot_prec_rec")
@@ -2575,6 +2720,7 @@ launch_validation_app <- function(
         } else {
           disable("diag_balance")
           disable("diag_method")
+          disable("plot_dens")
           disable("diag_cut")
           disable("plot_binomial")
           disable("plot_roc")
@@ -2594,7 +2740,7 @@ launch_validation_app <- function(
             setNames(
               c(
                 "Template", "Threshold", "TP (n)", "FP (n)",
-                "TP Rate", "FP Rate", "Precision", "Recall",
+                "TP Rate", "FP Rate", "Precision", "Relative Recall",
                 "Sensibility", "Specificity"
               )
             )
@@ -2612,6 +2758,10 @@ launch_validation_app <- function(
       output$plot_roc <- renderPlot({
         req(precrec_plot_react())
         precrec_plot_react()
+      })
+      output$plot_dens <- renderPlot({
+        req(plot_dens_react())
+        plot_dens_react()
       })
 
       # Load path to export the diagnostics table
@@ -2711,7 +2861,8 @@ launch_validation_app <- function(
       #     wav_player_path = input$wav_player_path,
       #     wav_player_type = input$wav_player_type,
       #     val_subset = input$val_subset,
-      #     min_score = as.numeric(input$min_score),
+      #     min_score = as.numeric(input$score_interval[1]),
+      #     max_score = as.numeric(input$score_interval[2]),
       #     time_pads = as.numeric(input$time_pads),
       #     ovlp = as.numeric(input$ovlp),
       #     wl = as.numeric(input$wl),
@@ -2879,6 +3030,7 @@ launch_validation_app <- function(
       #     updateTextAreaInput(session, inputId = "output_path", value = res$output_path)
       #     updateSelectizeInput(session, inputId = "val_subset", selected = res$val_subset)
       #     updateSliderInput(session, inputId = "min_score", value = res$cut)
+      #     updateSliderInput(session, inputId = "max_score", value = res$cut)
       #     updateSliderInput(session, inputId = "time_pads", value = res$time_pads)
       #     updateCheckboxInput(session, inputId = "auto_next", value = res$auto_next)
       #     updateCheckboxInput(session, inputId = "nav_autosave", value = res$nav_autosave)
@@ -3178,8 +3330,8 @@ launch_validation_app <- function(
         placement = "right", trigger = "hover", options = pop_up_opt
       )
       shinyBS::addTooltip(session,
-        id = "min_score",
-        title = "Only detections above this threshold will be shown in this session",
+        id = "score_interval",
+        title = "Only detections within this interval will be presented to the user",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
       shinyBS::addTooltip(session,

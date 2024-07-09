@@ -4,69 +4,70 @@ author: "GLMRosa"
 format: pdf
 ---
 
+Validation app
+- Novos defaults para os seguintes argumentos:
+  - dyn_range_templ = c(-84, 0)
+  - dyn_range_detec = c(-84, 0)
+  - auto_next = TRUE
+  - nav_autosave = TRUE
+- Argumento `min_score` substituido por `score_interval`, que é um vetor com os valores mínimo e máximo de score para a seleção de detecções.
+- Novas opções para o setup das detecções a serem validadas:
+  - "Top detections" - filtra as n detecções com os maiores scores para que sejam validadas
+  - "Search top scores within soundscape files" - faz a busca dos n maiores scores dentro de soundscape se marcado, se não, busca os n maiores scores em todo o conjunto de detecções
+  - "Order by" - ordena as detecções por arquivo e score em diferentes combinações, incluindo aleatoriamente
+  - "Seed for random subsetting" - seed para a seleção aleatória de detecções agora está como parte do setup, e não mais no menu de validação
+- Recall agora é referido como relative recall nos plots e tabelas para melhor ajuste conceitual
+- Foi adicionado um plot de densidade no painel de diagnósticos para melhor visualização da distribuição dos scores
+- bug solved - rows_patch dava problema quando overwrite = FALSE
+- bug solved - Agora quando o setup do template não retorna nenhuma detecção é acionada uma pop up avisando ao inves de travar o app
+
+
+
+- adicionar um menu com o nome da espécie com cadeado
+- Segunda camada de classificação para mitigação de falsos positivos ou desambiguação entre espécies com cantos similares
+
+- next unsegmented no app de segmentação não está navegando direito
+
+- Mostrar a probabilidade do modelo binomial quando disponivel (Deixar pra depois pq depender de atualizações independentes do modelo exige um pouco mais de cuidado pra prevenir bugs)
+
 Prioridades
-- Fazer processo funcionar com o templates standalone
-- Adicionar a função de validação por sobreposição temporal
 - Implementar o restante dos diagnósticos
-- Obter TN a partir de rois de outras espécies, que permanecem como TN independente do score
 - A validação deve retornar 3 objetos: o valor do score selecionado, a tabela de diagnosticos baseados nesse score e a tabela de detecs validadas.
 
 Funções
 - Fazer uma função para extração dos metadados a partir de nomes de arquivos e metadados de arquivos audiomoths e sm4
 - Fazer uma função para adaptar um corte de audio qualquer como template
-- Fazer função para conversão entre tabelas de seleção do raven e audacity para roi_tables
-- Fazer função para converter roi_tables em standalone templates em batch
+- Fazer função para conversão entre tabelas de seleção do raven, birdnet e audacity para roi_tables
+  - Criar funções para que sejam convertidas tabelas de seleção do Raven e Audacity para o formato de output do app de segmentação
+- Deprecate roi tables como formato de templates
 - Função de match_n tem que checar o caminho para o salvamento antes de processar tudo
 - Implementar função de diagnóstico de template
 
 Geral
-- Trabalhar melhor no nome dos templates standalone
-- Adicionar dataframes que possam ser chamados de dentro do pacote pela função `data()`
 - Adicionar contador de tempo para as funções de processamento mais longo
 - pasta data/ com objetos para exemplos de todas as funções
   - (Um exemplo de três templates e três soundscapes para o template matching
   - uma tabelona com detecções para exemplo de validação
   - link estável para baixar dados de exemplos maiores
   - Fazer um Rdata que exporta os arquivos para um diretório de exemplo
-- Ver qual é a licensa das dependencias
 - remover as paradas do vs code do repo
 - Adicionar opções gerais para seleção e registro do canal onde cada processo foi feito
-- Criar funções para que sejam convertidas tabelas de seleção do Raven e Audacity para o formato de output do app de segmentação
-- Omitir mensagens fo pacote av quando forem feitas as buscas de metadados dos arquivos de audio
-- Verificar a viabilidade de usar a função av::read_audio_fft para gerar os sonogramas ao longo de todo o pacote
 
 Apps
-- Habilitar o acionamento dos apps por meio de função sem que todos os argumentos precisem ser definidos
 - Adicionar autoplay onde puder ser necessário
-- Adicionar checkbox para inversão das escalas de cores dos sonogramas]
-- Adicionar filtro de banda e normalização para os sonogramas
-- Controle para evitar que o path selecionado suma ao clicar adicentalmente no botão de load.
+- Adicionar checkbox para inversão das escalas de cores dos sonogramas
 - Simplificar o app com a remoção de seções duplicadas do código para acesso por diferentes tipos de inputs, como hotkeys e actionButtons ao mesmo tempo.
 - Streaming dos dados em um banco de dados em SQL
 - Adicionar opção para selecionar o canal do sonograma visível
 - Encontrar e resolver o bug de renderização duplicada dos sonogramas
+- Fazer um painel com metadados da soundscape em ambos os apps
 - Validação:
-  - Adicionar o valor do score no sonograma da detec
-  - Ok do dos warning está apagado
-  - Verificar se o 'play' default para 'R session' funciona em windows
-  - Diferenças no output são detectadas como unsaved rows, controlar quando o que acontece é a comparação de um dataset vazio com um cheio
-  - Fazer um manual de uso da interface
+  - fazer 'play' como 'R session' funcionar em windows
   - Fazer um segundo conjunto de dados de demonstração, maior para varificar questões de performance
-  - Quando possível, mostrar a hora absoluta do sonograma da detecção
   - Adicionar seed específica para os diagnósticos
   - Modificar o sistema para que seja possível haver mais de uma validação por detecção, caso seja um usuário diferente.
   - Habilitar a navegaçao entre soundscapes
 - Segmentação
-  - Depositar as listas de espécies como um arquivo xlsx na pasta de roi_tables
-  - Adicionar hotkeys para:
-    - Hotkeys para next (F) e prev (R) soundscape
-    - Salvar tabela de ROIs
-    - Exportar nova tabela de ROIs
-    - Exportar sonograma da soundscape
-    - Exportar cortes de audio das rois selecionadas
-    - Exportar sonogramas das rois selecionadas (mesmo destino dos audios)
-  - Adicionar referências para os atalhos de teclado nos pop-overs
-  - Adicionar a lista de espécies disponíveis como variável na tabela de ROIs?
   - Ativar mecanismo de detecção de sistema para os players
     - Detectar se o sox está disponível?
     - Pedir caminho para o player quando houver "R session" no windows
@@ -74,9 +75,8 @@ Apps
   - verificar os padrões usados em https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecy.3329
   - Progresso
     - Rever o que é informado na barra de progresso
-    - Criar uma tabela a partir da compilação de todas as ROIs disponíveis no diretório
+    - Alimentar uma unica tabela ao inves de uma tabela por arquivo?
   - Adicionar um campo com uma lista em que persistem as tags mais usadas em ordem aflabética que possam ser clicadas facilmente para preencher todos os campos (exceto a observação). Essas opções devem ser clicáveis.
-  - Plotar as legendas das rois usando o ggrepel para os nomes não ficarem sobrepostos
 
 fetch_score_peaks_i()
 - Verificar se `fetch_score_peaks_i()` deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro. Valeria a pena fazer a função retornar um dataframe vazio?
@@ -111,136 +111,3 @@ Funções novas
 
 
 
-
-```{r}
-library(monitoraSom)
-launch_segmentation_app(
-  preset_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/",
-  preset_id = "default_linux2",
-  user = "gabriel na função",
-  soundscapes_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/soundscapes",
-  roi_tables_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_tables",
-  cuts_path = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/roi_cuts",
-  labels_file = "/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/MonitoraSom_UI_label_lists.xlsx",
-  fastdisp = TRUE, label_angle = 90, show_label = TRUE, dyn_range = c(-60, 0), wl = 1024,
-  ovlp = 0, color_scale = "inferno", wav_player_type = "HTML player",
-  # wav_player_path = "play",
-  session_notes = NULL, zoom_freq = c(0, 10), nav_autosave = FALSE,
-  sp_list = "CBRO-2021 (Brazil)"
-)
-
-session_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_seg_small/presets/segmentation_preset_default_windows.rds") %>%
-    glimpse()
-
-val_preset <- readRDS("/home/grosa/R_repos/MonitoraSomUI/ex_val_large/presets/preset_default_linux.rds") %>%
-    glimpse()
-
-
-
-launch_validation_app(
-  preset_path = "/home/grosa/R_repos/monitoraSom/example/app_presets/",
-  preset_name = "launching_linux_default",
-  validation_user = "Rosa G. L. M.",
-  templates_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/templates/",
-  soundscapes_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/soundscapes",
-  input_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/detections/validation_input.csv",
-  output_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/detections/validation_output.csv",
-  wav_cuts_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/detection_cuts/",
-  spec_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/detection_spectrograms/",
-  diag_tab_path = "/home/grosa/R_repos/MonitoraSomUI/ex_val_large/diagnostic_tables/",
-  wav_player_path = "play", wav_player_type = "HTML player",
-  val_subset = c("NA", "TP", "FP", "UN"), min_score = 0,
-  time_pads = 1, ovlp = 0, wl = 2048, dyn_range = c(-60, 0),
-  color_scale = "inferno", zoom_freq = c(0, 4),
-  nav_shuffle = FALSE, seed = 123, auto_next = FALSE, nav_autosave = FALSE,
-  overwrite = FALSE,
-  session_notes = "Validation app launching test"
-)
-
-```
-
-Benchmarks
-```{r}
-teste <- bench::mark(
-  seq = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 1
-  ),
-  future = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "future", ncores = 5
-  ),
-  foreach = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "foreach", ncores = 5
-  ),
-  pbapply = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "pbapply", ncores = 5
-  ),
-  parabar_async_sock = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-    backend_type = "async", cluster_type = "psock"
-  ),
-  parabar_sync_sock = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-    backend_type = "sync", cluster_type = "psock"
-  ),
-  parabar_async_fork = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-    backend_type = "async", cluster_type = "fork"
-  ),
-  parabar_sync_fork = match_n(
-    df_grid = df_grid[1:10, ], score_method = "cor", par_strat = "parabar", ncores = 5,
-    backend_type = "sync", cluster_type = "fork"
-  ),
-  iterations = 10, check = FALSE, memory = FALSE
-)
-plot(teste)
-
-```
-
-fetch_score_peaks_i()
-```{r}
-#' \itemize{
-#'   \item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
-#'   \item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
-#'   \item \code{template_path} {A character string specifying the complete path to the soundscape WAV files.}
-#'   \item \code{template_file} {A character string specifying the name of the soundscape WAV files (without the complete path).}
-#'   \item \code{template_min_freq} {The minimum frequency (kHz) of the band used to compute the template spectrogram.}
-#'   \item \code{template_max_freq} {The maximum frequency (kHz) of the band used to compute the template spzectrogram.}
-#'   \item \code{detection_start} {The start time (s) of the detection in the soundscape recording. Based on the template duration.}
-#'   \item \code{detection_end} {The end time (s) of the detection in the soundscape recording. Based on the template duration.}
-#'   \item \code{detec_wl} {The F tail temp
-    template_comment template_end template_file templat {The value of 'min_score'.}
-#'   \item \code{detec_min_quant} {The value of 'min_quant'.}
-#'   \item \code{detec_top_n} {The value of 'top_n'.}
-#'   \item \code{peak_index} {A numeric value representing the index of the score peak in the original score vector.}
-#'   \item \code{peak_cor} {A numeric value between 0 and 1 with the detection score.}
-#'   \item \code{peak_quant} {The quantile of the peak value in the score vector.}
-#' }
-```
-
-fetch_soundscape_metadata
-```{r}
-#' \describe{
-#' \item \code{soundscape_path} {A character string specifying the full path to the soundscape WAV file.}
-#' \item \code{soundscape_file} {A character string specifying the name of the soundscape WAV file.}
-#' \item \code{soundscape_duration} {A numeric value specifying the total duration (s) of the WAV file.}
-#' \item \code{soundscape_sample_rate} {An integer specifying the sample rate of the WAV file in Hz.}
-#' \item \code{soundscape_codec} {A character string specifying the audio codec used in the WAV file. See the documentation of the 'av' package for more details.}
-#' \item \code{soundscape_layout} {A character string specifying the audio channel layout of the WAV file. See the documentation of the 'av' package for more details.}
-#' }
-```
-
-fetch_template_metadata
-```{r}
-#' \itemize{
-#' \item \code{template_path} {A character string specifying the complete path to the soundscape WAV files.}
-#' \item \code{template_file} {A character string specifying the name of the soundscape WAV files (without the complete path).}
-#' \item \code{template_label} {A character string specifying the label indicating the origin of the signal represented in the template.}
-#' \item \code{template_start} {A numeric value representing the time (s) in which computation of the spectrogram starts within the template file.}
-#' \item \code{template_end} {A numeric value representing the time (s) in which computation of the spectrogram ends within the template file.}
-#' \item \code{template_sample_rate} {The sample rate of the template file.}
-#' \item \code{template_min_freq} {The minimum frequency (kHz) of the band that will be used to compute the template spectrogram.}
-#' \item \code{template_max_freq} {The maximum frequency (kHz) of the band that will be used to compute the template spectrogram.}
-#' \item \code{template_wl} {The FFT window length used to compute the template spectrogram.}
-#' \item \code{template_ovlp} {The overlap used to compute the template spectrogram.}
-#' }
-```
