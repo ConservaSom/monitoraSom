@@ -18,17 +18,19 @@ launch_validation_app(
   wav_player_path = "play",
   wav_player_type = "HTML player",
   val_subset = c("NA", "TP", "FP", "UN"),
-  min_score = 0,
+  score_interval = c(-1, 1),
   time_pads = 1,
   ovlp = 0,
   wl = 2048,
-  dyn_range = c(0, 50),
+  dyn_range_bar = c(-144, 0),
+  dyn_range_templ = c(-84, 0),
+  dyn_range_detec = c(-84, 0),
   color_scale = "inferno",
-  zoom_freq = c(0, 10),
+  zoom_freq = c(0, 23),
   nav_shuffle = FALSE,
-  seed = 123,
-  auto_next = FALSE,
-  nav_autosave = FALSE,
+  subset_seed = 123,
+  auto_next = TRUE,
+  nav_autosave = TRUE,
   overwrite = FALSE,
   pitch_shift = 1,
   visible_bp = FALSE,
@@ -63,7 +65,7 @@ session-based player, "system" for system player.}
 
 \item{val_subset}{Subset of detections to be validated.}
 
-\item{min_score}{Minimum score of the detections to be validated.}
+\item{score_interval}{Interval of scores to be validated.}
 
 \item{time_pads}{Time pads to be added to the start and end of the cut wave
 files.}
@@ -72,7 +74,12 @@ files.}
 
 \item{wl}{Window length for the spectrogram.}
 
-\item{dyn_range}{Dynamic range for the spectrogram.}
+\item{dyn_range_bar}{Adjustment of the maximum range of the dynamic range
+slider.}
+
+\item{dyn_range_templ}{Dynamic range for the template spectrogram.}
+
+\item{dyn_range_detec}{Dynamic range for the detection spectrogram.}
 
 \item{color_scale}{Color scale for the spectrogram.}
 
@@ -80,7 +87,7 @@ files.}
 
 \item{nav_shuffle}{If TRUE, the files will be shuffled before navigation.}
 
-\item{seed}{Seed for the random shuffling.}
+\item{subset_seed}{Seed for the random shuffling.}
 
 \item{auto_next}{If TRUE, the next file is automatically displayed when the
 user validates a cut.}
@@ -89,6 +96,12 @@ user validates a cut.}
 navigates to another file.}
 
 \item{overwrite}{If TRUE, the output file is overwritten.}
+
+\item{pitch_shift}{Pitch shift for the audio cuts.}
+
+\item{visible_bp}{If TRUE, the bandpass filter is visible in the spectrogram.}
+
+\item{play_norm}{If TRUE, the played audio is normalized.}
 
 \item{session_notes}{Notes related to the validation session.}
 }

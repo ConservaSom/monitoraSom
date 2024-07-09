@@ -4,8 +4,9 @@
 # library(available)
 # library(roxygen2)
 
-install.packages("devtools")
+# install.packages("devtools")
 library(devtools)
+library(usethis)
 devtools::install()
 
 utils::packageVersion("monitoraSom")

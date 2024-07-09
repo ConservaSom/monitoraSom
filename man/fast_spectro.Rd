@@ -12,7 +12,7 @@ fast_spectro(
   ovlp = 50,
   wl = 1024,
   norm = FALSE,
-  dyn_range = c(-60, 0),
+  dyn_range = c(-80, 0),
   color_scale = "inferno",
   n_colors = 124,
   interpolate = FALSE,

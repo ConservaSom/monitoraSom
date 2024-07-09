@@ -15,7 +15,8 @@ launch_segmentation_app(
   sp_list = "CBRO-2021 (Birds - Brazil)",
   label_angle = 90,
   show_label = TRUE,
-  dyn_range = c(0, 50),
+  dyn_range = c(-60, 0),
+  dyn_range_bar = c(-144, 0),
   wl = 1024,
   ovlp = 0,
   color_scale = "inferno",
@@ -61,9 +62,13 @@ spectrogram plot.}
 \item{show_label}{If TRUE, ROI labels will be displayed alongside ROI
 selections in the sepctrogram.}
 
-\item{dyn_range}{A numeric vector of length 2 between -100 and 0, specifying
-the minimum and maximum relative amplitudes to be displayed in the
-spectrogram}
+\item{dyn_range}{A numeric vector of length 2 specifying the minimum and
+maximum relative amplitudes (in dBFS) to be displayed on the spectrogram.
+By default c(-100, 0).}
+
+\item{dyn_range_bar}{A numeric vector of length 2 specifying the limits
+to be diplayed on the the bar that controls the dinamic range on the app.
+By default c(-200, 10).}
 
 \item{wl}{An integer specifying the length of the FFT window used to
 calculate the spectrogram.}
