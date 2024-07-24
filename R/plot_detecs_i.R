@@ -54,7 +54,7 @@
 plot_detecs_i <- function(
     match_res_i,
     buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
-    flim = c(0, 10), ovlp = NULL, wl = NULL, dyn_range = c(0, 50),
+    flim = c(0, 10), ovlp = NULL, wl = NULL, dyn_range = c(-60, 0),
     color_scale = "inferno", n_colors = 124, interpolate = FALSE,
     score_lims = NULL, ...
     ) {

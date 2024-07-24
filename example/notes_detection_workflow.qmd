@@ -4,23 +4,18 @@ author: "GLMRosa"
 format: pdf
 ---
 
-Validation app
-- Novos defaults para os seguintes argumentos:
-  - dyn_range_templ = c(-84, 0)
-  - dyn_range_detec = c(-84, 0)
-  - auto_next = TRUE
-  - nav_autosave = TRUE
-- Argumento `min_score` substituido por `score_interval`, que é um vetor com os valores mínimo e máximo de score para a seleção de detecções.
-- Novas opções para o setup das detecções a serem validadas:
-  - "Top detections" - filtra as n detecções com os maiores scores para que sejam validadas
-  - "Search top scores within soundscape files" - faz a busca dos n maiores scores dentro de soundscape se marcado, se não, busca os n maiores scores em todo o conjunto de detecções
-  - "Order by" - ordena as detecções por arquivo e score em diferentes combinações, incluindo aleatoriamente
-  - "Seed for random subsetting" - seed para a seleção aleatória de detecções agora está como parte do setup, e não mais no menu de validação
-- Recall agora é referido como relative recall nos plots e tabelas para melhor ajuste conceitual
-- Foi adicionado um plot de densidade no painel de diagnósticos para melhor visualização da distribuição dos scores
-- bug solved - rows_patch dava problema quando overwrite = FALSE
-- bug solved - Agora quando o setup do template não retorna nenhuma detecção é acionada uma pop up avisando ao inves de travar o app
-
+monitoraSom v0.1.1.9003:
+- Função `diagnostic_validations_i()` destinada à extrair as métricas de qualidade e nivel de corte das validações (independente da origem).
+- Novo default para dyn_range em `plot_detecs_i()`.
+- A função `validate_by_overlap_i()` está em vias de ser descartada de `validate_by_overlap_n()`, que não requer mais que o usuário define a espécie de interesse, mas trabalha com todas as espécies presentes na tabela de detecções de forma simultânea. Porém, os resultados ainda são organizados na form de um um único dataframe, e não mais em uma lista de dataframes em que cada elemento eram as detecs de um template. Ajustes para uso como input da função `diagnostic_validations_i()` ainda são necessários.
+- App de validação
+  - A posição do sonograma da detecção agora é à esquerda para maior destaque em relação ao do template.
+  - Agora o app não buga mais quando os template não são encontrados na pasta de templates, mas o painel do sonograma passa a mostrar a mensagem "Template not available".
+  - correção de bug - agora subsets com somente um valor de scores não geram mais o travamento do app.
+  - compartibilidade com BirdNET
+    - Foi criada a função `import_external_detections()` para importar as detecções do BirdNET e convertê-las para o formato de output da função `fetch_score_peaks_i()`. Essa função pode ser usada para importar isso diretamente para a sessão caso `output_path = NA`. Se o usuario deseja salvar, deve fornecer um caminho para o arquivo .csv de saída em `output_path`. Os caminhos dos argumentos de entrada e saída devem ser diferentes para que não seja sobrescrito o arquivo de entrada. Atenção! Considerando a necessidade de renomear as variáveis, mas admitindo que haverá variação, podem ser repassados os nomes das variáveis necessárias em forma de um vetor por meio do argumento `names_vec` (ver o default na vignette de ajuda da função). Os nomes correspondem aos nomes das variáveis usados por default pelo birdnet (até onde eu consegui checar), mas existe alguma variação.
+    - Não é mais necessário ter um template para poder validar as detecções. O app considera cada espécie como um template e mostra a mensagem "Template not available" no lugar onde deveria estar o sonograma do template.
+    - As tabelas de detecções do BirdNET devem ser adaptadas para o formato identico ao do output da função `fetch_score_peaks_i()`. Uma função específica para essa conversão ainda será implementada.
 
 
 - adicionar um menu com o nome da espécie com cadeado

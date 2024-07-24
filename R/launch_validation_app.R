@@ -890,53 +890,51 @@ launch_validation_app <- function(
         # box(width = 6, verbatimTextOutput("checagem2")),
 
         box(
-          width = 12, height = "550px",
-          splitLayout(
-            cellWidths = c("8%", "92%"),
+          width = 6, height = "550px",
+          column(
+            width = 1,
             noUiSliderInput(
               "zoom_freq", "Frequency zoom",
               min = 0, max = 18, step = 0.5, direction = "rtl",
               orientation = "vertical", width = "100px", height = "425px",
               value = session_data$zoom_freq
+            )
+          ),
+          column(
+            width = 11, offset = 0,
+            plotOutput("DetectionSpectrogram", height = "475px"),
+            column(
+              width = 8,
+              tags$div(id = "detection_player"),
+              actionButton(
+                "play_detec", "Play Detection (2)",
+                icon = icon("play"), width = "100%", style = "height:50px"
+              )
             ),
             column(
-              width = 12,
-              column(
-                width = 6,
-                plotOutput("TemplateSpectrogram", height = "475px"),
-                tags$div(id = "template_player"),
-                actionButton(
-                  "play_template", "Play Template (1)",
-                  icon = icon("play"), width = "100%", style = "height:50px"
-                )
+              width = 4, offset = 0,
+              actionButton(
+                "prev_detec", "",
+                icon = icon("backward", lib = "font-awesome"),
+                width = "45%", style = "height:50px"
               ),
-              column(
-                width = 6,
-                plotOutput("DetectionSpectrogram", height = "475px"),
-                column(
-                  width = 8, offset = 0,
-                  tags$div(id = "detection_player"),
-                  actionButton(
-                    "play_detec", "Play Detection (2)",
-                    icon = icon("play"), width = "100%", style = "height:50px"
-                  )
-                ),
-                column(
-                  width = 4, offset = 0,
-                  actionButton(
-                    "prev_detec", "",
-                    icon = icon("backward", lib = "font-awesome"),
-                    width = "45%", style = "height:50px"
-                  ),
-                  actionButton(
-                    "next_detec", "",
-                    icon = icon("forward", lib = "font-awesome"),
-                    width = "45%", style = "height:50px"
-                  )
-                )
+              actionButton(
+                "next_detec", "",
+                icon = icon("forward", lib = "font-awesome"),
+                width = "45%", style = "height:50px"
               )
             )
           )
+        ),
+        box(
+          id = "template_box",
+          width = 6, height = "550px",
+            plotOutput("TemplateSpectrogram", height = "475px"),
+            tags$div(id = "template_player"),
+            actionButton(
+              "play_template", "Play Template (1)",
+              icon = icon("play"), width = "100%", style = "height:50px"
+            )
         ),
         box(
           width = 12,
@@ -998,7 +996,11 @@ launch_validation_app <- function(
               checkboxInput(
                 "auto_next", HTML("<b>Autonavigate</b>"),
                 value = session_data$auto_next
-              )
+              ),
+              checkboxInput(
+                "overwrite", HTML("<b>Overwrite</b>"),
+                value = session_data$overwrite
+              ),
             )
           ),
           column(
@@ -1006,17 +1008,13 @@ launch_validation_app <- function(
             column(
               width = 12,
               checkboxInput(
-                "overwrite", HTML("<b>Overwrite</b>"),
-                value = session_data$overwrite
-              ),
-              checkboxInput(
                 "nav_autosave", HTML("<b>Autosave</b>"),
                 value = session_data$nav_autosave
               )
             )
           ),
           column(
-            width = 4,
+            width = 5,
             textInput(
               "detec_note", "Detection notes",
               value = NA_character_,
@@ -1323,7 +1321,6 @@ launch_validation_app <- function(
           input$input_path, input$output_path, input$soundscapes_path,
           input$templates_path, input$validation_user
         )
-
         if (input$input_path == input$output_path) {
           showModal(
             modalDialog(
@@ -1418,10 +1415,21 @@ launch_validation_app <- function(
         df_ref <- df_full$data[
           which(df_full$data$template_name == input$template_name),
         ]
+        min_score <- round(head(head(sort(df_ref$peak_score), 2), 1), 2)
+        if (min_score < -1) {
+          min_score <- -1
+        }
+        max_score <- round(head(tail(sort(df_ref$peak_score), 2), 1), 2)
+        if (max_score > 1) {
+          max_score <- 1
+        }
+        if (min_score == max_score) {
+          max_score <- min_score + 0.1
+          min_score <- min_score - 0.01
+        }
         updateSliderInput(
           session, "score_interval",
-          min = round(head(head(sort(df_ref$peak_score), 2), 1), 2),
-          max = round(head(tail(sort(df_ref$peak_score), 2), 1), 2)
+          min = min_score, max = max_score
         )
       })
 
@@ -1663,77 +1671,80 @@ launch_validation_app <- function(
       observe({
         req(df_template())
         wav_path <- df_template()$template_path
-        rec_start <- df_template()$template_start - zoom_pad()
-        pre_silence <- 0
-        rec_end <- df_template()$template_end + zoom_pad()
-        pos_silence <- 0
+        if (nrow(df_template()) == 0 | is.na(wav_path) | !file.exists(wav_path)) {
+          rec_template(NULL)
+        } else {
+           rec_start <- df_template()$template_start - zoom_pad()
+           pre_silence <- 0
+           rec_end <- df_template()$template_end + zoom_pad()
+           pos_silence <- 0
 
+           if (rec_start < 0) {
+             pre_silence <- abs(rec_start)
+             rec_start <- 0
+           }
+           if (rec_end > (df_template()$template_end - df_template()$template_start)) {
+             pos_silence <- rec_end - (df_template()$template_end - df_template()$template_start)
+             rec_end <- (df_template()$template_end - df_template()$template_start)
+           }
 
-        if (rec_start < 0) {
-          pre_silence <- abs(rec_start)
-          rec_start <- 0
-        }
-        if (rec_end > (df_template()$template_end - df_template()$template_start)) {
-            pos_silence <- rec_end - (df_template()$template_end - df_template()$template_start)
-            rec_end <- (df_template()$template_end - df_template()$template_start)
-        }
+           if (length(wav_path) == 1) {
+             res <- readWave(
+               wav_path,
+               from = rec_start, to = rec_end, units = "seconds"
+             ) %>%
+               addsilw(., at = "start", d = pre_silence, output = "Wave") %>%
+               addsilw(., at = "end", d = pos_silence, output = "Wave")
 
-        if (length(wav_path) == 1) {
-          res <- readWave(
-            wav_path,
-            from = rec_start, to = rec_end, units = "seconds"
-          ) %>%
-            addsilw(., at = "start", d = pre_silence, output = "Wave") %>%
-            addsilw(., at = "end", d = pos_silence, output = "Wave")
+             rec_template(res)
 
-          rec_template(res)
+             # Rendering the template HTML player
+             if (file.exists(wav_path) & input$wav_player_type == "HTML player") {
+               temp_file <- tempfile(
+                 pattern = "template_", tmpdir = session_data$temp_path, fileext = ".wav"
+               ) %>%
+                 gsub("\\\\", "/", .)
+               if (zoom_pad() != 0) {
+                 res <- cutw(
+                   res,
+                   from = zoom_pad(), to = duration(res) - zoom_pad(),
+                   output = "Wave"
+                 )
+               }
+               if (input$pitch_shift < 1) {
+                 res@samp.rate <- res@samp.rate / pitch_shift
+               }
+               if (isTRUE(input$visible_bp)) {
+                 res <- seewave::fir(
+                   res,
+                   f = res@samp.rate,
+                   from = (input$zoom_freq[1] / pitch_shift) * 1000,
+                   to = (input$zoom_freq[2] / pitch_shift) * 1000,
+                   wl = input$wl, output = "Wave"
+                 )
+               }
 
-          # Rendering the template HTML player
-          if (file.exists(wav_path) & input$wav_player_type == "HTML player") {
-            temp_file <- tempfile(
-              pattern = "template_", tmpdir = session_data$temp_path, fileext = ".wav"
-            ) %>%
-              gsub("\\\\", "/", .)
-            if (zoom_pad() != 0) {
-              res <- cutw(
-                res,
-                from = zoom_pad(), to = duration(res) - zoom_pad(),
-                output = "Wave"
-              )
-            }
-            if (input$pitch_shift < 1) {
-              res@samp.rate <- res@samp.rate / pitch_shift
-            }
-            if (isTRUE(input$visible_bp)) {
-              res <- seewave::fir(
-                res,
-                f = res@samp.rate,
-                from = (input$zoom_freq[1] / pitch_shift) * 1000,
-                to = (input$zoom_freq[2] / pitch_shift) * 1000,
-                wl = input$wl, output = "Wave"
-              )
-            }
-
-            seewave::savewav(res, f = res@samp.rate, filename = temp_file)
-            removeUI(selector = "#template_player_selector")
-            insertUI(
-              selector = "#template_player", where = "afterEnd",
-              ui = tags$audio(
-                id = "template_player_selector",
-                src = paste0("audio/", basename(temp_file)),
-                type = "audio/wav", autostart = FALSE, controls = TRUE
-              )
-            )
-            unlink("template_.*.wav")
-            list.files(
-              session_data$temp_path,
-              pattern = "template_.*.wav", full.names = TRUE
-            ) %>%
-              .[. != temp_file] %>%
-              file.remove()
-          } else {
-            removeUI(selector = "#template_player_selector")
-          }
+               seewave::savewav(res, f = res@samp.rate, filename = temp_file)
+               removeUI(selector = "#template_player_selector")
+               insertUI(
+                 selector = "#template_player", where = "afterEnd",
+                 ui = tags$audio(
+                   id = "template_player_selector",
+                   src = paste0("audio/", basename(temp_file)),
+                   type = "audio/wav", autostart = FALSE, controls = TRUE
+                 )
+               )
+               unlink("template_.*.wav")
+               list.files(
+                 session_data$temp_path,
+                 pattern = "template_.*.wav", full.names = TRUE
+               ) %>%
+                 .[. != temp_file] %>%
+                 file.remove()
+             } else {
+               removeUI(selector = "#template_player_selector")
+             }
+           }
         }
       })
 
@@ -1795,42 +1806,49 @@ launch_validation_app <- function(
       })
 
       spectro_template <- reactive({
-        req(rec_template(), df_template())
-        box_color <- ifelse(
-          input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
-        )
-        temp_rec <- rec_template()
-        fast_spectro(
-          rec = temp_rec, f = df_template()$sample_rate, wl = input$wl,
-          ovlp = input$ovlp, flim = c(input$zoom_freq[1], input$zoom_freq[2]),
-          dyn_range = c(input$dyn_range_templ[1], input$dyn_range_templ[2]),
-          color_scale = input$color_scale,
-          pitch_shift = input$pitch_shift
-        ) +
-          labs(title = "Template spectrogram") +
-          annotate(
-            "label",
-            label = paste0("Template: '", df_template()$template_name, "'"),
-            x = -Inf, y = Inf, hjust = 0, vjust = 1,
-            color = "white", fill = "black"
-          ) +
-          annotate(
-            "rect",
-            xmin = ifelse(zoom_pad() == 0, 0, zoom_pad()),
-            xmax = ifelse(
-              zoom_pad() == 0, duration(rec_template()),
-              duration(rec_template()) - zoom_pad()
-            ),
-            ymin = df_template()$template_min_freq,
-            ymax = df_template()$template_max_freq,
-            linetype = "dashed", alpha = 0,
-            color = box_color, fill = box_color
+        req(df_template())
+        if (is.null(rec_template())) {
+          ggplot() +
+            annotate("label", x = 1, y = 1, label = "Template not available") +
+            theme_void()
+        } else {
+          box_color <- ifelse(
+            input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
           )
+          temp_rec <- rec_template()
+          fast_spectro(
+            rec = temp_rec, f = df_template()$sample_rate, wl = input$wl,
+            ovlp = input$ovlp, flim = c(input$zoom_freq[1], input$zoom_freq[2]),
+            dyn_range = c(input$dyn_range_templ[1], input$dyn_range_templ[2]),
+            color_scale = input$color_scale,
+            pitch_shift = input$pitch_shift
+          ) +
+            labs(title = "Template spectrogram") +
+            annotate(
+              "label",
+              label = paste0("Template: '", df_template()$template_name, "'"),
+              x = -Inf, y = Inf, hjust = 0, vjust = 1,
+              color = "white", fill = "black"
+            ) +
+            annotate(
+              "rect",
+              xmin = ifelse(zoom_pad() == 0, 0, zoom_pad()),
+              xmax = ifelse(
+                zoom_pad() == 0, duration(rec_template()),
+                duration(rec_template()) - zoom_pad()
+              ),
+              ymin = df_template()$template_min_freq,
+              ymax = df_template()$template_max_freq,
+              linetype = "dashed", alpha = 0,
+              color = box_color, fill = box_color
+            ) +
+            theme(legend.position = "none")
+        }
       })
 
       # render the template spectrogram in the interface
       output$TemplateSpectrogram <- renderPlot({
-        req(rec_template(), df_template())
+        req(df_template())
         spectro_template()
       })
 
@@ -1978,7 +1996,8 @@ launch_validation_app <- function(
             label = paste0(
               "Score: ", round(det_i()$peak_score, 3)
             )
-          )
+          ) +
+          theme(legend.position = "none")
       })
 
       # render the detections spectrogram in the interface
@@ -2110,13 +2129,17 @@ launch_validation_app <- function(
           tuneR::setWavPlayer("play")
           # todo Adicionar aqui uma opção para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
           showElement("play_detec")
-          showElement("play_template")
+          if (!is.na(df_template()$template_path) | file.exists(df_template()$template_path)) {
+            showElement("play_template")
+          }
           # if (input$show_soundscape == TRUE) showElement("play_soundscape")
         } else if (x == "External player" & !is.null(input$wav_player_path)) {
           if (file.exists(input$wav_player_path)) {
             tuneR::setWavPlayer(input$wav_player_path)
             showElement("play_detec")
-            showElement("play_template")
+            if (!is.na(df_template()$template_path) | file.exists(df_template()$template_path)) {
+              showElement("play_template")
+            }
             # if (input$show_soundscape == TRUE) showElement("play_soundscape")
           } else {
             updateRadioButtons(session, "wav_player_type", selected = "R session")
