@@ -7,6 +7,7 @@
 #'   regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
 #'   be imported from presets or set manually.
 #'
+#' @param project_path Path to the project folder.
 #' @param preset_path Path from which presets can be imported and to which new
 #'   presets can be exported.
 #' @param validation_user User name.
@@ -41,7 +42,6 @@
 #'   navigates to another file.
 #' @param overwrite If TRUE, the output file is overwritten.
 #' @param pitch_shift Pitch shift for the audio cuts.
-#' @param session_notes Notes related to the validation session.
 #' @param visible_bp If TRUE, the bandpass filter is visible in the spectrogram.
 #' @param play_norm If TRUE, the played audio is normalized.
 #'
@@ -1161,10 +1161,10 @@ launch_validation_app <- function(
                 "diag_cut", "Cutpoint threshold",
                 min = 0, max = 1, step = 0.001, value = 0.2, width = "100%"
               )),
-            column(width = 3, plotOutput("plot_dens", height = "340px")),
-            column(width = 3, plotOutput("plot_binomial", height = "340px")),
-            column(width = 3, plotOutput("plot_roc", height = "340px")),
-            column(width = 3, plotOutput("plot_prec_rec", height = "340px")),
+            column(width = 4, plotOutput("plot_dens", height = "340px")),
+            column(width = 4, plotOutput("plot_binomial", height = "340px")),
+            # column(width = 3, plotOutput("plot_roc", height = "340px")),
+            column(width = 4, plotOutput("plot_prec_rec", height = "340px")),
             tableOutput("cut_i_tab"),
             column(
               width = 6,
@@ -2558,7 +2558,7 @@ launch_validation_app <- function(
 
       mod_res_react <- reactiveVal(NULL)
       mod_plot_react <- reactiveVal(NULL)
-      roc_plot_react <- reactiveVal(NULL)
+      # roc_plot_react <- reactiveVal(NULL)
       plot_dens_react <- reactiveVal(NULL)
       precrec_plot_react <- reactiveVal(NULL)
       cut_full_tab <- reactiveVal(NULL)
@@ -2649,22 +2649,22 @@ launch_validation_app <- function(
 
             cut_full_tab(diag_out)
 
-            roc_plot <- cutpointr::plot_roc(cutpointr_raw) +
-              geom_segment(
-                aes(x = 0, y = 0, xend = 1, yend = 1),
-                linetype = "dashed", color = "grey40"
-              ) +
-              annotate(
-                "label",
-                x = 0.75, y = 0.25,
-                label = paste0(
-                  "AUC = ", round(cutpointr::auc(cutpointr_raw$roc_curve[[1]]), 3)
-                )
-              ) +
-              ylim(0, 1) + xlim(0, 1) +
-              coord_equal() +
-              theme_bw()
-            roc_plot_react(roc_plot)
+            # roc_plot <- cutpointr::plot_roc(cutpointr_raw) +
+            #   geom_segment(
+            #     aes(x = 0, y = 0, xend = 1, yend = 1),
+            #     linetype = "dashed", color = "grey40"
+            #   ) +
+            #   annotate(
+            #     "label",
+            #     x = 0.75, y = 0.25,
+            #     label = paste0(
+            #       "AUC = ", round(cutpointr::auc(cutpointr_raw$roc_curve[[1]]), 3)
+            #     )
+            #   ) +
+            #   ylim(0, 1) + xlim(0, 1) +
+            #   coord_equal() +
+            #   theme_bw()
+            # roc_plot_react(roc_plot)
 
             precrec_data <- diag_out %>%
               select(peak_score, precision, relative_recall, selected) %>%
@@ -2698,18 +2698,23 @@ launch_validation_app <- function(
 
             plot_dens <- df_diag_input() %>%
               filter(!is.na(validation)) %>%
-              ggplot(aes(x = peak_score, fill = validation)) +
-              geom_density(alpha = 0.5) +
-              geom_vline(
-                xintercept = binom_cut, color = "red", linetype = 2,
-                linewidth = 1
-              ) +
-              labs(
-                title = "Peak score density",
-                y = "Density", x = "Peak score"
-              ) +
-              theme_bw() +
-              theme(legend.position = c(0.8, 0.8))
+              ggplot() +
+                geom_density(aes(x = peak_score, fill = validation), alpha = 0.5) +
+                geom_density(aes(x = peak_score), color = "black", alpha = 0.5, linetype = 2) +
+                geom_vline(
+                  xintercept = binom_cut, color = "red", linetype = 2,
+                  linewidth = 1
+                ) +
+                labs(
+                  title = "Peak score density",
+                  y = "Density", x = "Peak score", fill = ""
+                ) +
+                theme_bw() +
+                theme(
+                  legend.position = "bottom",
+                  legend.background = element_blank(),
+                  legend.box.background = element_blank()
+                )
 
 
             precrec_plot_react(precrec_plot)
@@ -2735,10 +2740,10 @@ launch_validation_app <- function(
           enable("diag_cut")
           enable("plot_dens")
           enable("plot_binomial")
-          enable("plot_roc")
+          # enable("plot_roc")
           enable("plot_prec_rec")
           shinyjs::show("plot_binomial")
-          shinyjs::show("plot_roc")
+          # shinyjs::show("plot_roc")
           shinyjs::show("plot_prec_rec")
         } else {
           disable("diag_balance")
@@ -2746,10 +2751,10 @@ launch_validation_app <- function(
           disable("plot_dens")
           disable("diag_cut")
           disable("plot_binomial")
-          disable("plot_roc")
+          # disable("plot_roc")
           disable("plot_prec_rec")
           shinyjs::hide("plot_binomial")
-          shinyjs::hide("plot_roc")
+          # shinyjs::hide("plot_roc")
           shinyjs::hide("plot_prec_rec")
         }
       })
@@ -2775,13 +2780,13 @@ launch_validation_app <- function(
         mod_plot_react()
       })
       output$plot_prec_rec <- renderPlot({
-        req(roc_plot_react())
-        roc_plot_react()
-      })
-      output$plot_roc <- renderPlot({
         req(precrec_plot_react())
         precrec_plot_react()
       })
+      # output$plot_roc <- renderPlot({
+      #   req(plot_roc())
+      #   roc_plot_react()
+      # })
       output$plot_dens <- renderPlot({
         req(plot_dens_react())
         plot_dens_react()

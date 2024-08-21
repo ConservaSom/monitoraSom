@@ -8,11 +8,17 @@
 #'
 #' @param val_i A data frame containing detections as in the output of
 #'  the validation functions.
+#' @param diag_method A character string indicating the method to select the
+#' peak score cut-off. The default is "Auto". The other option is "Manual".
+#' @param pos_prob A numeric value between 0 and 1 indicating the probability
+#' of a positive detection. The default is 0.95.
+#' @param diag_cut A numeric value between 0 and 1 indicating the peak score
+#' cut-off. The default is NULL.
 #'
-#' @return
-#' @export
-#'
-diagnostic_validations_i <- function(val_i) {
+#' @return Validation results.
+diagnostic_validations_i <- function(
+    val_i, diag_method = "Auto", pos_prob = 0.95, diag_cut = NULL
+    ) {
     auc_trap <- function(x, y) {
         res <- sum(
             (rowMeans(cbind(y[-length(y)], y[-1]))) *
@@ -34,15 +40,15 @@ diagnostic_validations_i <- function(val_i) {
         family = "binomial", data = df_diag_input
     )
 
-    # diag_method <- "Manual"
-    # diag_cut <- 0.5
-    diag_method <- "Auto"
-    pos_prob <- 0.95
-
     if (diag_method == "Manual") {
-        binom_cut <- diag_cut
+        # checl of diag_cut is in the range between 0 and 1
+        if (diag_cut < 0 | diag_cut > 1) {
+            stop("'diag_cut' must be a numeric value between 0 and 1")
+        } else (
+            score_cut <- diag_cut
+        )
     } else if (diag_method == "Auto") {
-        binom_cut <- data.frame(peak_score = seq(0, 1, 0.001)) %>%
+        score_cut <- data.frame(peak_score = seq(0, 1, 0.001)) %>%
             mutate(prob = predict(bin_mod, newdata = ., type = "response")) %>%
             {
                 .$peak_score[min(which(.$prob >= pos_prob))]
@@ -52,27 +58,22 @@ diagnostic_validations_i <- function(val_i) {
     mod_plot <- ggplot(
         df_diag_input, aes(x = peak_score, y = validation_bin)
     ) +
-        geom_point() +
+        geom_point(pch = 1) +
         stat_smooth(
             formula = y ~ x, method = "glm",
             method.args = list(family = "binomial"),
             se = TRUE, fullrange = T, na.rm = TRUE
         ) +
-        geom_vline(
-            xintercept = binom_cut, color = "red", linetype = 2, linewidth = 1
-        ) +
-        ylim(0, 1) +
-        xlim(0, 1) +
+        geom_vline(xintercept = score_cut, color = "red", linetype = 2) +
         labs(
             title = "Binomial regression",
             y = "Probability of validations as TP", x = "Correlation"
         ) +
-        coord_equal() +
         theme_bw()
 
     cutpointr_raw <- cutpointr(
         df_diag_input, peak_score, validation,
-        cutpoint = binom_cut, silent = TRUE,
+        cutpoint = score_cut, silent = TRUE,
         pos_class = "TP", neg_class = "FP", direction = ">=",
         method = oc_manual, use_midpoints = FALSE
     )
@@ -91,12 +92,11 @@ diagnostic_validations_i <- function(val_i) {
             specificity = tn / (tn + fp),
             F1_score = 2 * (precision * relative_recall) / (precision + relative_recall),
             selected = FALSE
-            # selected = ifelse(peak_score >= diag_cut, TRUE, FALSE)
         ) %>%
         relocate(contains("template"), everything()) %>%
         as.data.frame()
 
-    diag_out$selected[max(which(diag_out$peak_score > binom_cut))] <- TRUE
+    diag_out$selected[max(which(diag_out$peak_score > score_cut))] <- TRUE
     sel_i <- which(diag_out$selected == TRUE)
 
     roc_plot <- cutpointr::plot_roc(cutpointr_raw) +
@@ -112,7 +112,6 @@ diagnostic_validations_i <- function(val_i) {
             )
         ) +
         ylim(0, 1) + xlim(0, 1) +
-        coord_equal() +
         theme_bw()
 
     precrec_data <- diag_out %>%
@@ -142,7 +141,7 @@ diagnostic_validations_i <- function(val_i) {
         ) +
         ylim(0, 1) +
         xlim(0, 1) +
-        coord_equal() +
+        # coord_equal() +
         theme_bw()
 
     f1_plot <- diag_out %>%
@@ -151,36 +150,40 @@ diagnostic_validations_i <- function(val_i) {
         geom_point(
             data = diag_out[sel_i, ], aes(peak_score, F1_score)
         ) +
-        geom_vline(
-            xintercept = binom_cut, color = "red", linetype = 2,
-            linewidth = 1
-        ) +
+        geom_vline(xintercept = score_cut, color = "red", linetype = 2) +
         labs(
             title = "F1 score", x = "Peak score", y = "F1 score"
         ) +
         theme_bw()
 
     plot_dens <- df_diag_input %>%
+        rbind(mutate(df_diag_input, validation = "All detections")) %>%
         filter(!is.na(validation)) %>%
-        ggplot(aes(x = peak_score, fill = validation)) +
-        geom_density(alpha = 0.5) +
-        geom_vline(
-            xintercept = binom_cut, color = "red", linetype = 2,
-            linewidth = 1
+        ggplot() +
+        geom_density(
+            aes(x = peak_score, fill = validation),
+            alpha = 0.5
         ) +
+        scale_fill_manual(
+            values = c("All detections" = "black", "TP" = "green", "FP" = "red")
+        ) +
+        geom_vline(xintercept = score_cut, color = "red", linetype = 2) +
         labs(
             title = "Peak score density",
             y = "Density", x = "Peak score", fill = ""
         ) +
         theme_bw() +
         theme(
-            legend.position = c(0.9, 0.9),
+            legend.position.inside = c(0.9, 0.9),
             legend.background = element_blank(),
             legend.box.background = element_blank()
         )
 
+    # AINDA SÃO NECESSÁRIOS AJUSTES PARA CONTAR OS FN
+
     res <- list(
         diagnostics = diag_out,
+        bin_mod = bin_mod,
         mod_plot = mod_plot,
         roc_plot = roc_plot,
         precrec_plot = precrec_plot,

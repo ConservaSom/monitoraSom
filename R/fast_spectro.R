@@ -11,6 +11,7 @@
 #' @param f The sampling frequency of the recording, in Hz
 #' @param flim A numeric vector of length 2 giving the minimum and maximum
 #'   frequency limits to be displayed in the spectrogram, in kHz.
+#' @param tlim A numeric vector of length 2 giving the minimum and maximum.
 #' @param ovlp A numeric value specifying the percentage overlap of windows for computing the spectrogram.
 #' @param wl An integer specifying the length of the FFT window used to
 #'   calculate the spectrogram.
@@ -128,8 +129,8 @@ fast_spectro <- function(
       coord_cartesian(
         xlim = c(xmin, xmax), ylim = c(ymin, ymax)
       ) +
-      scale_x_continuous(expand = c(0, 0)) +
-      scale_y_continuous(expand = c(0, 0)) +
+      scale_x_continuous(expand = c(0, 0), breaks = scales::breaks_width(3)) +
+      scale_y_continuous(expand = c(0, 0), breaks = scales::breaks_width(3)) +
       labs(x = "seconds", y = "kHz", fill = "dB")
   )
 }

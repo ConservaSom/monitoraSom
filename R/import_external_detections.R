@@ -2,18 +2,17 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' @param path Path to the CSV file containing the detections.
+#' @param input_path Path to the CSV file containing the detections.
 #' @param names_vec A named character vector to rename the columns of the #'
 #'   input. The default values are: `c("template_name" = "scientific_name",
 #'   "detection_start" = "start_time", "detection_end" = "end_time",
 #'   "peak_score" = "confidence", "soundscape_path" = "filepath",
 #'   "detec_min_score" = "min_conf", "bn_lat" = "lat", "bn_lon" = "lon",
 #'   "bn_sensitivity" = "sensitivity", "bn_model" = "model_name")`
+#' @param output_path Path to save the adapted detection table. If not provided,
+#'  the function will return the adapted table.
 #'
 #' @return A detection table adapted to the `monitoraSom` workflow
-#' @export
-#'
-#' @examples
 import_external_detections <- function(
     input_path, names_vec = NA, output_path = NA
     ) {
@@ -53,7 +52,7 @@ import_external_detections <- function(
     res <- df_detec_raw %>%
         rename(all_of(names_vec)) %>%
         select(names(names_vec))
-    
+
     if (!all(names(names_vec) %in% names(res))) {
         stop(
             paste0(

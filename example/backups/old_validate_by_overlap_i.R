@@ -1,3 +1,7 @@
+
+# ! ESSA VERSÃO FOI ARMAZENADA COMO FORMA DE MANTER O REGISTRO DO HISTORICO DE
+# ! DESENVOLVIMENTO DO PACOTE. A VERSÃO ATUALIZADA ESTÁ EM validate_by_overlap_n.R
+
 #' Validate detections by overlap with Regions of Interest (ROIs)
 #'
 #' @description `r lifecycle::badge("experimental")`

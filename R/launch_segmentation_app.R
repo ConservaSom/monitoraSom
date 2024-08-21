@@ -59,6 +59,7 @@
 #'  to the soundscape audio. The default is 1, which means no pitch shift.
 #' @param visible_bp If TRUE, the visible frequency band will be used as a
 #'  bandpass filter for the audio playback.
+#' @param play_norm If TRUE, the audio playback will be normalized.
 #'
 #' @return Todo
 #'
@@ -489,43 +490,6 @@ launch_segmentation_app <- function(
     stop(
       "Error! The value assigned to 'pitch_shift' is not among the expected alternatives: -8, -6, -4, -2, or 1."
     )
-  }
-
-  # todo Deactivate when the function is ready
-  roi_razor <- function(wav, rois, path) {
-    if (is.null(rois)) {
-      stop("No ROIs available")
-    } else {
-      rois_list <- rois %>%
-        fmutate(
-          cut_name = paste(
-            str_replace(
-              soundscape_file, ".wav|.WAV",
-              paste0(
-                "_",
-                str_pad(sprintf("%.3f", round(roi_start, 3)), 7, pad = "0"), "-",
-                str_pad(sprintf("%.3f", round(roi_end, 3)), 7, pad = "0"), "s_",
-                str_pad(sprintf("%.3f", round(roi_min_freq, 3)), 6, pad = "0"), "-",
-                str_pad(sprintf("%.3f", round(roi_max_freq, 3)), 6, pad = "0"), "kHz_",
-                roi_wl, "wl_", roi_ovlp, "ovlp_",
-                roi_label, ".wav"
-              )
-            )
-          )
-        ) %>%
-        rowwise() %>%
-        group_split()
-
-      map(
-        rois_list,
-        ~ cutw(
-          wav,
-          f = wav@samp.rate, output = "Wave",
-          from = .x$roi_start, to = .x$roi_end
-        ) %>%
-          savewav(filename = file.path(path, .x$cut_name))
-      )
-    }
   }
 
   # This function defines where embedded html wav players will look for the files
@@ -2277,13 +2241,13 @@ launch_segmentation_app <- function(
       })
 
       observeEvent(input$export_selected_cut, {
-        req(roi_values(), rec_soundscape(), cuts_path_val())
+        req(roi_values(), cuts_path_val())
         if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
           df <- roi_values()
           if (!is.null(input$res_table_rows_selected)) {
             df <- df[input$res_table_rows_selected, ]
           }
-          roi_razor(wav = rec_soundscape(), rois = df, path = cuts_path_val())
+          export_roi_cuts_n(rois_n = df, path = cuts_path_val())
           showNotification("Cuts sucessfully exported!", type = "message")
         }
       })

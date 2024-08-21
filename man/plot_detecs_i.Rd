@@ -13,7 +13,7 @@ plot_detecs_i(
   flim = c(0, 10),
   ovlp = NULL,
   wl = NULL,
-  dyn_range = c(0, 50),
+  dyn_range = c(-60, 0),
   color_scale = "inferno",
   n_colors = 124,
   interpolate = FALSE,

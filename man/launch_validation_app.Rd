@@ -38,6 +38,8 @@ launch_validation_app(
 )
 }
 \arguments{
+\item{project_path}{Path to the project folder.}
+
 \item{preset_path}{Path from which presets can be imported and to which new
 presets can be exported.}
 
@@ -102,8 +104,6 @@ navigates to another file.}
 \item{visible_bp}{If TRUE, the bandpass filter is visible in the spectrogram.}
 
 \item{play_norm}{If TRUE, the played audio is normalized.}
-
-\item{session_notes}{Notes related to the validation session.}
 }
 \value{
 todo

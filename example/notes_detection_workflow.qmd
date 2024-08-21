@@ -4,18 +4,20 @@ author: "GLMRosa"
 format: pdf
 ---
 
-monitoraSom v0.1.1.9003:
-- Função `diagnostic_validations_i()` destinada à extrair as métricas de qualidade e nivel de corte das validações (independente da origem).
-- Novo default para dyn_range em `plot_detecs_i()`.
-- A função `validate_by_overlap_i()` está em vias de ser descartada de `validate_by_overlap_n()`, que não requer mais que o usuário define a espécie de interesse, mas trabalha com todas as espécies presentes na tabela de detecções de forma simultânea. Porém, os resultados ainda são organizados na form de um um único dataframe, e não mais em uma lista de dataframes em que cada elemento eram as detecs de um template. Ajustes para uso como input da função `diagnostic_validations_i()` ainda são necessários.
-- App de validação
-  - A posição do sonograma da detecção agora é à esquerda para maior destaque em relação ao do template.
-  - Agora o app não buga mais quando os template não são encontrados na pasta de templates, mas o painel do sonograma passa a mostrar a mensagem "Template not available".
-  - correção de bug - agora subsets com somente um valor de scores não geram mais o travamento do app.
-  - compartibilidade com BirdNET
-    - Foi criada a função `import_external_detections()` para importar as detecções do BirdNET e convertê-las para o formato de output da função `fetch_score_peaks_i()`. Essa função pode ser usada para importar isso diretamente para a sessão caso `output_path = NA`. Se o usuario deseja salvar, deve fornecer um caminho para o arquivo .csv de saída em `output_path`. Os caminhos dos argumentos de entrada e saída devem ser diferentes para que não seja sobrescrito o arquivo de entrada. Atenção! Considerando a necessidade de renomear as variáveis, mas admitindo que haverá variação, podem ser repassados os nomes das variáveis necessárias em forma de um vetor por meio do argumento `names_vec` (ver o default na vignette de ajuda da função). Os nomes correspondem aos nomes das variáveis usados por default pelo birdnet (até onde eu consegui checar), mas existe alguma variação.
-    - Não é mais necessário ter um template para poder validar as detecções. O app considera cada espécie como um template e mostra a mensagem "Template not available" no lugar onde deveria estar o sonograma do template.
-    - As tabelas de detecções do BirdNET devem ser adaptadas para o formato identico ao do output da função `fetch_score_peaks_i()`. Uma função específica para essa conversão ainda será implementada.
+`monitoraSom`:
+-`match_i` -
+  - A função `match_i()` recebeu a opção de retornar scores (`output = "scores"`) ou detecções (`output = "detections"`), permitindo que o usuário escolha o tipo de output que deseja obter.
+- `match_n` - O processo interno dessa função foi completamente remodelado
+  - Foram adicionadas opções para que o usuário possa escolher se quer "scores", que é o output puro da função `match_i()`, ou "detections", que é o output da função `fetch_score_peaks_n()`. A escolha de "detections" foi habilitada para diminuir o tamanho dos resultados e resolver os problemas de escalabilidade da função `match_n()` original.
+  - Foi dada ao usuário a escolha entre manter o resultado dentro do ambiente do R ou salvar em forma de arquivo RDS para "scores" e CSV para "detections".
+  - O salvamento em CSV habilitado para "detections" foi desenvolvido de forma que as detecções obtidas a cada iteração sejam salvas diretamente no arquivo CSV, evitando a necessidade de armazenar a totalidade dos resultados na memória. O usuário tem ainda a opção de controlar autosave_action = "append" ou autosave_action = "replace", que permite adicionar novas detecções ao arquivo CSV ou substituir o arquivo existente, respectivamente. Recomenda-se o uso de autosave_action = "append" para evitar a perda de dados, mas o usuário deve estar atento para evitar a retenção de eventuais detecções duplicadas entre diferentes rodadas.
+  - Todos os argumentos da função `find_score_peaks_n()` foram passados para a função `match_n()`, permitindo que o usuário possa filtrar os resultados de acordo com os scores obtidos.
+  - Foram adicionads mensagens de texto para que o usuário se oriente em relação ao tipo de output escolhido.
+- Nova função `export_roi_cuts_n` feita para exportar cortes em formato WAV de todas as ROIs de uma tabela produzida pelo app de segmentação. A função recebe como argumentos a tabela de ROIs e o diretório de saída dos cortes. Assume-se que os caminhos para os arquivos de audio na tabela de ROIs sejam válidos localmente para que possam ser lidos.
+- `launch_segmentation_app()`
+  - Correções nos gráficos de diagnósticos e remoção da curva ROC.
+  - Substituição interna do processo de exportar cortes pela função `export_roi_cuts_n()`.
+- 
 
 
 - adicionar um menu com o nome da espécie com cadeado
@@ -32,8 +34,7 @@ Prioridades
 Funções
 - Fazer uma função para extração dos metadados a partir de nomes de arquivos e metadados de arquivos audiomoths e sm4
 - Fazer uma função para adaptar um corte de audio qualquer como template
-- Fazer função para conversão entre tabelas de seleção do raven, birdnet e audacity para roi_tables
-  - Criar funções para que sejam convertidas tabelas de seleção do Raven e Audacity para o formato de output do app de segmentação
+
 - Deprecate roi tables como formato de templates
 - Função de match_n tem que checar o caminho para o salvamento antes de processar tudo
 - Implementar função de diagnóstico de template
@@ -103,6 +104,7 @@ Funções novas
     - O processamento das ROIs disponíveis acaba depois da renderização, fazendo com que seja feita a renderização uma segunda vez para inclui-las
   - Adicionar um sonograma de panorama para navegar no da soundscape
   - Usar o file input como alternativa quando o app é usado de forma local, carregando diretamente os múltiplos arquivos que serão segmentados. Talvez seja interessante ter modos remoto e local
+  - Tentei otimizar o match_n para que as leituras dos wavs e a computação dos sonogramas pudesse ser reaproveitada, mas somente a primeira parte pareceu possivel. A forma como os templates são criados precisa ser modificada para que sonogramas das soundscapes possam ser reaproveitados sem bugs. O problema está no ajuste perfeito das dimensões geradas entre os sonograma das soundscapes e dos templates.
 
 
 

@@ -7,11 +7,14 @@
 match_n(
   df_grid,
   score_method = "cor",
-  save_res = FALSE,
-  par_strat = "future",
   ncores = 1,
-  backend_type = "async",
-  cluster_type = "psock"
+  output = "detections",
+  output_file = NULL,
+  autosave_action = "append",
+  buffer_size = "template",
+  min_score = NULL,
+  min_quant = NULL,
+  top_n = NULL
 )
 }
 \arguments{
@@ -20,6 +23,36 @@ match_n(
 \item{score_method}{A character string indicating the method to use for
 matching. The two methods available are: "cor" (Pearson correlation
 coefficient) or "dtw" (dynamic time warping). Defaults to "cor".}
+
+\item{ncores}{An integer indicating the number of cores to be used for
+parallelization. Default is 1.}
+
+\item{output}{A character string indicating the output of the function. The
+two options are: "detections" (default) or "scores". If "detections" is
+selected, the function will return the output of the function
+'fetch_score_peaks_i()'. If "scores" is selected, the function will return
+the raw output of the matching algorithm.}
+
+\item{output_file}{A character string indicating the path to save the results
+in the format of a CSV file. Default is NULL.}
+
+\item{autosave_action}{A character string indicating the action to be taken if
+the output file already exists. The available options are: "append" (default)
+and "replace".}
+
+\item{buffer_size}{A character string indicating the size of the buffer to be
+used in the function 'fetch_score_peaks_i()'. The two options are: "template"
+(default) or the number of frames of the template spectrogram to be used as
+buffer.}
+
+\item{min_score}{A numeric value indicating the minimum score to be used in
+the function 'fetch_score_peaks_i()'.}
+
+\item{min_quant}{A numeric value indicating the minimum quantile to be used in
+the function 'fetch_score_peaks_i()'.}
+
+\item{top_n}{A numeric value indicating the number of top detections to be
+used in the function 'fetch_score_peaks_i()'.}
 
 \item{save_res}{A character string indicating the path to save the results in
 the format of an RDS file. Default is FALSE.}
@@ -31,13 +64,6 @@ but are more efficient in linux (especially when running and R session
 outside of Rstudio). The 'foreach' strategy works on all platforms, but is
 less efficient than the other two. See the documentation of the 'future'
 and 'pbapply' packages for more details.}
-
-\item{ncores}{An integer indicating the number of cores to be used for
-parallelization. Default is 1.}
-
-\item{backend_type}{For usage when par_strat = "parabar"}
-
-\item{cluster_type}{For usage when par_strat = "parabar"}
 }
 \value{
 A tibble containing input data frame with an additional column

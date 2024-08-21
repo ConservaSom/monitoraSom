@@ -24,8 +24,26 @@
 #'   and 'pbapply' packages for more details.
 #' @param ncores An integer indicating the number of cores to be used for
 #'   parallelization. Default is 1.
-#' @param backend_type For usage when par_strat = "parabar"
-#' @param cluster_type For usage when par_strat = "parabar"
+#' @param output A character string indicating the output of the function. The
+#'  two options are: "detections" (default) or "scores". If "detections" is
+#'  selected, the function will return the output of the function
+#'  'fetch_score_peaks_i()'. If "scores" is selected, the function will return
+#'  the raw output of the matching algorithm.
+#' @param output_file A character string indicating the path to save the results
+#'  in the format of a CSV file. Default is NULL.
+#' @param autosave_action A character string indicating the action to be taken if
+#'  the output file already exists. The available options are: "append" (default)
+#'  and "replace".
+#' @param buffer_size A character string indicating the size of the buffer to be
+#'  used in the function 'fetch_score_peaks_i()'. The two options are: "template"
+#'  (default) or the number of frames of the template spectrogram to be used as
+#'  buffer.
+#' @param min_score A numeric value indicating the minimum score to be used in
+#'  the function 'fetch_score_peaks_i()'.
+#' @param min_quant A numeric value indicating the minimum quantile to be used in
+#'  the function 'fetch_score_peaks_i()'.
+#' @param top_n A numeric value indicating the number of top detections to be
+#'  used in the function 'fetch_score_peaks_i()'.
 #'
 #' @return A tibble containing input data frame with an additional column
 #'   "score_vec", which is a list of dataframes with the columns "time_vec" (the
@@ -46,147 +64,122 @@
 #' @importFrom furrr future_map
 #' @importFrom purrr list_rbind
 match_n <- function(
-    df_grid, score_method = "cor", save_res = FALSE, par_strat = "future", ncores = 1,
-    backend_type = "async", cluster_type = "psock") {
+    df_grid,
+    score_method = "cor", ncores = 1, output = "detections", output_file = NULL,
+    autosave_action = "append", buffer_size = "template", min_score = NULL,
+    min_quant = NULL, top_n = NULL) {
   grid_list <- group_split(rowwise(df_grid))
-
-  if (par_strat %in% c("future", "foreach")) {
-    progressr::handlers(
-      progressr::handler_pbcol(
-        adjust = 1.0,
-        complete = function(s) cli::bg_cyan(cli::col_black(s)),
-        incomplete = function(s) cli::bg_red(cli::col_black(s))
+  validate_output_path <- function(output_file, extension) {
+    if (
+      dir.exists(dirname(output_file)) &&
+        grepl(paste0("\\.", extension, "$"), output_file)) {
+      return(TRUE)
+    } else {
+      stop(
+        paste("The path for the", toupper(extension), "output file is not valid")
       )
-    )
+    }
   }
-
-  # todo Adicionar ponto de checagem para a quantidade de nucleos disponíveis quando processamento paralelo for solicitado
-
-  if (par_strat == "parallel") {
-    require(parallel)
-    if (is.null(ncores)) ncores <- detectCores() - 1
-    match_i <- monitoraSom::match_i
-    cl <- parallel::makeCluster(ncores)
-    plan(cluster, workers = cl)
-    clusterExport(cl, "match_i")
-    df_grid_ls <- group_split(rowwise(df_grid))
-    res_list <- parLapply(cl = cl, df_grid_ls, match_i)
-    stopCluster(cl)
-    res <- list_rbind(res_list)
-  }
-
-  if (par_strat == "future") {
-    match_i_wrap <- function(grid_list, score_method) {
-      p <- progressor(along = grid_list)
-      res <- future_map(
+  if (output == "detections") {
+    if (is.null(output_file)) {
+      # run the no sink version returning the result object
+      res <- pbapply::pblapply(
         grid_list,
         function(x) {
-          res <- match_i(x, score_method = score_method)
-          p(message = "Template matching")
-          return(res)
-        } # , .options = furrr_options(scheduling = 2)
-      ) |>
-        list_rbind()
-    }
-    if (ncores > 1) {
-      plan(multicore, workers = ncores)
+          match_i(
+            df_grid_i = x,
+            score_method = score_method, output = "detections",
+            buffer_size = buffer_size, min_score = min_score,
+            min_quant = min_quant, top_n = top_n
+          )
+        },
+        cl = ncores
+      ) %>%
+        list_rbind(.)
+      message("Template matching finished. Detections have been returned to the R session")
+      return(res)
     } else {
-      plan(sequential)
-    }
-    with_progress({
-      res <- match_i_wrap(grid_list, score_method = score_method)
-    })
-    plan(sequential)
-  }
-
-  if (par_strat == "foreach") {
-      if (ncores > 1) {
-        require(future)
-        require(progressr)
-        require(doParallel)
-        cl <- parallel::makeCluster(ncores)
-        plan(cluster, workers = cl)
-        with_progress({
-          p <- progressor(
-            along = 1:length(grid_list)
-          ) # iniciando a barra
-          res <- foreach(i = 1:length(grid_list), .combine = rbind) %dopar% {
-            require(parallel)
-            require(foreach)
-            require(dplyr)
-            p(message = "Template matching")
-            res <- monitoraSom::match_i(
-              grid_list[[i]],
-              score_method = score_method
+      if (validate_output_path(output_file, "csv")) {
+        if (!(autosave_action %in% c("append", "replace"))) {
+          stop("Invalid autosave action. Choose 'append' or 'replace'")
+        }
+        if (file.exists(output_file) & autosave_action == "replace") {
+          file.remove(output_file)
+        }
+        if (file.exists(output_file) & autosave_action == "replace" |
+          !file.exists(output_file)
+        ) {
+          writeLines(
+            paste(
+              "\"soundscape_path\"", "\"soundscape_file\"", "\"template_path\"",
+              "\"template_file\"", "\"template_name\"", "\"template_min_freq\"",
+              "\"template_max_freq\"", "\"template_start\"", "\"template_end\"",
+              "\"detection_start\"", "\"detection_end\"", "\"detection_wl\"",
+              "\"detection_ovlp\"", "\"detection_sample_rate\"",
+              "\"detection_buffer\"", "\"detec_min_score\"",
+              "\"detec_min_quant\"", "\"detec_top_n\"", "\"peak_index\"",
+              "\"peak_score\"", "\"peak_quant\"",
+              sep = ","
+            ),
+            output_file
+          )
+        }
+        match_i_sink <- function(df_grid_i, score_method, output, output_file, buffer_size, min_score,
+                                 min_quant, top_n) {
+          res <- match_i(
+            df_grid_i = df_grid_i, score_method = score_method,
+            output = "detections", buffer_size = buffer_size,
+            min_score = min_score, min_quant = min_quant, top_n = top_n
+          )
+          sink(output_file, append = TRUE)
+          write.table(res, sep = ",", row.names = F, col.names = F)
+          sink()
+        }
+        dump <- pbapply::pblapply(
+          grid_list,
+          function(x) {
+            match_i_sink(
+              df_grid_i = x, score_method = score_method,
+              output = "detections", output_file = output_file,
+              buffer_size = buffer_size, min_score = min_score,
+              min_quant = min_quant, top_n = top_n
             )
-            return(res)
-          }
-        })
-        # todo Adicionar método para parar os clusters no caso de interrupção do processo
-      } else {
-        stop("The number of cores must be greater than 1")
+          },
+          cl = ncores
+        )
+        message(
+          "Template matching finished. Detections have been saved to ",
+          output_file
+        )
       }
-      stopCluster(cl)
-  }
-
-  if (par_strat == "pbapply") {
-    if (ncores > 1) {
-      res <- pbapply::pblapply(grid_list, function(x) match_i(x, score_method = score_method), cl = ncores) |>
-        list_rbind()
+    }
+  } else if (output == "scores") {
+    res <- pbapply::pblapply(
+      grid_list,
+      function(x) {
+        match_i(
+          df_grid_i = x,
+          score_method = score_method, output = "scores",
+          buffer_size = buffer_size, min_score = min_score,
+          min_quant = min_quant, top_n = top_n
+        )
+      },
+      cl = ncores
+    ) %>%
+      list_rbind(.)
+    if (!is.null(output_file)) {
+      if (validate_output_path(output_file, "rds")) {
+        saveRDS(res, output_file)
+        message(
+          "Template matching finished. Raw scores have been saved to ",
+          output_file
+        )
+      }
     } else {
-      res <- pbapply::pblapply(grid_list, function(x) match_i(x, score_method = score_method)) |>
-        list_rbind()
+      return(res)
+      message("Template matching finished. Raw scores have been returned to the R session")
     }
+  } else {
+    stop("Invalid output type")
   }
-
-  if (par_strat == "parabar") {
-    set_option("progress_track", TRUE)
-    configure_bar(type = "modern", format = "[:bar] :percent")
-    backend <- start_backend(
-      cores = ncores, cluster_type = cluster_type, backend_type = backend_type
-    )
-    if (score_method == "cor") {
-      res <- par_lapply(
-        backend, grid_list,
-        function(x) {
-          # require(dplyr)
-          # require(here)
-          # require(collapse)
-          # require(dtwclust)
-          # require(slider)
-          require(monitoraSom)
-          res <- match_i(x, score_method = "cor")
-          return(res)
-        }
-      ) |> list_rbind()
-    } else if (score_method == "dtw") {
-      res <- par_lapply(
-        backend, grid_list,
-        function(x) {
-          # require(dplyr)
-          # require(here)
-          # require(collapse)
-          # require(dtwclust)
-          # require(slider)
-          require(monitoraSom)
-          res <- match_i(x, score_method = "dtw")
-          return(res)
-        }
-      ) |> list_rbind()
-    }
-    stop_backend(backend)
-  }
-
-  if (save_res != FALSE) {
-    if (dir.exists(dirname(save_res))) {
-      saveRDS(res, save_res)
-    } else {
-      # ! mover essa condição para o começo da função
-      stop("The path for saving the results does not exist")
-    }
-  }
-  # todo Adicionar checagem do objeto para que salvamento possa ser incremental e não sobrescrever dados preexistentes
-
-  message("Template matching completed")
-  return(res)
 }

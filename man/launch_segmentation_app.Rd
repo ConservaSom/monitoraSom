@@ -92,6 +92,8 @@ wav_player_type = "External player")}
 \item{visible_bp}{If TRUE, the visible frequency band will be used as a
 bandpass filter for the audio playback.}
 
+\item{play_norm}{If TRUE, the audio playback will be normalized.}
+
 \item{session_notes}{A single character string with related to the current
 segmentation session.}
 

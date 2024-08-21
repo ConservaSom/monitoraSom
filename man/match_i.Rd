@@ -5,7 +5,15 @@
 \title{Run one iteration of the matching algorithm to obtain the matching score
 vector between one template and one soundscape}
 \usage{
-match_i(df_grid_i, score_method = "cor")
+match_i(
+  df_grid_i,
+  score_method = "cor",
+  output = "detections",
+  buffer_size = "template",
+  min_score = NULL,
+  min_quant = NULL,
+  top_n = NULL
+)
 }
 \arguments{
 \item{df_grid_i}{One row of the output of the function 'fetch_match_grid()}
@@ -13,6 +21,26 @@ match_i(df_grid_i, score_method = "cor")
 \item{score_method}{A character string indicating the method to use for
 matching. The two methods available are: "cor" (Pearson correlation
 coefficient) or "dtw" (dynamic time warping). Defaults to "cor".}
+
+\item{output}{A character string indicating the output of the function. The
+ two options are: "detections" (default) or "scores". If "detections" is
+ selected, the function will return the output of the function
+'fetch_score_peaks_i()'. If "scores" is selected, the function will return
+the raw output of the matching algorithm.}
+
+\item{buffer_size}{A character string indicating the size of the buffer to
+be used in the function 'fetch_score_peaks_i()'. The two options are:
+"template" (default) or the number of frames of the template spectrogram to
+be used as buffer.}
+
+\item{min_score}{A numeric value indicating the minimum score to be used in
+the function 'fetch_score_peaks_i()'.}
+
+\item{min_quant}{A numeric value indicating the minimum quantile to be used
+in the function 'fetch_score_peaks_i()'.}
+
+\item{top_n}{A numeric value indicating the number of top detections to be
+used in the function 'fetch_score_peaks_i()'.}
 }
 \value{
 A tibble row containing the input data frame with an additional

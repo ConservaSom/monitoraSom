@@ -28,6 +28,8 @@ fast_spectro(
 \item{flim}{A numeric vector of length 2 giving the minimum and maximum
 frequency limits to be displayed in the spectrogram, in kHz.}
 
+\item{tlim}{A numeric vector of length 2 giving the minimum and maximum.}
+
 \item{ovlp}{A numeric value specifying the percentage overlap of windows for computing the spectrogram.}
 
 \item{wl}{An integer specifying the length of the FFT window used to
