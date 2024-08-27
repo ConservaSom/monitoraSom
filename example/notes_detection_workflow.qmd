@@ -4,91 +4,140 @@ author: "GLMRosa"
 format: pdf
 ---
 
-`monitoraSom`:
--`match_i` -
-  - A função `match_i()` recebeu a opção de retornar scores (`output = "scores"`) ou detecções (`output = "detections"`), permitindo que o usuário escolha o tipo de output que deseja obter.
-- `match_n` - O processo interno dessa função foi completamente remodelado
-  - Foram adicionadas opções para que o usuário possa escolher se quer "scores", que é o output puro da função `match_i()`, ou "detections", que é o output da função `fetch_score_peaks_n()`. A escolha de "detections" foi habilitada para diminuir o tamanho dos resultados e resolver os problemas de escalabilidade da função `match_n()` original.
-  - Foi dada ao usuário a escolha entre manter o resultado dentro do ambiente do R ou salvar em forma de arquivo RDS para "scores" e CSV para "detections".
-  - O salvamento em CSV habilitado para "detections" foi desenvolvido de forma que as detecções obtidas a cada iteração sejam salvas diretamente no arquivo CSV, evitando a necessidade de armazenar a totalidade dos resultados na memória. O usuário tem ainda a opção de controlar autosave_action = "append" ou autosave_action = "replace", que permite adicionar novas detecções ao arquivo CSV ou substituir o arquivo existente, respectivamente. Recomenda-se o uso de autosave_action = "append" para evitar a perda de dados, mas o usuário deve estar atento para evitar a retenção de eventuais detecções duplicadas entre diferentes rodadas.
-  - Todos os argumentos da função `find_score_peaks_n()` foram passados para a função `match_n()`, permitindo que o usuário possa filtrar os resultados de acordo com os scores obtidos.
-  - Foram adicionads mensagens de texto para que o usuário se oriente em relação ao tipo de output escolhido.
-- Nova função `export_roi_cuts_n` feita para exportar cortes em formato WAV de todas as ROIs de uma tabela produzida pelo app de segmentação. A função recebe como argumentos a tabela de ROIs e o diretório de saída dos cortes. Assume-se que os caminhos para os arquivos de audio na tabela de ROIs sejam válidos localmente para que possam ser lidos.
-- `launch_segmentation_app()`
-  - Correções nos gráficos de diagnósticos e remoção da curva ROC.
-  - Substituição interna do processo de exportar cortes pela função `export_roi_cuts_n()`.
-- 
-
-
-- adicionar um menu com o nome da espécie com cadeado
-- Segunda camada de classificação para mitigação de falsos positivos ou desambiguação entre espécies com cantos similares
-
-- next unsegmented no app de segmentação não está navegando direito
-
-- Mostrar a probabilidade do modelo binomial quando disponivel (Deixar pra depois pq depender de atualizações independentes do modelo exige um pouco mais de cuidado pra prevenir bugs)
-
-Prioridades
-- Implementar o restante dos diagnósticos
-- A validação deve retornar 3 objetos: o valor do score selecionado, a tabela de diagnosticos baseados nesse score e a tabela de detecs validadas.
-
-Funções
-- Fazer uma função para extração dos metadados a partir de nomes de arquivos e metadados de arquivos audiomoths e sm4
-- Fazer uma função para adaptar um corte de audio qualquer como template
-
-- Deprecate roi tables como formato de templates
-- Função de match_n tem que checar o caminho para o salvamento antes de processar tudo
-- Implementar função de diagnóstico de template
-
 Geral
-- Adicionar contador de tempo para as funções de processamento mais longo
-- pasta data/ com objetos para exemplos de todas as funções
-  - (Um exemplo de três templates e três soundscapes para o template matching
-  - uma tabelona com detecções para exemplo de validação
-  - link estável para baixar dados de exemplos maiores
-  - Fazer um Rdata que exporta os arquivos para um diretório de exemplo
-- remover as paradas do vs code do repo
-- Adicionar opções gerais para seleção e registro do canal onde cada processo foi feito
+- Composição do exemplo a ser embarcado no pacote
+- Pasta data/ com objetos para exemplos de todas as funções: templates, soundscapes, detecs, rois, etc.
+- Adicionar opções para escolha e uso de informações dos canais em gravações em stereo
+- Deprecate roi tables como formato de templates
+- Adicionar paralelização na função de `fetch_score_peaks_n`
+- Adicionar uma camada de checagem para o que ja foi rodado para ` quando o output está em modo "append"
+- Mudar formato de todos os outrputs para SQL
+- função de validação: conversão do nome da soundscape está hard coded como `substr(roi_file, 1, 33)`, mudar isso
+- Produção de diretórios pelas funções além dos apps
+- Refazer a forma como os vetores de correlação são armazenados. Ex.: armazenar todos na forma de linhas em uma matriz, mas ver como ficam os vetores de valores de tempo dos frames
+- Fazer função para conversão entre tabelas de seleção do raven e audacity para roi_tables
+- Verificar se fetch_score_peaks_i() deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro. Valeria a pena fazer a função retornar um dataframe vazio?
+- Converter o pacote para python
+- Mover metadados de templates standalone para as tgs id3 e fazer um novo código de nomenclatura.
+- Definir o tipo de licença
+- Adicionar paralelização em fetch_score_peaks_i()
+- Habilitar conversão de sample rate quando o template e a soundscape tem sample rates diferentes
+- Baixar automaticamente a sample rate para que o template e a soundscape estejam no limite de nyquist e a quantidade de dados a serem processados seja menor
+- Adicionar dados de exemplo do pacote
+- Adicionar mecanismo para retenção das detecções validadas como ROIs para uso posterior.
+- Otimização da captura de dados de soundscapes. Possivelmente com a comparação com um list.files + comparação com uma tabela centralizada, pre-computada. São feitas novas leituras de arquivos que ainda não foram lidos.
 
-Apps
-- Adicionar autoplay onde puder ser necessário
+LIMPEZA
+- Remover as paradas do vs code do repositorio
+- Remover a pasta `example` do repositorio
+
+APP DE SEGMENTAÇÃO
+- next unsegmented no app de segmentação não está navegando direito
+- Fazer um painel com metadados da soundscape
+- Pensar em um modo append para poder visualizar ou trabalhar em múltiplas tabelas de ROIs de forma simultânea no mesmo sonograma e em outras funcionalidades que possam estar associadas (cores diferentes com regras de sobreposição)
+- Implementar diferentes modos de segmentação, ex.: strong (roi e label) vs weak label (somente listas de espécies ou rois sem labels)
+- Método alternativo de preencher o conteudo de ROIs a partir de pop ups com todas as opções, alternando com uma segunda hotkey que simplesmente repete com essa que muda o conteúdo
+- selecionar alternancia de sonograma entre os canais L e R durante a segmentação
+- Pensar em novas hotkeys para facilitar a segmentação
+- Pensar em uma localização e formato melhor para as barras de progresso dos apps
+- Adicionar um campo com uma lista em que persistem as tags mais usadas em ordem aflabética que possam ser clicadas facilmente para preencher todos os campos (exceto a observação). Essas opções devem ser clicáveis.
+- Rever a posição dos itens da interface para que seja possivel segmentar usando telas de mais baixa resolução
+- Adicionar opção de exibir uma grade de tempo para decisão de separação de ROIs e uma grade de frequencia para referência
+- Criar mecanismo de checagem e correção de formato das tabelas de ROIs
+- Adicionar um indicador de cor (verde e vermelho) ao nome de soundscapes segmentadas e não segmentadas
+- fazer com que templates sejam salvos automaticamente na pasta roi_cuts ao avançar de soundscape (pra isso o único método para criar templates passa a ser adicionar o termo template no campo de obs)
+- Melhorar a visibilidade das variaveis da régua
+- Adicionar pop-up de confirmação para "no signals of interest"
+- BUG - evitar que o app de crash quando a sessão estiver vazia
+- Reduzir o tamanho do plot do sonograma de forma que a renderizaçao seja rapida independentemente da resulução do som
+- Criar um painel com metricas de performance e lista de espécies da sessão para que o usuário possa ver o que já foi segmentado e reportar com mais detalhes
+
+
+APP DE VALIDAÇÃO
+- Adicionar um dropdown com o nome da espécie para corrigir a identidade da detecção
+- Segunda camada de classificação para mitigação de falsos positivos ou desambiguação entre espécies com cantos similares
+- Mostrar a probabilidade do modelo binomial quando disponivel (Deixar pra depois pq depender de atualizações independentes do modelo exige um pouco mais de cuidado pra prevenir bugs)
+- A performance atual do app não permite que seja feita a validação completa de dataframes contendo mais de 100000 deteções sem ficar lento demais.
+- BUG - Corrigir reatividade das opções da segunda camada do setup
+- BUG - evitar que o app de crash quando a sessão estiver vazia
+- Fazer um painel com metadados da detecção ativa e da soundscape de origem
+- Fazer um banchmark mais geral com dataset grande para verificar pontos que podem ser otimizados
+- Adicionar seed específica para aumentar a replicação dos diagnósticos
+- Otimizar e fazer os diagnósticos ficaram mais alinhados aos resultados da função diagnostic_validations_i
+- Identificação da estabilização da validação por meio da flutuação do valor de corte atualizado em tempo real
+- Permitir o acúmulo de mais de uma validação manual para a mesma detec, de forma que mais de um usuário possa validar a mesma detec
+- Habilitar navegação entre soundscapes (atualmente habilitada somente entre detecs)
+- Incluir mais variáveis que possam ser usadas para diagnosticar a performance dos templates por score (F1).
+- Adicionar o valor da probabilide do modelo binomial junto ao score no sonograma
+- Fazer os diagnósticos seguirem a mesma seed usada para o subset
+- Modificar o sistema para que seja possível haver mais de uma validação por detecção, caso seja um usuário diferente.
+- Habilitar a navegaçao entre soundscapes
+
+AMBOS OS APPS
+- Melhorar a resolução do zoom de tempo e frequência
+- Fazer o 'play' como 'R session' funcionar em windows. Instalar o sox automaticamente?
+- Avaliar e implementar autoplayb onde for necessário
 - Adicionar checkbox para inversão das escalas de cores dos sonogramas
-- Simplificar o app com a remoção de seções duplicadas do código para acesso por diferentes tipos de inputs, como hotkeys e actionButtons ao mesmo tempo.
-- Streaming dos dados em um banco de dados em SQL
-- Adicionar opção para selecionar o canal do sonograma visível
-- Encontrar e resolver o bug de renderização duplicada dos sonogramas
-- Fazer um painel com metadados da soundscape em ambos os apps
-- Validação:
-  - fazer 'play' como 'R session' funcionar em windows
-  - Fazer um segundo conjunto de dados de demonstração, maior para varificar questões de performance
-  - Adicionar seed específica para os diagnósticos
-  - Modificar o sistema para que seja possível haver mais de uma validação por detecção, caso seja um usuário diferente.
-  - Habilitar a navegaçao entre soundscapes
-- Segmentação
-  - Ativar mecanismo de detecção de sistema para os players
-    - Detectar se o sox está disponível?
-    - Pedir caminho para o player quando houver "R session" no windows
-    - Apresentar erro de detecção se o sox não estiver disponível no linux ou no mac
-  - verificar os padrões usados em https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecy.3329
-  - Progresso
-    - Rever o que é informado na barra de progresso
-    - Alimentar uma unica tabela ao inves de uma tabela por arquivo?
-  - Adicionar um campo com uma lista em que persistem as tags mais usadas em ordem aflabética que possam ser clicadas facilmente para preencher todos os campos (exceto a observação). Essas opções devem ser clicáveis.
+- Otimização do código com a remoção de seções duplicadas para as mesmas funções
+- BUG - Encontrar e resolver o bug de renderização duplicada dos sonogramas
+- BUG - Fazer a checagem de tipos de variaveis ao importar o dataframe geral
+- Ativar mecanismo de detecção de sistema para os players e instalação automatica do sox
+- Adicionar um campo com uma lista em que persistem as tags mais usadas em ordem aflabética que possam ser clicadas facilmente para preencher todos os campos (exceto a observação). Essas opções devem ser clicáveis.
+- Remover todas as menções a presets na estrutura dos apps
+- Implementar streaming de dados centralizado em um banco de dados em SQL para agilizar a interface como um todo
+- Adicionar camada de checagem da instlação do SoX para que o play em modo R session funcione
+- Adicionar a possibilidade de validação de rótulos de ROIs por meio do app de validação para produzir dados de comparação entre diferentes osbervadores
+- Testar bs4dash para os apps (https://rinterface.github.io/bs4Dash/)
+- Bug de renderização duplicada de sonogramas
+- Controle para evitar que o path selecionado suma ao clicar adicentalmente no botão de load.
+- Adicionar checkbox para inversão das escalas de cores dos sonogramas
 
-fetch_score_peaks_i()
-- Verificar se `fetch_score_peaks_i()` deve desligar um dado filtro e retornar todas as detecções no caso de não restar nenhuma detecção após o filtro. Valeria a pena fazer a função retornar um dataframe vazio?
+NOVAS FUNÇÕES
+- Extração dos metadados a partir de nomes de arquivos e metadados de arquivos audiomoths e sm4.
+- Extrair temperatura automaticamente de arquivos do Audiomoth ou SM4 usando o pacote AV, verificar a função audiomoth_metadata()
+- Criar a função set_paths() com camadas de checagens e argumentos para criar e garantir a estrutura de diretórios para o projeto
+- detecs_to_rois() : converter detecções validadas como TP para para o formato de ROIs
+- adicionar funções para a análise de repertórios vocais usando correlação cruzada entre templates
+- Fazer uma terceira função com o split e serialização de batches muito grandes para salvamento em multiplos arquivos rds
+- Adicionar um método para inspeção dos templates antes do template matching. Ex.: função make_template_report()
 
-fetch_score_peaks_n()
-- Adicionar paralelização
+NOVOS APPs
+- Listagem de espécies sem segmentação
+- Validação de detecções por meio de presença ou ausencia por segmento da gravação, mostrando a soundscapes completa e resolvendo o problema da validação.
+- Validação de múltiplas detecções em painéis
+- Validação de segmentação com a visualização e diagn[osticos específicos para segmentação]
+- Apps de segmentação para análise de intensidade, distancia de emissão, descrição de cantos
 
-Funções novas
-- Fazer uma terceira função com o split e serialização de batches muito grandes para salvamento em multiplos arquivos rds ou uma alternativa para streaming dos resultados para uma base de dados onde seja possível fazer a consulta de ter ou não sido feito o mesmo template matching antes do processamento para evitar a duplicação de resultados ou processamento desnecessário.
-- Criar a função set_paths() com checagens para facilitar a definição dos diretórios
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 ### Perguntas importantes
-- Quais são os efeitos dos filtros de detecções baseados nos scores sobre os diagnosticos?
-- Como lidar com multiplas validações de usuários diferentes para um mesmo conjunto de detecções? Como processar % de TP e FP para os diagnósticos?
 - Qual é o efeito dos pads de tempo e frequência para a detecção?
 - Quais são as espécies que quando aparecem na gravação fazer o usuário demorar mais pra segmentar?
 
@@ -105,6 +154,4 @@ Funções novas
   - Adicionar um sonograma de panorama para navegar no da soundscape
   - Usar o file input como alternativa quando o app é usado de forma local, carregando diretamente os múltiplos arquivos que serão segmentados. Talvez seja interessante ter modos remoto e local
   - Tentei otimizar o match_n para que as leituras dos wavs e a computação dos sonogramas pudesse ser reaproveitada, mas somente a primeira parte pareceu possivel. A forma como os templates são criados precisa ser modificada para que sonogramas das soundscapes possam ser reaproveitados sem bugs. O problema está no ajuste perfeito das dimensões geradas entre os sonograma das soundscapes e dos templates.
-
-
-
+  - Streaming dos dados em um banco de dados em SQL

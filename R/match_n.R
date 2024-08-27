@@ -68,7 +68,9 @@ match_n <- function(
     score_method = "cor", ncores = 1, output = "detections", output_file = NULL,
     autosave_action = "append", buffer_size = "template", min_score = NULL,
     min_quant = NULL, top_n = NULL) {
+
   grid_list <- group_split(rowwise(df_grid))
+
   validate_output_path <- function(output_file, extension) {
     if (
       dir.exists(dirname(output_file)) &&
@@ -80,6 +82,19 @@ match_n <- function(
       )
     }
   }
+
+  if (ncores > 1 & Sys.info()["sysname"] == "Windows") {
+    if (ncores <= parallel::detectCores()) {
+      ncores <- parallel::makePSOCKcluster(getOption("cl.cores", ncores))
+    } else {
+      stop(
+        "The number of cores requested cannot be higher than the number of available cores"
+      )
+    }
+  } else {
+    ncores <- 1
+  }
+
   if (output == "detections") {
     if (is.null(output_file)) {
       # run the no sink version returning the result object
@@ -124,8 +139,10 @@ match_n <- function(
             output_file
           )
         }
-        match_i_sink <- function(df_grid_i, score_method, output, output_file, buffer_size, min_score,
-                                 min_quant, top_n) {
+        match_i_sink <- function(
+          df_grid_i, score_method, output, output_file, buffer_size, min_score,
+          min_quant, top_n
+          ) {
           res <- match_i(
             df_grid_i = df_grid_i, score_method = score_method,
             output = "detections", buffer_size = buffer_size,

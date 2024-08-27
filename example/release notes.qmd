@@ -1,0 +1,23 @@
+---
+title: "Template Matching Notes"
+author: "GLMRosa"
+format: pdf
+---
+
+
+
+
+
+# Increment version number to 0.1.1.9005
+-`match_i` -
+  - A função `match_i()` recebeu a opção de retornar scores (`output = "scores"`) ou detecções (`output = "detections"`), permitindo que o usuário escolha o tipo de output que deseja obter.
+- `match_n` - O processo interno dessa função foi completamente remodelado
+  - Foram adicionadas opções para que o usuário possa escolher se quer "scores", que é o output puro da função `match_i()`, ou "detections", que é o output da função `fetch_score_peaks_n()`. A escolha de "detections" foi habilitada para diminuir o tamanho dos resultados e resolver os problemas de escalabilidade da função `match_n()` original.
+  - Foi dada ao usuário a escolha entre manter o resultado dentro do ambiente do R ou salvar em forma de arquivo RDS para "scores" e CSV para "detections".
+  - O salvamento em CSV habilitado para "detections" foi desenvolvido de forma que as detecções obtidas a cada iteração sejam salvas diretamente no arquivo CSV, evitando a necessidade de armazenar a totalidade dos resultados na memória. O usuário tem ainda a opção de controlar autosave_action = "append" ou autosave_action = "replace", que permite adicionar novas detecções ao arquivo CSV ou substituir o arquivo existente, respectivamente. Recomenda-se o uso de autosave_action = "append" para evitar a perda de dados, mas o usuário deve estar atento para evitar a retenção de eventuais detecções duplicadas entre diferentes rodadas.
+  - Todos os argumentos da função `find_score_peaks_n()` foram passados para a função `match_n()`, permitindo que o usuário possa filtrar os resultados de acordo com os scores obtidos.
+  - Foram adicionads mensagens de texto para que o usuário se oriente em relação ao tipo de output escolhido.
+- Nova função `export_roi_cuts_n` feita para exportar cortes em formato WAV de todas as ROIs de uma tabela produzida pelo app de segmentação. A função recebe como argumentos a tabela de ROIs e o diretório de saída dos cortes. Assume-se que os caminhos para os arquivos de audio na tabela de ROIs sejam válidos localmente para que possam ser lidos.
+- `launch_segmentation_app()`
+  - Correções nos gráficos de diagnósticos e remoção da curva ROC.
+  - Substituição interna do processo de exportar cortes pela função `export_roi_cuts_n()`.
