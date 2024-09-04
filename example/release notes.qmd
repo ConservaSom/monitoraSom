@@ -5,7 +5,20 @@ format: pdf
 ---
 
 
-
+# Increment version number to 0.1.1.9006
+- R/diagnostic_validations_i.R
+  - Diversas melhorias de performance, funcionament interno e integração com o restate das funções.
+- R/fetch_soundscape_metadata.R
+  - Adaptação para paralelização em Windows
+  - Melhor manuseio de erros e alertas de arquivos vazios
+- R/launch_validation_app.R
+  - Detecções não validadas agora não são mais tratadas comom NA, mas sim como NV de "Not Validated" ou "Não Validadas". Com isso foi resoovido o bug mais sério desse app, que travava uma parte das detecs de forma que não podiam ser visualizadas e validadas por ficarem de fora de todos os subsets possiveis.
+  - Correção de um bug importante que ocorria quando a tabela de detecções tinha sido salva sem nenhum comentário, fazendo com quando fosse lida novamente, gerava um conflito entre o tipo dessa variavel na plinlha de destino e na outrput da validação da detecção ativa
+  - Limpeza extensiva de trechos de codigo que não estão mais em uso
+  - zoom_freq agora muda em incrementos de 0.1 e não de 0.5
+  - Foi removida a adaptação de slider de scores para evitar uma série de bugs relacionados a isso. Agora o slider tem um range fixo de -1 a 1 com incrementos de 0.01
+  - Ampliação do range de zoom_freq de 0-20kHz para 0-192kHz por default, mas isso ainda pode ser adaptado nos argumentos da função.
+  - Grande simplificação do código da parte de diagnósticos por causa do reaproveitamento da função diagnostic_validations_i()
 
 
 # Increment version number to 0.1.1.9005

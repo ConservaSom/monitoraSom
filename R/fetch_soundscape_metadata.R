@@ -15,31 +15,44 @@
 #' @return A data frame with the following columns:
 #' @import progressr furrr purrr tuneR
 #' @export
-fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
+fetch_soundscape_metadata_v3 <- function(path, recursive = TRUE, ncores = 1) {
+  require(pbapply)
 
   soundscape_list <- list.files(
-    path, pattern = ".wav$", recursive = recursive, ignore.case = TRUE,
+    path,
+    pattern = ".wav$", recursive = recursive, ignore.case = TRUE,
     full.names = TRUE
   )
 
-  get_metadata_safely <- safely(
-    function(x) {
-      res <- as.data.frame(readWave(x, header = TRUE))
-      res$path <- x
-      return(res)
+  if (ncores > 1 & Sys.info()["sysname"] == "Windows") {
+    if (ncores <= parallel::detectCores()) {
+      ncores <- parallel::makePSOCKcluster(getOption("cl.cores", ncores))
+    } else {
+      stop(
+        "The number of cores requested cannot be higher than the number of available cores"
+      )
     }
-  )
-
-  if (ncores > 1) {
-    future::plan(multicore, workers = ncores)
   } else {
-    future::plan(sequential)
+    ncores <- 1
   }
 
-  res <- future_map_dfr(
-    soundscape_list, ~ get_metadata_safely(.x)$result,
-    .progress = TRUE
-  ) %>%
+  read_wav_fun <- function(x) {
+    res <- tryCatch(
+      {
+        data <- readWave(x, header = TRUE)
+        data$path <- x
+        data
+      },
+      error = function(e) {
+        message(paste("Error reading file:", x))
+        NULL
+      }
+    )
+    return(res)
+  }
+
+  res <- pblapply(soundscape_list, read_wav_fun, cl = ncores) %>%
+    bind_rows() %>%
     transmute(
       soundscape_path = path,
       soundscape_file = basename(path),
@@ -53,7 +66,16 @@ fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
       )
     )
 
-  future::plan(sequential)
+  # give a warning if there are soundscapes with duration less than 1 second
+  if (any(res$soundscape_duration < 1)) {
+    message(
+      paste(
+        "Warning: There are", sum(res$soundscape_duration < 1),
+        "soundscapes with duration less than 1 second. ",
+        "Please check the soundscapes for possible errors."
+      )
+    )
+  }
 
   message("Soundscape metadata successfully extracted")
   return(res)

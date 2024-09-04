@@ -4,8 +4,7 @@
 #'
 #'   This function launches the validation app, which is a Shiny app to validate
 #'   for segemntation of WAV recorcings of soundscapes into tables containing
-#'   regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
-#'   be imported from presets or set manually.
+#'   regions of interest (ROIs) and audio cuts of the ROIs.
 #'
 #' @param project_path Path to the project folder.
 #' @param preset_path Path from which presets can be imported and to which new
@@ -23,7 +22,6 @@
 #' @param wav_player_type The type of wav player. "R session" for R
 #'   session-based player, "system" for system player.
 #' @param val_subset Subset of detections to be validated.
-#' @param score_interval Interval of scores to be validated.
 #' @param time_pads Time pads to be added to the start and end of the cut wave
 #'   files.
 #' @param ovlp Overlap between consecutive cuts.
@@ -81,7 +79,7 @@ launch_validation_app <- function(
     validation_user, templates_path, soundscapes_path, input_path,
     output_path = NULL, spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
-    val_subset = c("NA", "TP", "FP", "UN"), score_interval = c(-1, 1),
+    val_subset = c("NV", "TP", "FP", "UN"),
     time_pads = 1, ovlp = 0, wl = 2048, dyn_range_bar = c(-144, 0),
     dyn_range_templ = c(-84, 0), dyn_range_detec = c(-84, 0),
     color_scale = "inferno", zoom_freq = c(0, 23),
@@ -90,6 +88,7 @@ launch_validation_app <- function(
     ) {
 
   library(dplyr, warn.conflicts = FALSE)
+
   # require(tidyr)
   # require(ggplot2)
   # require(lubridate)
@@ -197,7 +196,7 @@ launch_validation_app <- function(
   session_data$input_path <- input_path
   if (!file.exists(input_path)) {
     stop("Error! The input file containing detections was not found locally.")
-    # todo Add other checks for the input file
+    # todo Add saanity checks for the input file
   }
 
   if (is.null(output_path)) {
@@ -212,36 +211,36 @@ launch_validation_app <- function(
     }
   }
 
-  if (all(val_subset %in% c("NA", "TP", "FP", "UN"))) {
+  if (all(val_subset %in% c("NV", "TP", "FP", "UN"))) {
     session_data$val_subset <- val_subset
   } else {
     stop(
-      "Error! At least one of the values assigned to 'val_subset' are not within the accepted alternatives ('NA', 'TP', 'FP', 'UN'). Observe that 'NA' is handled as a character string in this function"
+      "Error! At least one of the values assigned to 'val_subset' are not within the accepted alternatives ('NV', 'TP', 'FP', 'UN')."
     )
   }
 
-  if (all(is.numeric(score_interval))) {
-    if (all(score_interval <= 1) & all(score_interval >= -1)) {
-      if (dyn_range_detec[1] == dyn_range_detec[2]) {
-        stop("Error! The values provided in 'score_interval' must be different.")
-      } else if (dyn_range_detec[1] < dyn_range_detec[2]) {
-        session_data$score_interval <- score_interval
-      } else {
-        session_data$score_interval <- sort(score_interval)
-        warning(
-          "Warning! The first value of 'score_interval' must be smaller than the second. Sorting to match the expected order"
-        )
-      }
-    } else {
-      stop(
-        "Error! At least one value assigned to 'score_interval' is not within the expected interval. Provide only numeric values between -1 and 1."
-      )
-    }
-  } else {
-    stop(
-      "Error! At least one value assigned to 'score_interval' is not numeric. Provide only numeric values between -1 and 1."
-    )
-  }
+  # if (all(is.numeric(score_interval))) {
+  #   if (all(score_interval <= 1) & all(score_interval >= -1)) {
+  #     if (score_interval[1] == score_interval[2]) {
+  #       stop("Error! The values provided in 'score_interval' must be different.")
+  #     } else if (score_interval[1] < score_interval[2]) {
+  #       session_data$score_interval <- score_interval
+  #     } else {
+  #       session_data$score_interval <- sort(score_interval)
+  #       warning(
+  #         "Warning! The first value of 'score_interval' must be smaller than the second. Sorting to match the expected order"
+  #       )
+  #     }
+  #   } else {
+  #     stop(
+  #       "Error! At least one value assigned to 'score_interval' is not within the expected interval. Provide only numeric values between -1 and 1."
+  #     )
+  #   }
+  # } else {
+  #   stop(
+  #     "Error! At least one value assigned to 'score_interval' is not numeric. Provide only numeric values between -1 and 1."
+  #   )
+  # }
 
   if (is.numeric(time_pads)) {
     if (0 <= time_pads & time_pads <= 16) {
@@ -378,14 +377,10 @@ launch_validation_app <- function(
   if (length(zoom_freq) == 2) {
     if (all(is.numeric(zoom_freq))) {
       if (zoom_freq[1] < zoom_freq[2]) {
-        if (zoom_freq[1] >= 0 & zoom_freq[2] <= 180) {
-          if (zoom_freq[1] %% 1 == 0 & zoom_freq[2] %% 1 == 0) {
+        if (zoom_freq[1] >= 0 & zoom_freq[2] <= 192) {
             session_data$zoom_freq <- zoom_freq
-          } else {
-            stop("Error! 'zoom_freq' must be an integer.")
-          }
         } else {
-          stop("Error! 'zoom_freq' must be between 0 and 180.")
+          stop("Error! 'zoom_freq' must be between 0 and 192.")
         }
       } else {
         session_data$zoom_freq <- sort(zoom_freq)
@@ -447,8 +442,6 @@ launch_validation_app <- function(
   } else {
     stop("Error! 'overwrite' must be set to TRUE or FALSE.")
   }
-
-  # session_data$session_notes <- session_notes
 
   if (is.null(wav_cuts_path)) {
     if (dir.exists("detection_cuts/")) {
@@ -525,46 +518,11 @@ launch_validation_app <- function(
     )
   }
 
-# if (!is.null(preset_path) & !is.null(preset_id)) {
-#   # todo Adicionar esse prefixo no arquivo de preset
-#   preset_file <- file.path(
-#     preset_path, paste0("validation_preset_", preset_id, ".rds")
-#   )
-#   preset_to_export <- list(
-#     validation_user = session_data$validation_user,
-#     templates_path = session_data$templates_path,
-#     soundscapes_path = session_data$soundscapes_path,
-#     input_path = session_data$input_path,
-#     output_path = session_data$output_path,
-#     wav_player_path = session_data$wav_player_path,
-#     wav_player_type = session_data$wav_player_type,
-#     val_subset = session_data$val_subset,
-#     min_score = session_data$score_interval[1],
-#     max_score = session_data$score_interval[2],
-#     time_pads = session_data$time_pads,
-#     ovlp = session_data$ovlp,
-#     wl = session_data$wl,
-#     dyn_range_templ = session_data$dyn_range_templ,
-#     color_scale = session_data$color_scale,
-#     zoom_freq = session_data$zoom_freq,
-#     nav_shuffle = session_data$nav_shuffle,
-#     subset_seed = session_data$subset_seed,
-#     auto_next = session_data$auto_next,
-#     nav_autosave = session_data$nav_autosave,
-#     overwrite = session_data$overwrite,
-#     session_notes = session_data$session_notes,
-#     wav_cuts_path = session_data$wav_cuts_path,
-#     spec_path = session_data$spec_path,
-#     diag_tab_path = session_data$diag_tab_path
-#   )
-#   saveRDS(object = preset_to_export, file = preset_file)
-#   message("Preset sucessfully exported to the selected destination!")
-# }
-
   auc_trap <- function(x, y) {
     res <- sum(
-      (rowMeans(cbind(y[-length(y)], y[-1]))) *
-        (x[-1] - x[-length(x)])
+      (
+        rowMeans(cbind(y[-length(y)], y[-1]))) * (x[-1] - x[-length(x)]
+      )
     )
     return(res)
   }
@@ -615,29 +573,6 @@ launch_validation_app <- function(
               ),
               tags$style(type = "text/css", "#preset_path_load { margin-top: 40px;}")
             ),
-            # selectizeInput("available_presets", "Available presets",
-            #   choices = "Export new preset file...", width = "100%",
-            # ),
-            # fluidRow(
-            #   column(
-            #     width = 5, offset = "0px",
-            #     actionButton(
-            #       "export_preset", "Export preset",
-            #       icon = icon(lib = "glyphicon", "glyphicon glyphicon-export"),
-            #       width = "170px"
-            #     )
-            #   ),
-            #   column(
-            #     width = 6, offset = "0px",
-            #     actionButton(
-            #       "import_preset", "Import preset",
-            #       icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
-            #       width = "170px"
-            #     )
-            #   ),
-            #   tags$style(type = "text/css", "#export_preset { margin-top: 0px;}"),
-            #   tags$style(type = "text/css", "#import_preset { margin-top: 0px;}")
-            # ),
             textInput("validation_user", "User name (*):",
               value = session_data$validation_user,
               placeholder = "Identify yourself here", width = "100%"
@@ -721,7 +656,7 @@ launch_validation_app <- function(
               "val_subset", "Filter validation inputs (*)",
               choices = c(
                 "True positives - TP" = "TP", "False positives - FP" = "FP",
-                "Unknown - UN" = "UN", "Not reviewed - NA" = "NA"
+                "Unknown - UN" = "UN", "Not validated - NV" = "NV"
               ),
               selected = session_data$val_subset, multiple = TRUE, width = "100%"
             ),
@@ -729,7 +664,7 @@ launch_validation_app <- function(
             sliderInput(
               "score_interval", "Score interval (*)",
               width = "100%", min = -1, max = 1, step = 0.01,
-              value = session_data$score_interval
+              value = c(0, 1)
             ),
             # top n detections
             column(
@@ -855,17 +790,6 @@ launch_validation_app <- function(
               style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
             )
           )
-          # menuItem(
-          #   "Session Notes",
-          #   icon = icon(lib = "glyphicon", "glyphicon glyphicon-pencil"),
-          #   tabName = "tab_notes",
-          #   textAreaInput(
-          #     "session_notes", "Session notes",
-          #     placeholder = "Write session notes here", width = "100%",
-          #     height = "150px", resize = "vertical",
-          #     value = session_data$session_notes
-          #   )
-          # )
         ),
         actionButton(
           "end_session", "End validation session",
@@ -886,7 +810,7 @@ launch_validation_app <- function(
         tags$style(type = "text/css", ".recalculating {opacity: 1.0;}"),
         tags$head(tags$style(HTML(".content-wrapper { overflow: auto; }"))),
 
-        # box(width = 6, verbatimTextOutput("checagem1")),
+        # box(width = 12, verbatimTextOutput("checagem1")),
         # box(width = 6, verbatimTextOutput("checagem2")),
 
         box(
@@ -895,7 +819,8 @@ launch_validation_app <- function(
             width = 1,
             noUiSliderInput(
               "zoom_freq", "Frequency zoom",
-              min = 0, max = 18, step = 0.5, direction = "rtl",
+              min = 0, max = 192, # todo Increase to work with bats
+              step = 0.1, direction = "rtl",
               orientation = "vertical", width = "100px", height = "425px",
               value = session_data$zoom_freq
             )
@@ -978,12 +903,12 @@ launch_validation_app <- function(
           ),
           column(
             width = 3,
-            disabled( # todo: enable this
+            # disabled( # todo: enable this
               selectizeInput(
                 "soundscape_file", "Soundscape file",
                 choices = NULL, width = "100%"
               )
-            )
+            # )
           ),
           column(
             width = 1,
@@ -1379,14 +1304,15 @@ launch_validation_app <- function(
               detection_id = 1:nrow(.),
               validation_user = NA_character_,
               validation_time = NA_character_,
-              validation = NA_character_,
+              validation = "NV",
               validation_note = NA_character_
               # todo colocar "validation_label"
             )
         } else if ("validation_time" %in% colnames(res)) {
           res <- res %>%
             mutate(
-              validation_time = as.character(validation_time)
+              validation_time = as.character(validation_time),
+              validation_note = as.character(validation_note)
             )
         }
 
@@ -1409,29 +1335,6 @@ launch_validation_app <- function(
         showNotification("Paths updated successfully")
       })
 
-      # observe and update cut levels for avoiding returning empty detection tables
-      observeEvent(input$template_name, {
-        req(df_full$data)
-        df_ref <- df_full$data[
-          which(df_full$data$template_name == input$template_name),
-        ]
-        min_score <- round(head(head(sort(df_ref$peak_score), 2), 1), 2)
-        if (min_score < -1) {
-          min_score <- -1
-        }
-        max_score <- round(head(tail(sort(df_ref$peak_score), 2), 1), 2)
-        if (max_score > 1) {
-          max_score <- 1
-        }
-        if (min_score == max_score) {
-          max_score <- min_score + 0.1
-          min_score <- min_score - 0.01
-        }
-        updateSliderInput(
-          session, "score_interval",
-          min = min_score, max = max_score
-        )
-      })
 
       # Alternative version of df_detections_full containing only the
       # samples above the specified threshold to avoid showing soundscapes
@@ -1450,7 +1353,7 @@ launch_validation_app <- function(
         }
 
         val_subset <- input$val_subset
-        val_subset[val_subset == "NA"] <- NA
+        val_subset[val_subset == "NA" & is.na(val_subset)] <- "NV"
 
         order_options <- list(
           "Original file order" = function(res) res,
@@ -1512,12 +1415,8 @@ launch_validation_app <- function(
             }
           } %>%
           ungroup()
-          #  %>%
-          # mutate(validation_note = NA_character_)
 
           res <- order_options[[input$order_by]](res)
-
-
 
         # if the filtering process result is not null, get some more information
         if (!is.null(res)) {
@@ -1553,50 +1452,15 @@ launch_validation_app <- function(
             slice_head()
         })
 
-        # # Clean diagnostics of validation in case another template was validated in the same session
-        # mod_res_react(NULL)
-        # mod_plot_react(NULL)
-
-        #
         showNotification("Validation session updated")
       })
-
-      # # If the user sets the random order review mode, it will randomize rows of df_cut()
-      # observeEvent(input$nav_shuffle, {
-      #   req(df_cut())
-
-      #   if (input$nav_shuffle == TRUE) {
-      #     req(input$confirm_session_setup)
-      #     if (is.integer(input$seed)) {
-      #       set.seed(input$seed)
-      #     } else {
-      #       showModal(
-      #         modalDialog(
-      #           title = "Seed not defined!",
-      #           "A numeric seed is needed to ensure reproducibility when shuffling the sequence of detections to be validated. The input will be updated to the default value (123). Provide another value if necessary.",
-      #           easyClose = TRUE,
-      #           footer = NULL
-      #         )
-      #       )
-      #       updateNumericInput(session, "seed", value = 123)
-      #       set.seed(123)
-      #     }
-      #     random_index <- sample(1:nrow(df_cut()))
-      #     df_cut(df_cut()[random_index, ])
-      #     det_counter(random_index[1]) # ! corrigir erro de nevagação aqui
-      #     updateSelectInput(session, "detec", selected = df_cut()$detection_id[1])
-      #   } else if (input$nav_shuffle == FALSE) {
-      #     df_cut(df_cut()[order(df_cut()$detection_id), ])
-      #     det_counter(1)
-      #     updateSelectInput(session, "detec", selected = df_cut()$detection_id[1])
-      #   }
-      # })
 
       # Reactive object to store the detection index within df_cut()
       det_counter <- reactiveVal(1)
       # Upon initialization and under these conditions, det_counter is set to 1
       observeEvent(
         list(input$score_interval, input$user_setup_confirm), det_counter(1)
+        # list(input$user_setup_confirm), det_counter(1)
       )
       # Create a reactive object to store the data of the active detection
       det_i <- reactiveVal(NULL)
@@ -1645,25 +1509,26 @@ launch_validation_app <- function(
         i <- which(df_cut()$detection_id == input$detec)
         if (!is.null(i)) det_counter(i)
         det_i(df_cut()[i, ])
-
-        if (det_i()$soundscape_file != input$soundscape_file &
-          det_i()$soundscape_file %in% vec_soundscapes()) {
+        if (
+          det_i()$soundscape_file != input$soundscape_file &
+            det_i()$soundscape_file %in% vec_soundscapes()
+          ) {
           updateSelectInput(session, "soundscape_file",
             selected = det_i()$soundscape_file
           )
         }
       })
 
-      # todo select soundscape_name
-      # observeEvent(input$soundscape_name, {
+      # observeEvent(input$soundscape_file, {
       #   req(df_cut(), det_counter(), det_i())
-      #   i <- which(df_cut()$soundscape_name == input$soundscape_name)[1]
-      #   if (!is.null(i)) det_counter(i)
-      #   updateSelectInput(
-      #     session, "detec",
-      #     selected = isolate(df_cut()$detection_id[det_counter()])
-      #     )
+      #   i <- which(df_cut()$detection_id == input$detec)
+      #   j <- which(df_cut()$soundscape_file == input$soundscape_file)
+      #   if (!is.null(j) & length(j) > 0) {
+      #     det_counter(j[1])
+      #     updateSelectInput(session, "detec", selected = df_cut()$detection_id[j[1]])
+      #   }
       # })
+
 
       # Reactive object containing the wav of the active template
       # todo Remake this portion so that templates standalone or roi_tabs work the same way
@@ -1674,77 +1539,75 @@ launch_validation_app <- function(
         if (nrow(df_template()) == 0 | is.na(wav_path) | !file.exists(wav_path)) {
           rec_template(NULL)
         } else {
-           rec_start <- df_template()$template_start - zoom_pad()
-           pre_silence <- 0
-           rec_end <- df_template()$template_end + zoom_pad()
-           pos_silence <- 0
+          rec_start <- df_template()$template_start - zoom_pad()
+          pre_silence <- 0
+          rec_end <- df_template()$template_end + zoom_pad()
+          pos_silence <- 0
 
-           if (rec_start < 0) {
-             pre_silence <- abs(rec_start)
-             rec_start <- 0
-           }
-           if (rec_end > (df_template()$template_end - df_template()$template_start)) {
-             pos_silence <- rec_end - (df_template()$template_end - df_template()$template_start)
-             rec_end <- (df_template()$template_end - df_template()$template_start)
-           }
+          if (rec_start < 0) {
+            pre_silence <- abs(rec_start)
+            rec_start <- 0
+          }
+          if (rec_end > (df_template()$template_end - df_template()$template_start)) {
+            pos_silence <- rec_end - (df_template()$template_end - df_template()$template_start)
+            rec_end <- (df_template()$template_end - df_template()$template_start)
+          }
 
-           if (length(wav_path) == 1) {
-             res <- readWave(
-               wav_path,
-               from = rec_start, to = rec_end, units = "seconds"
-             ) %>%
-               addsilw(., at = "start", d = pre_silence, output = "Wave") %>%
-               addsilw(., at = "end", d = pos_silence, output = "Wave")
+          if (length(wav_path) == 1) {
+            res <- readWave(
+              wav_path,
+              from = rec_start, to = rec_end, units = "seconds"
+            ) %>%
+              addsilw(., at = "start", d = pre_silence, output = "Wave") %>%
+              addsilw(., at = "end", d = pos_silence, output = "Wave")
 
-             rec_template(res)
+            rec_template(res)
 
-             # Rendering the template HTML player
-             if (file.exists(wav_path) & input$wav_player_type == "HTML player") {
-               temp_file <- tempfile(
-                 pattern = "template_", tmpdir = session_data$temp_path, fileext = ".wav"
-               ) %>%
-                 gsub("\\\\", "/", .)
-               if (zoom_pad() != 0) {
-                 res <- cutw(
-                   res,
-                   from = zoom_pad(), to = duration(res) - zoom_pad(),
-                   output = "Wave"
-                 )
-               }
-               if (input$pitch_shift < 1) {
-                 res@samp.rate <- res@samp.rate / pitch_shift
-               }
-               if (isTRUE(input$visible_bp)) {
-                 res <- seewave::fir(
-                   res,
-                   f = res@samp.rate,
-                   from = (input$zoom_freq[1] / pitch_shift) * 1000,
-                   to = (input$zoom_freq[2] / pitch_shift) * 1000,
-                   wl = input$wl, output = "Wave"
-                 )
-               }
-
-               seewave::savewav(res, f = res@samp.rate, filename = temp_file)
-               removeUI(selector = "#template_player_selector")
-               insertUI(
-                 selector = "#template_player", where = "afterEnd",
-                 ui = tags$audio(
-                   id = "template_player_selector",
-                   src = paste0("audio/", basename(temp_file)),
-                   type = "audio/wav", autostart = FALSE, controls = TRUE
-                 )
-               )
-               unlink("template_.*.wav")
-               list.files(
-                 session_data$temp_path,
-                 pattern = "template_.*.wav", full.names = TRUE
-               ) %>%
-                 .[. != temp_file] %>%
-                 file.remove()
-             } else {
-               removeUI(selector = "#template_player_selector")
-             }
-           }
+            # Rendering the template HTML player
+            if (file.exists(wav_path) & input$wav_player_type == "HTML player") {
+              temp_file <- gsub("\\\\", "/", tempfile(
+                  pattern = "template_", tmpdir = session_data$temp_path,
+                  fileext = ".wav"
+                ))
+              if (zoom_pad() != 0) {
+                res <- cutw(
+                  res,
+                  from = zoom_pad(), to = duration(res) - zoom_pad(),
+                  output = "Wave"
+                )
+              }
+              if (input$pitch_shift < 1) {
+                res@samp.rate <- res@samp.rate / pitch_shift
+              }
+              if (isTRUE(input$visible_bp)) {
+                res <- seewave::fir(
+                  res,
+                  f = res@samp.rate,
+                  from = (input$zoom_freq[1] / pitch_shift) * 1000,
+                  to = (input$zoom_freq[2] / pitch_shift) * 1000,
+                  wl = input$wl, output = "Wave"
+                )
+              }
+              seewave::savewav(res, f = res@samp.rate, filename = temp_file)
+              removeUI(selector = "#template_player_selector")
+              insertUI(
+                selector = "#template_player", where = "afterEnd",
+                ui = tags$audio(
+                  id = "template_player_selector",
+                  src = paste0("audio/", basename(temp_file)),
+                  type = "audio/wav", autostart = FALSE, controls = TRUE
+                )
+              )
+              unlink("template_.*.wav")
+              template_list <- list.files(
+                session_data$temp_path,
+                pattern = "template_.*.wav", full.names = TRUE
+              )
+              file.remove(template_list[template_list != temp_file])
+            } else {
+              removeUI(selector = "#template_player_selector")
+            }
+          }
         }
       })
 
@@ -1857,8 +1720,9 @@ launch_validation_app <- function(
         req(df_cut())
         df_cut() %>%
           filter(
-            template_name == input$template_name,
-            soundscape_file == input$soundscape_file # todo Confirmar se está certo
+            template_name == input$template_name
+            # ,
+            # soundscape_file == # input$soundscape_file # todo Confirmar se está certo
           )
       })
 
@@ -1893,10 +1757,11 @@ launch_validation_app <- function(
         # Rendering the detection HTML player
         if (file.exists(det_i()$soundscape_path) & input$wav_player_type == "HTML player") {
           # file.remove("temp/detection_clip.wav")
-          temp_file <- tempfile(
-            pattern = "detection_", tmpdir = session_data$temp_path, fileext = ".wav"
-          ) %>%
-            gsub("\\\\", "/", .)
+          temp_file <- gsub("\\\\", "/", tempfile(
+              pattern = "detection_", tmpdir = session_data$temp_path,
+              fileext = ".wav"
+            )
+          )
           if (input$pitch_shift < 1) {
             res@samp.rate <- res@samp.rate / pitch_shift
           }
@@ -2286,7 +2151,7 @@ launch_validation_app <- function(
       # Reaction to validation when auto_next is TRUE
       observeEvent(input$hotkeys, {
         req(
-          df_cut(), det_counter(), input$template_name, input$soundscape_file,
+          df_cut(), det_counter(), input$template_name, # input$soundscape_file,
           input$auto_next == TRUE, input$hotkeys %in% c("q", "w", "e")
         )
         if (nrow(df_cut()) > det_counter() & det_counter() >= 1) {
@@ -2350,7 +2215,10 @@ launch_validation_app <- function(
             validation = validation_input(),
             validation_time = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
             validation_user = input$validation_user,
-            validation_note = as.character(input$detec_note)
+            validation_note = ifelse(
+              is.na(input$detec_note),
+              NA_character_, as.character(input$detec_note)
+              )
           )
 
         if (input$overwrite == TRUE) {
@@ -2375,17 +2243,13 @@ launch_validation_app <- function(
           det_i(res_A)
           df_cut(
             rows_patch(
-              df_cut() %>%
-                mutate(validation_note = as.character(validation_note)),
-              res_A,
+              df_cut(), res_A,
               by = "detection_id", unmatched = "ignore"
             )
           )
           df_output(
             rows_patch(
-              df_output() %>%
-                mutate(validation_note = as.character(validation_note)),
-                res_A,
+              df_output(), res_A,
               by = "detection_id", unmatched = "ignore"
             )
           )
@@ -2454,11 +2318,11 @@ launch_validation_app <- function(
 
       observe({
         req(df_cut())
-        if (sum(is.na(df_cut()$validation)) == 0) {
+        if (sum(df_cut()$validation == "NV") == 0) {
           showModal(
             modalDialog(
               title = "All detections from this template are validated",
-              "Review the session setup if there are detections from other templates to validate",
+              "Review the session setup if there are more detections to be validated",
               easyClose = TRUE, footer = NULL
             )
           )
@@ -2499,11 +2363,11 @@ launch_validation_app <- function(
         updateSelectInput(session, "detec", selected = i)
       })
 
-      output$count_i_tab <- renderTable(
+
+      output$count_full_tab <- renderTable(
         {
           req(df_output(), df_cut())
           df_output() %>%
-            filter(template_name == input$template_name) %>%
             group_by(template_name, validation) %>%
             summarise(n = n()) %>%
             ungroup() %>%
@@ -2512,11 +2376,11 @@ launch_validation_app <- function(
         },
         width = "100%"
       )
-
-      output$count_full_tab <- renderTable(
+      output$count_i_tab <- renderTable(
         {
           req(df_output(), df_cut())
-          df_output() %>%
+          df_cut() %>%
+            # filter(template_name == input$template_name) %>%
             group_by(template_name, validation) %>%
             summarise(n = n()) %>%
             ungroup() %>%
@@ -2556,7 +2420,6 @@ launch_validation_app <- function(
         }
       })
 
-      mod_res_react <- reactiveVal(NULL)
       mod_plot_react <- reactiveVal(NULL)
       # roc_plot_react <- reactiveVal(NULL)
       plot_dens_react <- reactiveVal(NULL)
@@ -2564,162 +2427,39 @@ launch_validation_app <- function(
       cut_full_tab <- reactiveVal(NULL)
       cut_i_tab <- reactiveVal(NULL)
 
-      # JUAMPY LOOK HERE
-
       observe({
         req(df_diag_input())
         if (nrow(df_diag_input()) > 2) {
           if (length(unique(df_diag_input()$validation)) == 2) {
-            bin_mod <- glm(
-              validation_bin ~ peak_score,
-              family = "binomial", data = df_diag_input()
-            )
-            mod_res_react(bin_mod)
-
+            source("/home/grosa/R_repos/monitoraSom/R/diagnostic_validations_i.R")
             if (input$diag_method == "Manual") {
-              binom_cut <- input$diag_cut
+              diag_method <- "Manual"
+              custom_cut <- input$diag_cut
+              pos_prob <- NULL
             } else if (input$diag_method == "Error = 0.05") {
-              binom_cut <- data.frame(peak_score = seq(0, 1, 0.001)) %>%
-                mutate(
-                  prob = predict(bin_mod, newdata = ., type = "response")
-                ) %>%
-                {
-                  .$peak_score[min(which(.$prob >= 0.95))]
-                }
-              updateSliderInput(session, "diag_cut", value = binom_cut)
+              diag_method <- "Auto"
+              custom_cut <- NULL
+              pos_prob <- 0.95
             } else if (input$diag_method == "Error = 0.1") {
-              binom_cut <- data.frame(peak_score = seq(0, 1, 0.01)) %>%
-                mutate(
-                  prob = predict(bin_mod, newdata = ., type = "response")
-                ) %>%
-                {
-                  .$peak_score[min(which(.$prob >= 0.90))]
-                }
-              updateSliderInput(session, "diag_cut", value = binom_cut)
-            } else {
-              binom_cut <- NULL
+              diag_method <- "Auto"
+              custom_cut <- NULL
+              pos_prob <- 0.90
             }
-
-            mod_plot <- ggplot(
-              df_diag_input(), aes(x = peak_score, y = validation_bin)
-            ) +
-              geom_point() +
-              stat_smooth(
-                formula = y ~ x, method = "glm",
-                method.args = list(family = "binomial"),
-                se = TRUE, fullrange = T, na.rm = TRUE
-              ) +
-              geom_vline(
-                xintercept = binom_cut, color = "red", linetype = 2, linewidth = 1
-              ) +
-              ylim(0, 1) +
-              xlim(0, 1) +
-              labs(
-                title = "Binomial regression",
-                y = "Probability of validations as TP", x = "Correlation"
-              ) +
-              coord_equal() +
-              theme_bw()
-            mod_plot_react(mod_plot)
-
-            # todo ROC curve data in 'seq(0, 1, 0.001)' and not 'seq(0, 1, 0.01)'
-            cutpointr_raw <- cutpointr(
-              df_diag_input(), peak_score, validation,
-              cutpoint = input$diag_cut, silent = TRUE,
-              pos_class = "TP", neg_class = "FP", direction = ">=",
-              method = oc_manual, use_midpoints = FALSE
+            val_res <- diagnostic_validations_i(
+              val_i = df_diag_input(),
+              diag_method = diag_method, pos_prob = pos_prob, diag_cut = custom_cut
             )
-
-            diag_out <- cutpointr_raw$roc_curve[[1]] %>%
-              rename(peak_score = x.sorted) %>%
-              mutate(
-                template_name = input$template_name,
-                precision = tp / (tp + fp),
-                relative_recall = tp / (tp + fn),
-                sensitivity = tp / (tp + fn),
-                specificity = tn / (tn + fp),
-                selected = FALSE
-                # selected = ifelse(peak_score >= input$diag_cut, TRUE, FALSE)
-              ) %>%
-              relocate(contains("template"), everything()) %>%
-              as.data.frame()
-
-            diag_out$selected[max(which(diag_out$peak_score > input$diag_cut))] <- TRUE
-            sel_i <- which(diag_out$selected == TRUE)
-
-            cut_full_tab(diag_out)
-
-            # roc_plot <- cutpointr::plot_roc(cutpointr_raw) +
-            #   geom_segment(
-            #     aes(x = 0, y = 0, xend = 1, yend = 1),
-            #     linetype = "dashed", color = "grey40"
-            #   ) +
-            #   annotate(
-            #     "label",
-            #     x = 0.75, y = 0.25,
-            #     label = paste0(
-            #       "AUC = ", round(cutpointr::auc(cutpointr_raw$roc_curve[[1]]), 3)
-            #     )
-            #   ) +
-            #   ylim(0, 1) + xlim(0, 1) +
-            #   coord_equal() +
-            #   theme_bw()
-            # roc_plot_react(roc_plot)
-
-            precrec_data <- diag_out %>%
-              select(peak_score, precision, relative_recall, selected) %>%
-              filter(is.finite(peak_score)) %>%
-              tidyr::drop_na()
-
-            precrec_plot <- precrec_data %>%
-              ggplot(aes(relative_recall, precision)) +
-              geom_line() +
-              geom_point(
-                data = precrec_data[sel_i, ], aes(relative_recall, precision)
-              ) +
-              annotate(
-                "label",
-                x = 0.75, y = 0.25,
-                label = paste0(
-                  "prAUC = ",
-                  round(
-                    auc_trap(precrec_data$relative_recall, precrec_data$precision), 3
-                  )
-                )
-              ) +
-              labs(
-                title = "Precision and Relative Recall", x = "Relative Recall",
-                y = "Precision"
-              ) +
-              ylim(0, 1) +
-              xlim(0, 1) +
-              coord_equal() +
-              theme_bw()
-
-            plot_dens <- df_diag_input() %>%
-              filter(!is.na(validation)) %>%
-              ggplot() +
-                geom_density(aes(x = peak_score, fill = validation), alpha = 0.5) +
-                geom_density(aes(x = peak_score), color = "black", alpha = 0.5, linetype = 2) +
-                geom_vline(
-                  xintercept = binom_cut, color = "red", linetype = 2,
-                  linewidth = 1
-                ) +
-                labs(
-                  title = "Peak score density",
-                  y = "Density", x = "Peak score", fill = ""
-                ) +
-                theme_bw() +
-                theme(
-                  legend.position = "bottom",
-                  legend.background = element_blank(),
-                  legend.box.background = element_blank()
-                )
-
-
-            precrec_plot_react(precrec_plot)
-            cut_i_tab(diag_out[sel_i, ])
-            plot_dens_react(plot_dens)
+            if (
+              val_res$score_cut < 1 & val_res$score_cut > 0 &
+                input$diag_method != "Manual"
+              ) {
+              updateSliderInput(session, "diag_cut", value = val_res$score_cut)
+            }
+            mod_plot_react(val_res$mod_plot)
+            cut_full_tab(val_res$diag_out)
+            precrec_plot_react(val_res$precrec_plot)
+            cut_i_tab(val_res$diag_out[which(val_res$diag_out$peak_score == val_res$score_cut), ])
+            plot_dens_react(val_res$plot_dens)
           }
         }
       })
@@ -2861,222 +2601,16 @@ launch_validation_app <- function(
         updateTextInput(session, inputId = "preset_path", value = res)
       })
 
-      # Observe the presets path to update the list of available presets
-      # # todo Modificar o prefixo dos presets para "validation_preset_"
-      # observeEvent(input$preset_path, {
-      #   res_list <- list.files(
-      #     path = input$preset_path, pattern = "^validation_preset_.*\\.rds$"
-      #   ) %>%
-      #     str_remove("validation_preset_") %>%
-      #     str_remove(".rds")
-      #   if (!is.null(res_list)) {
-      #     updateSelectInput(
-      #       session, "available_presets",
-      #       choices = c("Export new preset file...", res_list) #
-      #     )
-      #   }
-      # })
-
-      # # Whatch and store the settings of the active session
-      # session_settings <- reactiveVal(NULL)
-      # observe({
-      #   res <- list(
-      #     validation_user = input$validation_user,
-      #     templates_path = input$templates_path,
-      #     soundscapes_path = input$soundscapes_path,
-      #     input_path = input$input_path,
-      #     output_path = input$output_path,
-      #     wav_player_path = input$wav_player_path,
-      #     wav_player_type = input$wav_player_type,
-      #     val_subset = input$val_subset,
-      #     min_score = as.numeric(input$score_interval[1]),
-      #     max_score = as.numeric(input$score_interval[2]),
-      #     time_pads = as.numeric(input$time_pads),
-      #     ovlp = as.numeric(input$ovlp),
-      #     wl = as.numeric(input$wl),
-      #     dyn_range = as.numeric(input$dyn_range_templ),
-      #     color_scale = input$color_scale,
-      #     zoom_freq = as.numeric(input$zoom_freq),
-      #     nav_shuffle = input$nav_shuffle,
-      #     seed = as.numeric(input$seed),
-      #     auto_next = input$auto_next,
-      #     nav_autosave = input$nav_autosave,
-      #     overwrite = input$overwrite,
-      #     session_notes = input$session_notes,
-      #     wav_cuts_path = input$wav_cuts_path,
-      #     spec_path = input$spec_path, diag_tab_path = input$diag_tab_path #
-      #   )
-      #   session_settings(res)
-      # })
-
-      # # teste_val <- reactiveVal(NULL)
+      # teste_val <- reactiveVal(NULL)
       # output$checagem1 <- renderPrint({
-      #   req(session_settings())
-      #   glimpse(session_settings())
+      #   req(det_i())
+      #   det_i() %>%
+      #     glimpse()
+      #   # glimpse()
       # })
 
       # output$checagem2 <- renderPrint({
       #   glimpse(readRDS("app_presets/validation_preset_Salobo_validation.rds"))
-      # })
-
-      # # Export current session settings as a rds file
-      # observeEvent(input$export_preset, {
-      #   req(
-      #     session_settings(), input$preset_path, input$available_presets
-      #   )
-      #   if (
-      #     all(c(
-      #       nchar(input$validation_user) != 0,
-      #       dir.exists(c(input$preset_path, input$templates_path, input$soundscapes_path)),
-      #       file.exists(c(input$input_path))
-      #     ))
-      #   ) {
-      #     preset_file <- file.path(
-      #       input$preset_path,
-      #       paste0("validation_preset_", input$available_presets, ".rds")
-      #     )
-      #     if (file.exists(preset_file)) {
-      #       saved_preset <- readRDS(preset_file)
-      #       if (identical(saved_preset, session_settings())) {
-      #         shinyalert(
-      #           title = "Nothing to be done",
-      #           text = tagList(h3("No changes were made in the current preset")),
-      #           closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
-      #           type = "warning", animation = TRUE, showConfirmButton = FALSE,
-      #           showCancelButton = FALSE
-      #         )
-      #       } else {
-      #         what_changed <- rbind(saved_preset, session_settings()) %>%
-      #           as.data.frame() %>%
-      #           setNames(
-      #             list(
-      #               "user name", "path to templates", "path to soundscapes",
-      #               "path to input table", "path to output table",
-      #               "wave player type", "wave player path",
-      #               "validation outcome subset", "minimum detection score",
-      #               "time pad duration", "overlap", "window length",
-      #               "dynamic range", "color scale", "visibile frequency band",
-      #               "shuffle navigation", "random seed",
-      #               "autonavigate", "autosave", "overwrite",
-      #               "session notes", "path to export wav cuts",
-      #               "path to export spectrograms",
-      #               "path to export diagnostics table"
-      #             )
-      #           ) %>%
-      #           select_if(function(col) length(unique(col)) > 1) %>%
-      #           colnames() %>%
-      #           paste(collapse = "; ")
-
-      #         shinyalert(
-      #           title = "Changes detected in preset",
-      #           text = tagList(
-      #             h3("There are differences between settings in the current session and in the preset file:"),
-      #             h3(what_changed),
-      #             h3("Exporting will overwrite the existing preset file. Provide a new name below if if you wish to create a new preset instead:"),
-      #             textInput(
-      #               "new_preset_name",
-      #               label = NULL,
-      #               value = input$available_presets, placeholder = TRUE
-      #             ),
-      #             actionButton("confirm_export_preset", label = "Confirm & Export")
-      #           ),
-      #           closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
-      #           type = "warning", animation = TRUE, showConfirmButton = FALSE,
-      #           showCancelButton = TRUE
-      #         )
-      #       }
-      #     } else if (input$available_presets == "Export new preset file...") {
-      #       new_name <- paste0(
-      #         stringr::str_remove(input$validation_user, ","), "_",
-      #         format(Sys.time(), "%Y-%m-%d_%H:%M:%S")
-      #       )
-      #       shinyalert(
-      #         title = "Creating a new preset file",
-      #         text = tagList(
-      #           h3("Provide a name in the box below:"),
-      #           textInput("new_preset_name", label = NULL, value = new_name, placeholder = TRUE),
-      #           h4("(*) avoid commas"),
-      #           actionButton("confirm_export_preset", label = "Confirm & Export")
-      #         ),
-      #         closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
-      #         type = "warning", animation = TRUE, showConfirmButton = FALSE,
-      #         showCancelButton = FALSE
-      #       )
-      #     }
-      #   } else {
-      #     shinyalert(
-      #       title = "There are missing information in the User setup",
-      #       text = tagList(
-      #         h3("Complete the missing inputs before exporting a preset"),
-      #       ),
-      #       closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
-      #       type = "warning", animation = TRUE, showConfirmButton = FALSE,
-      #       showCancelButton = FALSE
-      #     )
-      #   }
-      # })
-
-      # observeEvent(input$confirm_export_preset, {
-      #   req(session_settings(), input$preset_path, input$new_preset_name)
-      #   saveRDS(
-      #     session_settings(),
-      #     file.path(
-      #       input$preset_path, paste0("preset_", input$new_preset_name, ".rds")
-      #     )
-      #   )
-      #   res_list <- list.files(
-      #     path = input$preset_path, pattern = "^preset_.*\\.rds$"
-      #   ) %>%
-      #     str_remove("preset_") %>%
-      #     str_remove(".rds$")
-      #   if (!is.null(res_list)) {
-      #     updateSelectInput(
-      #       session, "available_presets",
-      #       choices = c("Export new preset file...", res_list), #
-      #       selected = input$new_preset_name
-      #     )
-      #   }
-      #   showNotification("Preset file successfully exported")
-      # })
-
-      # # Import the settins of the preset files to the active session
-      # observeEvent(input$import_preset, {
-      #   req(input$available_presets)
-      #   preset_file <- file.path(
-      #     input$preset_path,
-      #     paste0("preset_", input$available_presets, ".rds")
-      #   )
-
-      #   if (file.exists(preset_file)) {
-      #     res <- readRDS(preset_file)
-      #     updateTextInput(session, inputId = "validation_user", value = res$validation_user)
-      #     updateTextAreaInput(session, inputId = "templates_path", value = res$templates_path)
-      #     updateTextAreaInput(session, inputId = "soundscapes_path", value = res$soundscapes_path)
-      #     updateTextAreaInput(session, inputId = "wav_player_path", value = res$wav_player_path)
-      #     updateRadioButtons(session, inputId = "wav_player_type", selected = res$wav_player_type)
-      #     updateTextAreaInput(session, inputId = "input_path", value = res$input_path)
-      #     updateTextAreaInput(session, inputId = "output_path", value = res$output_path)
-      #     updateSelectizeInput(session, inputId = "val_subset", selected = res$val_subset)
-      #     updateSliderInput(session, inputId = "min_score", value = res$cut)
-      #     updateSliderInput(session, inputId = "max_score", value = res$cut)
-      #     updateSliderInput(session, inputId = "time_pads", value = res$time_pads)
-      #     updateCheckboxInput(session, inputId = "auto_next", value = res$auto_next)
-      #     updateCheckboxInput(session, inputId = "nav_autosave", value = res$nav_autosave)
-      #     updateCheckboxInput(session, inputId = "overwrite", value = res$overwrite)
-      #     updateCheckboxInput(session, inputId = "nav_shuffle", value = res$nav_shuffle)
-      #     updateNumericInput(session, inputId = "seed", value = res$seed)
-      #     updateSliderInput(session, inputId = "ovlp", value = res$ovlp)
-      #     updateSliderTextInput(session, inputId = "wl", selected = res$wl)
-      #     updateSliderInput(session, inputId = "dyn_range", value = res$dyn_range)
-      #     updateSelectInput(session, inputId = "color_scale", selected = res$color_scale)
-      #     updateNoUiSliderInput(session, inputId = "zoom_freq", value = res$zoom_freq)
-      #     updateTextAreaInput(session, inputId = "session_notes", value = res$session_notes)
-      #     updateTextInput(session, inputId = "wav_cuts_path", value = res$wav_cuts_path)
-      #     updateTextInput(session, inputId = "spec_path", value = res$spec_path)
-      #     updateTextInput(session, inputId = "diag_tab_path", value = res$diag_tab_path)
-      #     session_settings(res)
-      #     showNotification("Preset file successfully imported")
-      #   }
       # })
 
       # Load path to export the wav file
@@ -3201,10 +2735,10 @@ launch_validation_app <- function(
       observeEvent(input$end_session, {
         req(df_cut(), df_output())
 
-        # ! BUG
-
         dfa <- df_cut() %>%
-          dplyr::select(tidyr::contains("validation"))
+          dplyr::select(
+            tidyr::contains("validation")
+          )
         nrow_unsaved <- 0
 
         if (file.exists(input$output_path)) {
@@ -3228,41 +2762,6 @@ launch_validation_app <- function(
         } else if (nrow_unsaved == 0) {
           message_detecs <- paste0("There are no differences between the current session and the output '.csv' file.")
         }
-
-        # preset_file <- file.path(
-        #   input$preset_path,
-        #   paste0("preset_", input$available_presets, ".rds")
-        # )
-        # showNotification(length(preset_file))
-        # if (file.exists(preset_file)) {
-        #   saved_preset <- readRDS(preset_file)
-        #   what_changed <- rbind(saved_preset, session_settings()) %>%
-        #     as.data.frame() %>%
-        #     setNames(
-        #       list(
-        #         "user name", "path to templates", "path to soundscapes",
-        #         "path to input table", "path to output table", "wave player path",
-        #         "wave player type", "validation outcome subset", "minimum correlation value",
-        #         "time pad duration", "overlap", "window length",
-        #         "dynamic range", "color scale", "visibile frequency band",
-        #         "shuffle navigation", "random seed", "autonavigate", "autosave",
-        #         "overwrite", "session notes", "path to export wav cuts",
-        #         "path to export spectrograms", "path to export diagnostics table"
-        #       )
-        #     ) %>%
-        #     select_if(function(col) length(unique(col)) > 1) %>%
-        #     colnames() %>%
-        #     paste(collapse = "; ")
-        # }
-
-        # if (!identical(saved_preset, session_settings())) {
-        #   message_settings <- paste0(
-        #     "The following settings were updated: ", what_changed,
-        #     ". Consider update the preset or create a new one before leaving the session."
-        #   )
-        # } else {
-        #   message_settings <- paste0("No setting changes detected.")
-        # }
 
         showModal(
           modalDialog(
@@ -3290,22 +2789,6 @@ launch_validation_app <- function(
         title = "Presets available here will be shown in the drop-down menu below",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      # ! tooltips não funcionam em selectize widgets
-      # shinyBS::addTooltip(session,
-      #   id = "available_presets",
-      #   title = "Select a preset or type a new name to create a new one (must contain the .rds extension)",
-      #   placement = "right", trigger = "hover", options = pop_up_opt
-      # )
-      # shinyBS::addTooltip(session,
-      #   id = "import_preset",
-      #   title = "Apply stored settings to the current session",
-      #   placement = "right", trigger = "hover", options = pop_up_opt
-      # )
-      # shinyBS::addTooltip(session,
-      #   id = "export_preset",
-      #   title = "Store the current session settings to a preset file. Existing files will be overwritten",
-      #   placement = "right", trigger = "hover", options = pop_up_opt
-      # )
       shinyBS::addTooltip(session,
         id = "validation_user",
         title = "Recommended format: 'Rosa G. L. M. (avoid commas)",
@@ -3326,14 +2809,6 @@ launch_validation_app <- function(
         title = "Complete path to the 'csv.' file that contains detection data",
         placement = "right", trigger = "hover", options = pop_up_opt
       )
-      # shinyBS::addTooltip(session,
-      #   id = "same_detec_file",
-      #   title = paste0(
-      #     "Toggle this option if you wish to store outputs in the same file used as input. ",
-      #     "Choosing to do it with different files, will result in the creation of a new output file or overwriting the file, if the name is the same "
-      #   ),
-      #   placement = "right", trigger = "click", options = pop_up_opt
-      # )
       shinyBS::addTooltip(session,
         id = "output_path",
         title = "Complete path to the 'csv.' file in which validation from this session will be stored",

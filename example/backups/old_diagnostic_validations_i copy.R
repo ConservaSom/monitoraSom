@@ -52,7 +52,7 @@ diagnostic_validations_i <- function(
         score_cut <- df_pred$peak_score[min(which(df_pred$prob >= pos_prob))]
     }
 
-    if (n_fp >= 4 & n_tp >= 4) {
+    if (n_fp != 0 & n_tp != 0) {
         cutpointr_raw <- cutpointr(
             df_diag_input, peak_score, validation,
             cutpoint = score_cut,
@@ -60,7 +60,7 @@ diagnostic_validations_i <- function(
             method = oc_manual, use_midpoints = FALSE
         )
 
-        diag_out <- cutpointr_raw$roc_curve[[1]][-1, ] %>%
+        diag_out <- cutpointr_raw$roc_curve[[1]] %>%
             rename(peak_score = x.sorted) %>%
             mutate(fn = fn + n_fn) %>%
             select(peak_score, tp, fp, tn, fn) %>%
@@ -114,85 +114,15 @@ diagnostic_validations_i <- function(
             ) %>%
             distinct()
     }
-    diag_out$selected[max(which(diag_out$peak_score >= score_cut))] <- TRUE
+    diag_out$selected[min(which(diag_out$peak_score > score_cut))] <- TRUE
     sel_i <- which(diag_out$selected == TRUE)
 
-    mod_plot <- ggplot(df_diag_input, aes(x = peak_score, y = validation_bin)) +
-        geom_point(pch = 1) +
-        stat_smooth(
-            formula = y ~ x, method = "glm",
-            method.args = list(family = "binomial"), se = TRUE,
-            fullrange = T, na.rm = TRUE
-        ) +
-        geom_vline(xintercept = score_cut, color = "red", linetype = 2) +
-        labs(
-            title = "Binomial regression",
-            y = "Probability of validations as TP", x = "Correlation"
-        ) +
-        theme_bw()
-
-    plot_dens <- df_diag_input %>%
-        rbind(mutate(df_diag_input, validation = "All")) %>%
-        ggplot() +
-        geom_density(
-            aes(x = peak_score, fill = validation, linetype = validation),
-            alpha = 0.5
-        ) +
-        scale_fill_manual(
-            values = c(
-                "All" = "black", "TP" = "green", "FP" = "red"
-            )
-        ) +
-        scale_linetype_manual(values = c("All" = 2, "TP" = 1, "FP" = 1)) +
-        geom_vline(xintercept = score_cut, color = "red", linetype = 2) +
-        labs(
-            title = "Peak score density", y = "Density", x = "Peak score",
-            fill = "", linetype = ""
-        ) +
-        theme_bw() +
-        theme(
-            legend.position = c(0.85, 0.85),
-            legend.background = element_blank(),
-            legend.box.background = element_blank()
-        )
-
-    precrec_plot <- diag_out %>%
-        ggplot(aes(recall, precision)) +
-        geom_line() +
-        geom_point(data = diag_out[sel_i, ], aes(recall, precision)) +
-        geom_vline(
-            xintercept = diag_out[sel_i, ]$recall, color = "red", linetype = 2
-        ) +
-        annotate(
-            "label",
-            x = 0.75, y = 0.25,
-            label = paste0(
-                "prAUC = ",
-                round(
-                    -fun_auc(diag_out$recall, diag_out$precision), 3
-                )
-            )
-        ) +
-        labs(title = "Precision and Recall", x = "Recall", y = "Precision") +
-        xlim(0, 1) +
-        ylim(0, 1) +
-        theme_bw()
-
-    f1_plot <- diag_out %>%
-        ggplot(aes(peak_score, F1_score)) +
-        geom_line() +
-        geom_point(
-            data = diag_out[sel_i, ], aes(peak_score, F1_score)
-        ) +
-        geom_vline(
-            xintercept = diag_out[sel_i, ]$peak_score, color = "red", linetype = 2
-        ) +
-        labs(
-            title = "F1 score", x = "Peak score", y = "F1 score"
-        ) +
-        theme_bw()
-
     roc_plot <- diag_out %>%
+        # group_by(sensitivity) %>%
+        # slice_head(n = 1) %>%
+        # ungroup() %>%
+        # select(peak_score, sensitivity, specificity) %>%
+        # rbind(data.frame(peak_score = NA, sensitivity = 1, specificity = 0)) %>%
         ggplot(aes(x = c(1 - specificity), y = sensitivity)) +
         geom_line() +
         geom_segment(
@@ -211,10 +141,86 @@ diagnostic_validations_i <- function(
             x = 0.75, y = 0.25,
             label = paste0(
                 "AUC = ",
-                round(-fun_auc(1 - diag_out$specificity, diag_out$sensitivity), 3)
+                round(fun_auc(1 - diag_out$specificity, diag_out$sensitivity), 3)
             )
         ) +
         theme_bw()
+
+    mod_plot <- ggplot(df_diag_input, aes(x = peak_score, y = validation_bin)) +
+        geom_point(pch = 1) +
+        stat_smooth(
+            formula = y ~ x, method = "glm",
+            method.args = list(family = "binomial"), se = TRUE,
+            fullrange = T, na.rm = TRUE
+        ) +
+        geom_vline(xintercept = score_cut, color = "red", linetype = 2) +
+        labs(
+            title = "Binomial regression",
+            y = "Probability of validations as TP", x = "Correlation"
+        ) +
+        theme_bw()
+
+    precrec_plot <- diag_out %>%
+        # group_by(recall) %>%
+        # slice_head(n = 1) %>%
+        # ungroup() %>%
+        ggplot(aes(recall, precision)) +
+        geom_line() +
+        geom_point(data = diag_out[sel_i, ], aes(recall, precision)) +
+        geom_vline(
+            xintercept = diag_out[sel_i, ]$recall, color = "red", linetype = 2
+        ) +
+        annotate(
+            "label",
+            x = 0.75, y = 0.25,
+            label = paste0(
+                "prAUC = ",
+                round(
+                    fun_auc(diag_out$recall, diag_out$precision), 3
+                )
+            )
+        ) +
+        labs(title = "Precision and Recall", x = "Recall", y = "Precision") +
+        theme_bw()
+
+    f1_plot <- diag_out %>%
+        ggplot(aes(peak_score, F1_score)) +
+        geom_line() +
+        geom_point(
+            data = diag_out[sel_i, ], aes(peak_score, F1_score)
+        ) +
+        geom_vline(
+            xintercept = diag_out[sel_i, ]$peak_score, color = "red", linetype = 2
+        ) +
+        labs(
+            title = "F1 score", x = "Peak score", y = "F1 score"
+        ) +
+        theme_bw()
+
+    plot_dens <- df_diag_input %>%
+        rbind(mutate(df_diag_input, validation = "All")) %>%
+        ggplot() +
+        geom_density(
+            aes(x = peak_score, fill = validation, linetype = validation),
+            alpha = 0.5
+        ) +
+        scale_fill_manual(
+            values = c(
+                "All" = "black", "TP" = "green", "FP" = "red"
+            )
+        ) +
+        scale_linetype_manual(values = c("All" = 2, "TP" = 1, "FP" = 1)) +
+        geom_vline(xintercept = score_cut, color = "red", linetype = 2)
+    labs(
+        title = "Peak score density", y = "Density", x = "Peak score",
+        fill = "", linetype = ""
+    ) +
+        theme_bw() +
+        theme(
+            legend.position = c(0.9, 0.9),
+            legend.background = element_blank(),
+            legend.box.background = element_blank()
+        )
 
     res <- list(
         diagnostics = diag_out,
