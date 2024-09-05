@@ -56,14 +56,6 @@ used in the function 'fetch_score_peaks_i()'.}
 
 \item{save_res}{A character string indicating the path to save the results in
 the format of an RDS file. Default is FALSE.}
-
-\item{par_strat}{A character string indicating the parallelization strategy
-to be used. The available options are: "foreach" (default), "future" and
-"pbapply". The 'future' and 'pbapply' strategies do not work on Windows,
-but are more efficient in linux (especially when running and R session
-outside of Rstudio). The 'foreach' strategy works on all platforms, but is
-less efficient than the other two. See the documentation of the 'future'
-and 'pbapply' packages for more details.}
 }
 \value{
 A tibble containing input data frame with an additional column

@@ -20,6 +20,7 @@ format: pdf
   - Ampliação do range de zoom_freq de 0-20kHz para 0-192kHz por default, mas isso ainda pode ser adaptado nos argumentos da função.
   - Grande simplificação do código da parte de diagnósticos por causa do reaproveitamento da função diagnostic_validations_i()
 
+FALTA INSTALAR E TESTAR ESSAS MUDANÇAS
 
 # Increment version number to 0.1.1.9005
 -`match_i` -

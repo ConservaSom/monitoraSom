@@ -15,13 +15,6 @@
 #' @param score_method A character string indicating the method to use for
 #'   matching. The two methods available are: "cor" (Pearson correlation
 #'   coefficient) or "dtw" (dynamic time warping). Defaults to "cor".
-#' @param par_strat A character string indicating the parallelization strategy
-#'   to be used. The available options are: "foreach" (default), "future" and
-#'   "pbapply". The 'future' and 'pbapply' strategies do not work on Windows,
-#'   but are more efficient in linux (especially when running and R session
-#'   outside of Rstudio). The 'foreach' strategy works on all platforms, but is
-#'   less efficient than the other two. See the documentation of the 'future'
-#'   and 'pbapply' packages for more details.
 #' @param ncores An integer indicating the number of cores to be used for
 #'   parallelization. Default is 1.
 #' @param output A character string indicating the output of the function. The

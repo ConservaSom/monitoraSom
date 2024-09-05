@@ -17,8 +17,7 @@ launch_validation_app(
   diag_tab_path = NULL,
   wav_player_path = "play",
   wav_player_type = "HTML player",
-  val_subset = c("NA", "TP", "FP", "UN"),
-  score_interval = c(-1, 1),
+  val_subset = c("NV", "TP", "FP", "UN"),
   time_pads = 1,
   ovlp = 0,
   wl = 2048,
@@ -67,8 +66,6 @@ session-based player, "system" for system player.}
 
 \item{val_subset}{Subset of detections to be validated.}
 
-\item{score_interval}{Interval of scores to be validated.}
-
 \item{time_pads}{Time pads to be added to the start and end of the cut wave
 files.}
 
@@ -113,8 +110,7 @@ todo
 
   This function launches the validation app, which is a Shiny app to validate
   for segemntation of WAV recorcings of soundscapes into tables containing
-  regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
-  be imported from presets or set manually.
+  regions of interest (ROIs) and audio cuts of the ROIs.
 }
 \examples{
 \dontrun{
