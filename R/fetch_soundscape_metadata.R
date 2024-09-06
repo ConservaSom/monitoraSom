@@ -15,7 +15,7 @@
 #' @return A data frame with the following columns:
 #' @import progressr furrr purrr tuneR
 #' @export
-fetch_soundscape_metadata_v3 <- function(path, recursive = TRUE, ncores = 1) {
+fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
   require(pbapply)
 
   soundscape_list <- list.files(
