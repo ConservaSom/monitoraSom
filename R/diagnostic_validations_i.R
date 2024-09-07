@@ -1,21 +1,28 @@
-#' @title Diagnostic validation
+#' Diagnostic validations
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' This function takes in a data frame containing detections and validates them
-#' using a binomial regression model. The function returns a data frame with the
-#' validated detections.
+#'   This function performs diagnostic validations on the detections. The
+#'   diagnostic validations are used to determine the optimal cutpoint to be
+#'   used in the detections. The function will automatically determine the
+#'   cutpoint to be used in the diagnostic validations if the "Auto" method is
+#'   selected. If the "Manual" method is selected, the user must provide the
+#'   cutpoint to be used in the diagnostic validations.
 #'
-#' @param val_i A data frame containing detections as in the output of
-#'  the validation functions.
-#' @param diag_method A character string indicating the method to select the
-#' peak score cut-off. The default is "Auto". The other option is "Manual".
-#' @param pos_prob A numeric value between 0 and 1 indicating the probability
-#' of a positive detection. The default is 0.95.
-#' @param diag_cut A numeric value between 0 and 1 indicating the peak score
-#' cut-off. The default is NULL.
+#' @param val_i A tibble containing the validation results of the detections
+#' @param diag_method A character string indicating the method to use for
+#'   diagnostic validations. The two methods available are: "Auto" (default) or
+#'   "Manual". If "Auto" is selected, the function will automatically determine
+#'   the cutpoint to be used in the diagnostic validations. If "Manual" is
+#'   selected, the user must provide the cutpoint to be used in the diagnostic
+#'   validations.
+#' @param pos_prob A numeric value indicating the probability of a positive test
+#' @param diag_cut A numeric value indicating the cutpoint to be used in the
+#'   diagnostic
 #'
-#' @return Validation results.
+#' @import dplyr ggplot2 cutpointr
+#' @export 
+#' @return A list containing the diagnostic results
 diagnostic_validations_i <- function(
     val_i, diag_method = "Auto", pos_prob = 0.95, diag_cut = NULL) {
     fun_auc <- function(x, y) {

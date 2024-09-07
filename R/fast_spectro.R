@@ -25,7 +25,12 @@
 #'   but will also result in faster rendering times.
 #' @param interpolate A logical value indicating whether the raster should be
 #'   interpolated or not.
-#' @param ... Additional arguments to be passed internally to the 'spectro'
+#' @param pitch_shift A numeric value indicating the pitch shift to be applied
+#'  to the recording. The value must be among the expected alternatives: -8,
+#' -6, -4, -2, or 1.
+#' @param norm A logical value indicating whether the amplitude values should be
+#'  normalized or not.
+#' @param ... Additional arguments to be passed internally to the 'seeave::spectro'
 #'   function.
 #'
 #' @import dplyr viridis farver ggplot2

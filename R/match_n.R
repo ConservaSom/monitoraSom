@@ -10,8 +10,6 @@
 #'   ("dtw").
 #'
 #' @param df_grid The output of the function 'fetch_match_grid()
-#' @param save_res A character string indicating the path to save the results in
-#'   the format of an RDS file. Default is FALSE.
 #' @param score_method A character string indicating the method to use for
 #'   matching. The two methods available are: "cor" (Pearson correlation
 #'   coefficient) or "dtw" (dynamic time warping). Defaults to "cor".
@@ -53,7 +51,7 @@
 #'   from the template are added to the beginning and end of the
 #'
 #' @export
-#' @import dplyr future pbapply foreach parabar progressr furrr purrr
+#' @import dplyr future pbapply furrr purrr
 #' @importFrom furrr future_map
 #' @importFrom purrr list_rbind
 match_n <- function(

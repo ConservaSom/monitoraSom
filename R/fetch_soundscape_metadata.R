@@ -13,8 +13,7 @@
 #'   parallelization. Default is 1.
 #'
 #' @return A data frame with the following columns:
-#' @import progressr furrr purrr tuneR
-#' @export
+#' @import furrr purrr tuneR
 fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
   require(pbapply)
 

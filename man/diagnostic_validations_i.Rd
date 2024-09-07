@@ -2,7 +2,7 @@
 % Please edit documentation in R/diagnostic_validations_i.R
 \name{diagnostic_validations_i}
 \alias{diagnostic_validations_i}
-\title{Diagnostic validation}
+\title{Diagnostic validations}
 \usage{
 diagnostic_validations_i(
   val_i,
@@ -12,25 +12,30 @@ diagnostic_validations_i(
 )
 }
 \arguments{
-\item{val_i}{A data frame containing detections as in the output of
-the validation functions.}
+\item{val_i}{A tibble containing the validation results of the detections}
 
-\item{diag_method}{A character string indicating the method to select the
-peak score cut-off. The default is "Auto". The other option is "Manual".}
+\item{diag_method}{A character string indicating the method to use for
+diagnostic validations. The two methods available are: "Auto" (default) or
+"Manual". If "Auto" is selected, the function will automatically determine
+the cutpoint to be used in the diagnostic validations. If "Manual" is
+selected, the user must provide the cutpoint to be used in the diagnostic
+validations.}
 
-\item{pos_prob}{A numeric value between 0 and 1 indicating the probability
-of a positive detection. The default is 0.95.}
+\item{pos_prob}{A numeric value indicating the probability of a positive test}
 
-\item{diag_cut}{A numeric value between 0 and 1 indicating the peak score
-cut-off. The default is NULL.}
+\item{diag_cut}{A numeric value indicating the cutpoint to be used in the
+diagnostic}
 }
 \value{
-Validation results.
+A list containing the diagnostic results
 }
 \description{
 `r lifecycle::badge("experimental")`
 
-This function takes in a data frame containing detections and validates them
-using a binomial regression model. The function returns a data frame with the
-validated detections.
+  This function performs diagnostic validations on the detections. The
+  diagnostic validations are used to determine the optimal cutpoint to be
+  used in the detections. The function will automatically determine the
+  cutpoint to be used in the diagnostic validations if the "Auto" method is
+  selected. If the "Manual" method is selected, the user must provide the
+  cutpoint to be used in the diagnostic validations.
 }

@@ -7,9 +7,9 @@
 export_roi_cuts_n(rois_n, path)
 }
 \arguments{
-\item{rois_n}{A data frame in the format produced by the segmentation app}
+\item{rois_n}{A tibble containing the ROIs to be cut}
 
-\item{path}{A character string with the path to save the cuts.}
+\item{path}{A character string indicating the path to save the cuts}
 }
 \value{
 A message indicating if all cuts were made successfully
@@ -17,7 +17,7 @@ A message indicating if all cuts were made successfully
 \description{
 `r lifecycle::badge("experimental")`
 
-This function takes in a ROI table and export its ROIs as audio files in the
-specified path. The ROI table should be in the format produced by the
-segmentation app.
+  This function exports the cuts of the ROIs in the provided ROI table. The
+  function will cut the ROIs from the soundscape files and save them in the
+  specified path.
 }

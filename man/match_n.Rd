@@ -53,9 +53,6 @@ the function 'fetch_score_peaks_i()'.}
 
 \item{top_n}{A numeric value indicating the number of top detections to be
 used in the function 'fetch_score_peaks_i()'.}
-
-\item{save_res}{A character string indicating the path to save the results in
-the format of an RDS file. Default is FALSE.}
 }
 \value{
 A tibble containing input data frame with an additional column

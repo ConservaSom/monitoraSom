@@ -7,26 +7,28 @@
 # install.packages("devtools")
 library(devtools)
 library(usethis)
+document()
+check()
+build()
 devtools::install()
+# install.packages("/home/grosa/R_repos/monitoraSom_0.1.1.9005.tar.gz", repos = NULL, type = "source")
+
 
 utils::packageVersion("monitoraSom")
 use_version()
 
 # load_all()
 roxygen2::roxygenise(clean = TRUE)
-document()
-check()
-build()
 
 
 use_gpl3_license()
 
-use_package("dplyr")
 
 
 packageVersion("monitoraSom")
 
 check()
+use_package("dplyr")
 use_package("DT")
 use_package("ROSE")
 use_package("caret")

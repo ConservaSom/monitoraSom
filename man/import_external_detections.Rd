@@ -2,26 +2,26 @@
 % Please edit documentation in R/import_external_detections.R
 \name{import_external_detections}
 \alias{import_external_detections}
-\title{Import detections made in BirdNET or other third-party software}
+\title{Import external detections}
 \usage{
 import_external_detections(input_path, names_vec = NA, output_path = NA)
 }
 \arguments{
-\item{input_path}{Path to the CSV file containing the detections.}
+\item{input_path}{A character string indicating the path to the CSV file}
 
-\item{names_vec}{A named character vector to rename the columns of the #'
-input. The default values are: `c("template_name" = "scientific_name",
-"detection_start" = "start_time", "detection_end" = "end_time",
-"peak_score" = "confidence", "soundscape_path" = "filepath",
-"detec_min_score" = "min_conf", "bn_lat" = "lat", "bn_lon" = "lon",
-"bn_sensitivity" = "sensitivity", "bn_model" = "model_name")`}
+\item{names_vec}{A named character vector indicating the names of the
+variables}
 
-\item{output_path}{Path to save the adapted detection table. If not provided,
-the function will return the adapted table.}
+\item{output_path}{A character string indicating the path to save the output}
 }
 \value{
-A detection table adapted to the `monitoraSom` workflow
+A tibble containing the detections in the 'monitoraSom' format
 }
 \description{
 `r lifecycle::badge("experimental")`
+
+  This function imports detections from an external CSV file and converts
+  them to the 'monitoraSom' format. The function will rename the variables to
+  match the 'monitoraSom' format and will add the necessary variables to
+  complete the format.
 }

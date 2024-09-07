@@ -2,13 +2,15 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' This function takes in a ROI table and export its ROIs as audio files in the
-#' specified path. The ROI table should be in the format produced by the
-#' segmentation app.
+#'   This function exports the cuts of the ROIs in the provided ROI table. The
+#'   function will cut the ROIs from the soundscape files and save them in the
+#'   specified path.
 #'
-#' @param rois_n A data frame in the format produced by the segmentation app
-#' @param path A character string with the path to save the cuts.
+#' @param rois_n A tibble containing the ROIs to be cut
+#' @param path A character string indicating the path to save the cuts
 #'
+#' @import dplyr seewave
+#' @export
 #' @return A message indicating if all cuts were made successfully
 export_roi_cuts_n <- function(rois_n, path) {
 

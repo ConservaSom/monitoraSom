@@ -35,6 +35,9 @@ frequency limits to be displayed in the spectrogram, in kHz.}
 \item{wl}{An integer specifying the length of the FFT window used to
 calculate the spectrogram.}
 
+\item{norm}{A logical value indicating whether the amplitude values should be
+normalized or not.}
+
 \item{dyn_range}{A numeric vector of length 2 giving the minimum and maximum
 values of relative amplitude to be displayed in the spectrogram.}
 
@@ -48,6 +51,10 @@ but will also result in faster rendering times.}
 
 \item{interpolate}{A logical value indicating whether the raster should be
 interpolated or not.}
+
+\item{pitch_shift}{A numeric value indicating the pitch shift to be applied
+ to the recording. The value must be among the expected alternatives: -8,
+-6, -4, -2, or 1.}
 
 \item{...}{Additional arguments to be passed internally to the 'spectro'
 function.}
