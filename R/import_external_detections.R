@@ -13,8 +13,8 @@
 #' @param output_path A character string indicating the path to save the output
 #'
 #' @import dplyr
-#' @export
 #' @return A tibble containing the detections in the 'monitoraSom' format
+#' @export
 import_external_detections <- function(
     input_path, names_vec = NA, output_path = NA
     ) {

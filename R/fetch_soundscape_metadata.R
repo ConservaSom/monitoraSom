@@ -14,6 +14,7 @@
 #'
 #' @return A data frame with the following columns:
 #' @import furrr purrr tuneR
+#' @export
 fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
   require(pbapply)
 

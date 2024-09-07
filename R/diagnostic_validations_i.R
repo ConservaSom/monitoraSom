@@ -21,8 +21,8 @@
 #'   diagnostic
 #'
 #' @import dplyr ggplot2 cutpointr
-#' @export 
 #' @return A list containing the diagnostic results
+#' @export 
 diagnostic_validations_i <- function(
     val_i, diag_method = "Auto", pos_prob = 0.95, diag_cut = NULL) {
     fun_auc <- function(x, y) {

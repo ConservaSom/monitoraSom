@@ -56,7 +56,7 @@ interpolated or not.}
  to the recording. The value must be among the expected alternatives: -8,
 -6, -4, -2, or 1.}
 
-\item{...}{Additional arguments to be passed internally to the 'spectro'
+\item{...}{Additional arguments to be passed internally to the 'seeave::spectro'
 function.}
 }
 \value{

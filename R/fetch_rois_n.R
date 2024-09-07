@@ -6,7 +6,6 @@
 #'
 #' @return A data frame with ROI tables
 #' @export
-#'
 fetch_rois_n <- function(path, recursive = FALSE, roi_filter = FALSE) {
 
   if (!dir.exists(path)) {

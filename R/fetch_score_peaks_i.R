@@ -32,8 +32,8 @@
 #'@return A data frame in which each row is a detection and has the follwing
 #'  attributes:
 #'
-#'@export
 #'@import dplyr purrr collapse
+#'@export
 fetch_score_peaks_i <- function(
   match_res_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
   top_n = NULL

@@ -15,7 +15,6 @@
 #'
 #' @return A data frame with the validated detections.
 #' @export
-#'
 validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
   validation_time <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
 

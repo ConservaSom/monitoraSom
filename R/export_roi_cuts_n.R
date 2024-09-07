@@ -10,8 +10,8 @@
 #' @param path A character string indicating the path to save the cuts
 #'
 #' @import dplyr seewave
-#' @export
 #' @return A message indicating if all cuts were made successfully
+#' @export
 export_roi_cuts_n <- function(rois_n, path) {
 
     if (nrow(rois_n) == 0) {

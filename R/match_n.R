@@ -50,10 +50,10 @@
 #'   soundscape spectrogram, pads with length quals half the number of frames
 #'   from the template are added to the beginning and end of the
 #'
-#' @export
 #' @import dplyr future pbapply furrr purrr
 #' @importFrom furrr future_map
 #' @importFrom purrr list_rbind
+#' @export
 match_n <- function(
     df_grid,
     score_method = "cor", ncores = 1, output = "detections", output_file = NULL,
