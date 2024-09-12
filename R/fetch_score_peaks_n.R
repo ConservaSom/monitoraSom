@@ -12,6 +12,7 @@
 #'   of the current R session. Alternatively, a path to a folder containing the
 #'   output of 'match_n' as .rds files for importing multiple match objects from
 #'   outside the current R session.
+#' @param recursive Set file search to recursive
 #' @param buffer_size A numeric value specifying the number of frames of the
 #'   buffer within which overlap between detections is avoided. Defaults to
 #'   "template", which means that the buffer size equals the number of frames
@@ -31,15 +32,17 @@
 #'   top_n parameter is applied to each score vector separately, and not to the
 #'   whole matching grid.
 #' @param save_res Character. Path to save the result as an .rds or .csv file.
-#' @param recursive Set file search to recursive
+#'   Defaults to NULL, which does not save the result.
+#' @param ncores An integer indicating the number of cores to be used for
+#'   parallelization. Default is 1.
 #'
 #' @return A Tibble containing the detections of all audio scores.
 #'
-#' @import tibble dplyr purrr
+#' @import tibble dplyr purrr parallel pbapply
 #' @export
 fetch_score_peaks_n <- function(
     tib_match, recursive = FALSE, buffer_size = "template", min_score = NULL,
-    min_quant = NULL, top_n = NULL, save_res = NULL) {
+    min_quant = NULL, top_n = NULL, save_res = NULL, ncores = 1) {
 
   require(dplyr)
 
@@ -65,18 +68,32 @@ fetch_score_peaks_n <- function(
     stop("The input is not a tibble or a path to a folder containing '.rds' files")
   }
 
-  tib_detecs <- tib_match |>
-    rowwise() |>
-    group_split() |>
-    map(
-      ~ fetch_score_peaks_i(
-        .x,
-        buffer_size = buffer_size, min_score = min_score,
-        min_quant = min_quant, top_n = top_n
-      ),
-      .progress = TRUE
-    ) |>
-    list_rbind()
+  if (ncores > 1 & Sys.info()["sysname"] == "Windows") {
+    if (ncores <= parallel::detectCores()) {
+      ncores <- parallel::makePSOCKcluster(getOption("cl.cores", ncores))
+    } else {
+      stop(
+        "The number of cores requested cannot be higher than the number of available cores"
+      )
+    }
+  } else {
+    ncores <- 1
+  }
+
+  split_data <- split(tib_match, seq(nrow(tib_match)))
+  result_list <- pblapply(
+    split_data,
+    function(subset) {
+      fetch_score_peaks_i(
+        subset,
+        buffer_size = buffer_size,
+        min_score = min_score,
+        min_quant = min_quant,
+        top_n = top_n
+      )
+    }
+  )
+  tib_detecs <- do.call(rbind, result_list)
 
   if (!is.null(save_res)) {
     if (substr(save_res, nchar(save_res) - 3, nchar(save_res)) == ".rds") {

@@ -2431,7 +2431,6 @@ launch_validation_app <- function(
         req(df_diag_input())
         if (nrow(df_diag_input()) > 2) {
           if (length(unique(df_diag_input()$validation)) == 2) {
-            source("/home/grosa/R_repos/monitoraSom/R/diagnostic_validations_i.R")
             if (input$diag_method == "Manual") {
               diag_method <- "Manual"
               custom_cut <- input$diag_cut
