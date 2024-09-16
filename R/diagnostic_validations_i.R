@@ -22,7 +22,7 @@
 #'
 #' @import dplyr ggplot2 cutpointr
 #' @return A list containing the diagnostic results
-#' @export 
+#' @export
 diagnostic_validations_i <- function(
     val_i, diag_method = "Auto", pos_prob = 0.95, diag_cut = NULL) {
     fun_auc <- function(x, y) {
@@ -83,6 +83,7 @@ diagnostic_validations_i <- function(
             relocate(contains("template"), everything()) %>%
             as.data.frame()
     } else {
+        thresholds <- seq(0, 1, 0.01)
         thresholds <- thresholds[thresholds < max(val_i$peak_score)]
         diag_list <- lapply(thresholds, function(threshold) {
             val_i %>%
