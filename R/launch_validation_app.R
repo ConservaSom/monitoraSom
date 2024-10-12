@@ -949,7 +949,17 @@ launch_validation_app <- function(
           column(
             width = 1,
             checkboxInput("lock_detec_note", icon("lock", lib = "font-awesome"), value = FALSE)
-          )
+          ),
+          column(
+              width = 11,
+              disabled(
+                selectInput("custom_reference", "Reference spectrogram", choices = NULL)
+              )
+            ),
+            column(
+              width = 1,
+              checkboxInput("lock_template", icon("lock", lib = "font-awesome"), value = TRUE)
+            )
         ),
         tabBox(
           width = 12, height = "900px",
@@ -1240,6 +1250,7 @@ launch_validation_app <- function(
       # Create empty reactive object with the full detection dataset
       df_full <- reactiveValues(data = NULL)
       df_output <- reactiveVal(NULL)
+      df_ref_templates <- reactiveVal(NULL)
       # On confirmation of the provided path...
       observeEvent(input$user_setup_confirm, {
         req(
@@ -1283,13 +1294,14 @@ launch_validation_app <- function(
           )
         ) %>%
           mutate(template_file = basename(template_path))
+        df_ref_templates(df_templates)
 
         res <- fread(input$input_path, data.table = FALSE, header = TRUE) %>%
           mutate(
             soundscape_path = as.character(NA),
             template_path = as.character(NA)
           ) %>%
-          rows_update(df_templates, by = "template_file", unmatched = "ignore") %>%
+          rows_update(df_templates, by = "template_path", unmatched = "ignore") %>%
           rows_update(df_soundscapes, by = "soundscape_file", unmatched = "ignore")
 
         var_names <- c(
@@ -1529,9 +1541,24 @@ launch_validation_app <- function(
       #   }
       # })
 
-
       # Reactive object containing the wav of the active template
-      # todo Remake this portion so that templates standalone or roi_tabs work the same way
+
+      # df_ref_templates()
+      observeEvent(input$lock_template, {
+        if (input$lock_template != TRUE) {
+          enable("custom_reference")
+          updateSelectInput(
+            session, "custom_reference",
+            choices = df_ref_templates()$template_path
+          )
+        } else {
+          updateSelectInput(
+            session, "custom_reference", choices = NA
+          )
+          disable("custom_reference")
+        }
+      })
+
       rec_template <- reactiveVal(NULL)
       observe({
         req(df_template())
@@ -1668,6 +1695,8 @@ launch_validation_app <- function(
         zoom_pad(input$time_pads)
       })
 
+
+
       spectro_template <- reactive({
         req(df_template())
         if (is.null(rec_template())) {
@@ -1752,6 +1781,13 @@ launch_validation_app <- function(
             from = pad_start, to = pad_end, units = "seconds"
           )
           rec_detection(res)
+        }
+
+        if (is.na(det_i()$detection_sample_rate)) {
+          updateNoUiSliderInput(
+            session, "zoom_freq",
+            range = c(0, (res@samp.rate / 2000) - 1)
+          )
         }
 
         # Rendering the detection HTML player
@@ -2444,7 +2480,7 @@ launch_validation_app <- function(
               custom_cut <- NULL
               pos_prob <- 0.90
             }
-            val_res <- diagnostic_validations_i(
+            val_res <- monitoraSom::diagnostic_validations_i(
               val_i = df_diag_input(),
               diag_method = diag_method, pos_prob = pos_prob, diag_cut = custom_cut
             )

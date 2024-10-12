@@ -9,7 +9,7 @@
 #'
 #' @param input_path A character string indicating the path to the CSV file
 #' @param names_vec A named character vector indicating the names of the
-#'   variables
+#'   variables and the corresponding names in the provided table.
 #' @param output_path A character string indicating the path to save the output
 #'
 #' @import dplyr
@@ -18,14 +18,14 @@
 import_external_detections <- function(
     input_path, names_vec = NA, output_path = NA
     ) {
-    if (!file.exists(path)) {
+    if (!file.exists(input_path)) {
         stop("File not found")
     }
-    if (file.info(path)$isdir) {
+    if (file.info(input_path)$isdir) {
         stop("The provided path is a directory. Please provide a CSV file.")
     }
 
-    df_detec_raw <- read.csv(path)
+    df_detec_raw <- read.csv(input_path)
 
     if (is.na(names_vec)) {
         names_vec <- c(

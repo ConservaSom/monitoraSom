@@ -11,7 +11,8 @@ fetch_score_peaks_n(
   min_score = NULL,
   min_quant = NULL,
   top_n = NULL,
-  save_res = NULL
+  save_res = NULL,
+  ncores = 1
 )
 }
 \arguments{
@@ -45,7 +46,11 @@ because the peak quantiles are callculated within each score vector, the
 top_n parameter is applied to each score vector separately, and not to the
 whole matching grid.}
 
-\item{save_res}{Character. Path to save the result as an .rds or .csv file.}
+\item{save_res}{Character. Path to save the result as an .rds or .csv file.
+Defaults to NULL, which does not save the result.}
+
+\item{ncores}{An integer indicating the number of cores to be used for
+parallelization. Default is 1.}
 }
 \value{
 A Tibble containing the detections of all audio scores.

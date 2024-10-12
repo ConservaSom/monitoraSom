@@ -33,9 +33,8 @@ validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
 
   tib_detecs <- df_detecs %>%
     mutate(
-      soundscape_file = gsub(".WAV", ".wav", soundscape_file),
       soundscape_path = paste0("soundscapes//", soundscape_file),
-      species = gsub(".*_", "", gsub("\\.wav", "", template_name)),
+      species = gsub(".*_", "", gsub("\\.wav|.WAV", "", template_name)),
       detection_id = 1:nrow(df_detecs)
     ) %>%
     group_by(species, template_file) %>%

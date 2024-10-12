@@ -10,7 +10,7 @@ import_external_detections(input_path, names_vec = NA, output_path = NA)
 \item{input_path}{A character string indicating the path to the CSV file}
 
 \item{names_vec}{A named character vector indicating the names of the
-variables}
+variables and the corresponding names in the provided table.}
 
 \item{output_path}{A character string indicating the path to save the output}
 }
