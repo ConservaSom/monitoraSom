@@ -1301,7 +1301,7 @@ launch_validation_app <- function(
             soundscape_path = as.character(NA),
             template_path = as.character(NA)
           ) %>%
-          rows_update(df_templates, by = "template_path", unmatched = "ignore") %>%
+          rows_update(df_templates, by = "template_file", unmatched = "ignore") %>%
           rows_update(df_soundscapes, by = "soundscape_file", unmatched = "ignore")
 
         var_names <- c(

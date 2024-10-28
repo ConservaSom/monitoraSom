@@ -122,8 +122,22 @@ diagnostic_validations_i <- function(
             ) %>%
             distinct()
     }
+
     diag_out$selected[max(which(diag_out$peak_score >= score_cut))] <- TRUE
-    sel_i <- which(diag_out$selected == TRUE)
+
+    if (length(which(diag_out$peak_score >= score_cut)) >= 1) {
+        sel_i <- diag_out %>%
+            mutate(ID = 1:nrow(.)) %>%
+            filter(
+                precision >= diag_out$precision[which(diag_out$selected == TRUE)]
+            ) %>%
+            slice_max(recall) %>%
+            pull(ID)
+        diag_out$selected <- FALSE
+        diag_out$selected[sel_i] <- TRUE
+    } else {
+        sel_i <- which(diag_out$selected == TRUE)
+    }
 
     mod_plot <- ggplot(df_diag_input, aes(x = peak_score, y = validation_bin)) +
         geom_point(pch = 1) +
