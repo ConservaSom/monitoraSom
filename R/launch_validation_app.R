@@ -478,7 +478,7 @@ launch_validation_app <- function(
     session_data$spec_path <- "detection_spectrograms/"
   } else {
     if (dir.exists(spec_path)) {
-      session_data$spec_path <- wav_cuts_path
+      session_data$spec_path <- spec_path
     } else {
       stop("Error! The provided path to store detection spectrograms was not found locally.")
     }
