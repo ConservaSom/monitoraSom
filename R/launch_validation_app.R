@@ -16,7 +16,6 @@
 #' @param output_path Path to the output file.
 #' @param wav_cuts_path Path to the folder containing the cut wave files.
 #' @param spec_path Path to the folder containing the spectrogram images.
-#' @param diag_tab_path Path to the folder containing the diagnostic tables.
 #' @param wav_player_path Path to the wav player executable (only for system
 #'   player).
 #' @param wav_player_type The type of wav player. "R session" for R
@@ -77,7 +76,7 @@
 launch_validation_app <- function(
     project_path = NULL, preset_path = NULL,
     validation_user, templates_path, soundscapes_path, input_path,
-    output_path = NULL, spec_path = NULL, wav_cuts_path = NULL, diag_tab_path = NULL,
+    output_path = NULL, spec_path = NULL, wav_cuts_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
     val_subset = c("NV", "TP", "FP", "UN"),
     time_pads = 1, ovlp = 0, wl = 2048, dyn_range_bar = c(-144, 0),
@@ -484,26 +483,6 @@ launch_validation_app <- function(
     }
   }
 
-  if (is.null(diag_tab_path)) {
-    if (dir.exists("detection_validation_tables/")) {
-      warning(
-        "Warning! The informed 'diag_tab_path' was not found locally. Using the default path 'detection_validation_tables/'"
-      )
-    } else {
-      dir.create("detection_validation_tables/")
-      warning(
-        "Warning! The informed 'diag_tab_path' was not found locally. Using the default path 'detection_validation_tables/'"
-      )
-    }
-    session_data$diag_tab_path <- "detection_validation_tables/"
-  } else {
-    if (dir.exists(diag_tab_path)) {
-      session_data$diag_tab_path <- wav_cuts_path
-    } else {
-      stop("Error! The provided path to store validation tables was not found locally.")
-    }
-  }
-
   if (is.numeric(pitch_shift)) {
     if (pitch_shift %in% c(-8, -6, -4, -2, 1)) {
       session_data$pitch_shift <- pitch_shift
@@ -538,7 +517,7 @@ launch_validation_app <- function(
     "e", #
     "r", #
     "t", #
-    "y", #
+    # "y", #
     "a", #
     "s", #
     "d", #
@@ -1100,44 +1079,7 @@ launch_validation_app <- function(
             column(width = 4, plotOutput("plot_binomial", height = "340px")),
             # column(width = 3, plotOutput("plot_roc", height = "340px")),
             column(width = 4, plotOutput("plot_prec_rec", height = "340px")),
-            tableOutput("cut_i_tab"),
-            column(
-              width = 6,
-              splitLayout(
-                cellWidths = c("80%", "20%"),
-                textInput("diag_tab_path", "Diagnostics table path",
-                  value = session_data$diag_tab_path, width = "100%",
-                  placeholder = "Paste or load here the path to export the .csv file"
-                ),
-                shinyDirButton(
-                  id = "diag_tab_path_load", label = "Load path", title = "Teste",
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-                ),
-                tags$style(
-                  type = "text/css", "#diag_tab_path_load { margin-top: 25px; width: 100%; }"
-                )
-              )
-            ),
-            column(
-              width = 6,
-              splitLayout(
-                cellWidths = c("80%", "20%"),
-                textInput(
-                  "diag_tab_name", "Diagnostics table name (*.csv)",
-                  value = NULL, width = "100%",
-                  placeholder = "Input the file name here"
-                ),
-                actionButton("reset_diag_tab_filename", "Reset filename"),
-                tags$style(
-                  type = "text/css", "#reset_diag_tab_filename { margin-top: 25px; width: 100%; }"
-                )
-              ),
-              actionButton(
-                "confirm_diag_tab_export", "Export table (y)",
-                width = "100%",
-                style = "color: #fff; background-color: #33b76e; border-color: #5da42e;"
-              )
-            )
+            tableOutput("cut_i_tab")
           )
         )
       ),
@@ -2515,10 +2457,8 @@ launch_validation_app <- function(
           enable("diag_cut")
           enable("plot_dens")
           enable("plot_binomial")
-          # enable("plot_roc")
           enable("plot_prec_rec")
           shinyjs::show("plot_binomial")
-          # shinyjs::show("plot_roc")
           shinyjs::show("plot_prec_rec")
         } else {
           disable("diag_balance")
@@ -2526,10 +2466,8 @@ launch_validation_app <- function(
           disable("plot_dens")
           disable("diag_cut")
           disable("plot_binomial")
-          # disable("plot_roc")
           disable("plot_prec_rec")
           shinyjs::hide("plot_binomial")
-          # shinyjs::hide("plot_roc")
           shinyjs::hide("plot_prec_rec")
         }
       })
@@ -2565,63 +2503,6 @@ launch_validation_app <- function(
       output$plot_dens <- renderPlot({
         req(plot_dens_react())
         plot_dens_react()
-      })
-
-      # Load path to export the diagnostics table
-      shinyDirChoose(
-        input, "diag_tab_path_load",
-        session = session,
-        roots = volumes
-      )
-      # Observe the interface input to update the text input
-      observeEvent(input$diag_tab_path_load, {
-        res <- parseDirPath(volumes, input$diag_tab_path_load) %>%
-          as.character() %>%
-          gsub("//", "/", .)
-        updateTextInput(session, inputId = "diag_tab_path", value = res)
-      })
-      diag_tab_filename <- reactiveVal()
-      diag_tab_default_filename <- reactive({
-        req(cut_i_tab(), cut_full_tab(), det_i(), input$input_path)
-        res <- paste0(
-          "diagnostics_table_",
-          # str_remove(basename(input$input_path), ".csv"), "_",
-          str_remove(basename(det_i()$template_name), ".WAV|.wav"), "_",
-          format(Sys.time(), "%Y%m%d_%H%M%S"), "_",
-          "minscore", round(cut_i_tab()$peak_score, 3), ".csv"
-        )
-      })
-      observe({
-        req(diag_tab_default_filename())
-        updateTextInput(session, "diag_tab_name", value = diag_tab_default_filename())
-      })
-      # Reset the diagnostics table file name
-      observeEvent(input$reset_diag_tab_filename, {
-        req(diag_tab_filename())
-        updateTextInput(session, "diag_tab_name", value = diag_tab_default_filename())
-        diag_tab_filename(diag_tab_default_filename())
-      })
-      observeEvent(input$diag_tab_name, {
-        req(input$diag_tab_name)
-        diag_tab_filename(input$diag_tab_name)
-      })
-      # Export the diagnostics table file by clicking the export button
-      observeEvent(input$confirm_diag_tab_export, {
-        req(input$diag_tab_path, diag_tab_filename(), cut_full_tab())
-        fwrite(
-          x = cut_full_tab(), na = NA, row.names = FALSE,
-          file = file.path(input$diag_tab_path, diag_tab_filename())
-        )
-        showNotification("Diagnostics table successfully exported")
-      })
-      # Export the diagnostics table file by using the hotkey
-      observeEvent(input$hotkeys, {
-        req(input$hotkeys == "y", input$diag_tab_path, diag_tab_filename(), cut_full_tab())
-        fwrite(
-          x = cut_full_tab(), na = NA, row.names = FALSE,
-          file = file.path(input$diag_tab_path, diag_tab_filename())
-        )
-        showNotification("Diagnostics table successfully exported")
       })
 
       # Open the server side for choosing the directory with the presets
@@ -3073,11 +2954,6 @@ launch_validation_app <- function(
         id = "diag_cut",
         title = "Manual input of cupoint value here",
         placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "diag_tab_path",
-        title = "Path for exporting the diagnostics table",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
       )
       shinyBS::addTooltip(session,
         id = "diag_tab_name",

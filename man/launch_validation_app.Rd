@@ -14,7 +14,6 @@ launch_validation_app(
   output_path = NULL,
   spec_path = NULL,
   wav_cuts_path = NULL,
-  diag_tab_path = NULL,
   wav_player_path = "play",
   wav_player_type = "HTML player",
   val_subset = c("NV", "TP", "FP", "UN"),
@@ -55,8 +54,6 @@ presets can be exported.}
 \item{spec_path}{Path to the folder containing the spectrogram images.}
 
 \item{wav_cuts_path}{Path to the folder containing the cut wave files.}
-
-\item{diag_tab_path}{Path to the folder containing the diagnostic tables.}
 
 \item{wav_player_path}{Path to the wav player executable (only for system
 player).}

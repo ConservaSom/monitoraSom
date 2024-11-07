@@ -421,7 +421,7 @@ launch_segmentation_app <- function(
     session_data$temp_path <- temp_path
   }
 
-  sp_labels_default <- sp_labels
+  sp_labels_default <- labels_file
   if (!is.null(labels_file)) {
     stopifnot(file.exists(labels_file))
     sp_labels_custom <- read_xlsx(labels_file)
@@ -1851,6 +1851,19 @@ launch_segmentation_app <- function(
       })
 
       observeEvent(input$no_soi, {
+        showModal(modalDialog(
+          title = "Confirm Action",
+          "Are you sure you want to mark this recording as having no signals of interest? This action will erase all ROIs in the active soundscape.",
+          footer = tagList(
+            modalButton("Cancel"),
+            actionButton("confirm_no_soi", "Proceed",
+              style = "color: #fff; background-color: #b73333; border-color: #2e6da4"
+            )
+          )
+        ))
+      })
+
+      observeEvent(input$confirm_no_soi, {
         req(
           roi_values(), wav_path_val(), user_val(), rec_soundscape(),
           soundscape_data()
@@ -1904,6 +1917,7 @@ launch_segmentation_app <- function(
             selected = vec_soundscapes[i + 1]
           )
         }
+        removeModal()
       })
 
       # todo Adicionar versao para hotkeys no F

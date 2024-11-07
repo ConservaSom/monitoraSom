@@ -91,7 +91,7 @@ fetch_score_peaks_n <- function(
         min_quant = min_quant,
         top_n = top_n
       )
-    }
+    }, cl = ncores
   )
   tib_detecs <- do.call(rbind, result_list)
 

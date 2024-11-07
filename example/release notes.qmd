@@ -4,6 +4,22 @@ author: "GLMRosa"
 format: pdf
 ---
 
+# increment version number to 0.1.1.9007
+- R/launch_segmentation_app.R
+  - Adicionado um pop-up de confirmação para ação de marcar "No signals of interest" e evitar que o usuário seja surpreendido com a remoção de todas as ROIs.
+- R/fetch_template_metadata.R
+  - Descontinuação do métod "roi_table" para extração de metadados de templates. O método será reimplementado de forma mais consistente e robusta no futuro.
+- R/fetch_score_peaks_n.R
+  - Adição de paralelização com o argumento `ncores`.
+- R/launch_validation_app.R
+  - Descontinuada a função de exportar diagnósticos de validação diretamente do app de validação. Agora a obtenção desses diagnósticos, bem como da validação por sobreposição temporal, devem ser obtidos a partir da função `diagnostic_validations_i()`. Apesar disso os diagnósticos continuam sendo exibidos e atualizados em tempo real no app de validação, que serão idênticos aos diagnósticos obtidos por meio da função `diagnostic_validations_i()`.
+- diagnostic_validations_i.R
+  - Adicionada uma camada de checagem para impedir erros de execução quando houver detecções de mais de um template no data frame a ser validado.
+- NOVA FUNÇÃO: diagnostic_validations_n.R
+  - Função para obter os diagnosticos de validação de `diagnostic_validations_i()` para tabelas de detecções feitas a partir de mais de um template ou de multiplas classes. Os resultados obtidos estão oerganizados em uma lista para cada template ou classe, com elementos internos contendo as tabelas e plots de diagnósticos.
+- 
+
+
 
 # Increment version number to 0.1.1.9006
 - R/diagnostic_validations_i.R
@@ -19,8 +35,6 @@ format: pdf
   - Foi removida a adaptação de slider de scores para evitar uma série de bugs relacionados a isso. Agora o slider tem um range fixo de -1 a 1 com incrementos de 0.01
   - Ampliação do range de zoom_freq de 0-20kHz para 0-192kHz por default, mas isso ainda pode ser adaptado nos argumentos da função.
   - Grande simplificação do código da parte de diagnósticos por causa do reaproveitamento da função diagnostic_validations_i()
-
-FALTA INSTALAR E TESTAR ESSAS MUDANÇAS
 
 # Increment version number to 0.1.1.9005
 -`match_i` -

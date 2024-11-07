@@ -2,7 +2,7 @@
 % Please edit documentation in R/diagnostic_validations_i.R
 \name{diagnostic_validations_i}
 \alias{diagnostic_validations_i}
-\title{Diagnostic validations}
+\title{Compute detection diagnostics of validated detections from one template}
 \usage{
 diagnostic_validations_i(
   val_i,

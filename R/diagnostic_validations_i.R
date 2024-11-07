@@ -1,4 +1,4 @@
-#' Diagnostic validations
+#' Compute detection diagnostics of validated detections from one template
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
@@ -25,6 +25,16 @@
 #' @export
 diagnostic_validations_i <- function(
     val_i, diag_method = "Auto", pos_prob = 0.95, diag_cut = NULL) {
+
+    # check if there is only one template name in the data
+    if (length(unique(val_i$template_name)) > 1) {
+        stop(
+            paste0(
+                "The data contains detections from more than one template or class. Use the 'diagnostic_validations_n()' function to perform diagnostic validations on multiple templates."
+            )
+        )
+    }
+
     fun_auc <- function(x, y) {
         res <- -sum(
             (rowMeans(cbind(y[-length(y)], y[-1]))) * (x[-1] - x[-length(x)])
