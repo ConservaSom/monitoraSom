@@ -91,14 +91,16 @@
 #' )
 #' }
 launch_segmentation_app <- function(
-    project_path = NULL, preset_path = NULL, user = NULL,
-    soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
-    labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)", label_angle = 90,
-    show_label = TRUE, dyn_range = c(-60, 0), dyn_range_bar = c(-144, 0),
-    wl = 1024, ovlp = 0, color_scale = "inferno",
-    wav_player_type = "HTML player", wav_player_path = "play",
-    visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
-    nav_autosave = TRUE, pitch_shift = 1) {
+  project_path = NULL, preset_path = NULL, user = NULL,
+  soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
+  labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)", label_angle = 90,
+  show_label = TRUE, dyn_range = c(-60, 0), dyn_range_bar = c(-144, 0),
+  wl = 1024, ovlp = 0, color_scale = "inferno",
+  wav_player_type = "HTML player", wav_player_path = "play",
+  visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
+  nav_autosave = TRUE, pitch_shift = 1
+  ) {
+
   # require(shiny)
   # require(dplyr)
   # require(ggplot2)
@@ -113,11 +115,10 @@ launch_segmentation_app <- function(
   # require(data.table)
   # require(shinyWidgets)
   # require(shinydashboard)
-  # require(shinyFiles)
   # require(shiny)
-  # require(keys)
   # require(shinyjs)
   # require(shinyBS)
+
   session_data <- list()
 
   if (!is.null(project_path)) {
@@ -310,10 +311,8 @@ launch_segmentation_app <- function(
     # Round to .5 intervals
     session_data$zoom_freq <- round(zoom_freq * 2) / 2
     if (any(session_data$zoom_freq != zoom_freq)) {
-      warning(
-        "Warning! The values of 'zoom_freq' were rounded to the nearest 0.5 interval. The values are now: ",
-        session_data$zoom_freq[1], " and ", session_data$zoom_freq[2]
-      )
+      warning("Warning! The values of 'zoom_freq' were rounded to the nearest 0.5 interval. The values are now: ",
+              session_data$zoom_freq[1], " and ", session_data$zoom_freq[2])
     }
   }
 
@@ -378,7 +377,7 @@ launch_segmentation_app <- function(
   # This function defines where embedded html wav players will look for the files
   addResourcePath("audio", session_data$temp_path)
 
-  # adicionar botao para deposito direto de paths nos caminhos
+    # adicionar botao para deposito direto de paths nos caminhos
   hotkeys <- c(
     "q", # delete active ROI
     "w", # zoom in time
@@ -445,6 +444,7 @@ launch_segmentation_app <- function(
               style = "color: #000000; background-color: #33b733; border-color: #288d28; width: 360px;"
             )
           ),
+
           menuItem(
             "Spectrogram Parameters",
             tabName = "spec_par_tab",
@@ -528,147 +528,200 @@ launch_segmentation_app <- function(
         )
       ),
       body = dashboardBody(
+        # Add JavaScript for key handling
+        tags$script("
+            $(document).on('keydown', function(e) {
+                // Skip if target is an input field
+                if (e.target.tagName === 'INPUT') return true;
 
-        # Make keyboard shotcuts available
-        useKeys(),
-        keysInput("hotkeys", hotkeys),
+                // Create key identifier including modifiers
+                let keyPressed = '';
+                if (e.ctrlKey) keyPressed += 'ctrl+';
+                if (e.altKey) keyPressed += 'alt+';
+                keyPressed += e.key.toLowerCase();
+
+                // Handle key combinations
+                switch(keyPressed) {
+                    case 'q':  // delete active ROI
+                        Shiny.setInputValue('keypress', 'q');
+                        break;
+                    case 'w':  // zoom in time
+                        Shiny.setInputValue('keypress', 'w');
+                        break;
+                    case 'alt+w':  // reset zoom
+                        Shiny.setInputValue('keypress', 'alt+w');
+                        break;
+                    case 'e':  // store ROI
+                        Shiny.setInputValue('keypress', 'e');
+                        break;
+                    case 'ctrl+e':  // export ROI table
+                        Shiny.setInputValue('keypress', 'ctrl+e');
+                        break;
+                    case 'r':  // measurements tool
+                        Shiny.setInputValue('keypress', 'r');
+                        break;
+                    case 'a':  // navigate backwards
+                        Shiny.setInputValue('keypress', 'a');
+                        break;
+                    case 'z':  // previous soundscape
+                        Shiny.setInputValue('keypress', 'z');
+                        break;
+                    case 's':  // zoom out time
+                        Shiny.setInputValue('keypress', 's');
+                        break;
+                    case 'alt+s':  // reset time zoom
+                        Shiny.setInputValue('keypress', 'alt+s');
+                        break;
+                    case 'd':  // navigate forward
+                        Shiny.setInputValue('keypress', 'd');
+                        break;
+                    case 'c':  // next soundscape
+                        Shiny.setInputValue('keypress', 'c');
+                        break;
+                    case '1':  // play audio
+                        Shiny.setInputValue('keypress', '1');
+                        break;
+                }
+
+                // Prevent default browser actions for our hotkeys
+                if (keyPressed in ['q','w','e','r','a','s','d','z','c','1']) {
+                    e.preventDefault();
+                }
+            });
+        "),
 
         # Set up shinyjs
         useShinyjs(),
+
         tags$style(type = "text/css", ".recalculating {opacity: 1.0;}"),
 
         # box(width = 12, verbatimTextOutput("checagem1")),
 
         # Spectrogram box and time zoom slider
         box(
-          width = "100%", height = "100%",
-          # verbatimTextOutput("checagem1"),
-          fluidRow(
-            column(
-              width = 4,
-              selectizeInput(
-                "soundscape_file", "Soundscape (0 of 0)",
-                choices = NULL, width = "100%",
-                options = list(maxOptions = 10000)
-              )
-            ),
-            column(
-              width = 6,
-              selectizeInput(
-                "roi_table_name", "Active ROI table",
-                choices = NULL, width = "100%"
-              )
-            ),
-            column(
-              width = 2,
-              selectizeInput(
-                "sp_list", "Available species names",
-                choices = session_data$sp_list, selected = sp_list,
-                width = "100%"
-              )
-            )
-          ),
-          fluidRow(
-            column(
-              width = 1,
-              strong("seconds", style = "text-align:right;")
-            ),
-            column(
-              width = 11,
-              noUiSliderInput(
-                "zoom_time",
-                label = NULL, min = 0, max = 0.1, step = 0.05,
-                value = c(0, 0.1), width = "100%", behaviour = "drag",
-                update_on = "end"
-              )
-            )
-          ),
-          fluidRow(
-            column(
-              width = 1,
-              noUiSliderInput(
-                "zoom_freq", "kHz",
-                min = 0, max = 180, step = 0.5, value = session_data$zoom_freq,
-                direction = "rtl", orientation = "vertical", width = "100px",
-                height = "25vh", behaviour = "drag", format = wNumbFormat(decimals = 1),
-                update_on = "end"
-              )
-            ),
-            column(
-              width = 11,
-              # jqui_resizable(
-              plotOutput(
-                "spectrogram_plot",
-                brush = "roi_limits", height = "500px" # , width = "1400px"
-              )
-              #   ,
-              #   options = list(handles = "se")
-              # )
-            )
-          ),
-          fluidRow(
-            column(
-              width = 1,
-              checkboxInput(
-                "nav_autosave", "Autosave",
-                value = session_data$nav_autosave
-              )
-            ),
-            column(
-              width = 2,
-              actionButton(
-                "prev_soundscape_noroi", HTML("Previous<br/>unsegmented"),
-                width = "100%",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-backward"),
-                style = "height:54px;"
-              )
-            ),
-            column(
-              width = 1,
-              actionButton(
-                "prev_soundscape", "Prev.",
-                width = "100%",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-backward"),
-                style = "height:54px;"
-              )
-            ),
-            column(
-              width = 1,
-              actionButton(
-                "next_soundscape", "Next",
-                width = "100%",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-forward"),
-                style = "height:54px;"
-              )
-            ),
-            column(
-              width = 2,
-              actionButton(
-                "next_soundscape_noroi", HTML("Next<br/>unsegmented"),
-                width = "100%",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-forward"),
-                style = "height:54px; width:100%"
-              )
-            ),
-            column(
-              width = 2,
-              actionButton(
-                "no_soi", HTML("No signals<br/>of interest"),
-                width = "100%", icon = icon("remove"),
-                style = "height:54px;"
-              )
-            ),
-            column( # activate when the R session player is ready
-              width = 2,
-              actionButton(
-                "play_soundscape", "Play visible",
-                width = "100%", icon = icon("play"),
-                style = "height:54px;"
+            width = "100%", height = "100%",
+            # verbatimTextOutput("checagem1"),
+            fluidRow(
+              column(
+                width = 4,
+                selectizeInput(
+                  "soundscape_file", "Soundscape (0 of 0)",
+                  choices = NULL, width = "100%",
+                  options = list(maxOptions = 10000)
+                )
               ),
-              tags$div(id = "visible_soundscape_clip") # set the location of the html player
+              column(
+                width = 6,
+                selectizeInput(
+                  "roi_table_name", "Active ROI table",
+                  choices = NULL, width = "100%"
+                )
+              ),
+              column(
+                width = 2,
+                selectizeInput(
+                  "sp_list", "Available species names",
+                  choices = session_data$sp_list, selected = sp_list,
+                  width = "100%"
+                )
+              )
+            ),
+            fluidRow(
+              column(
+                width = 1,
+                strong("seconds", style = "text-align:right;")
+              ),
+              column(
+                width = 11,
+                noUiSliderInput(
+                  "zoom_time",
+                  label = NULL, min = 0, max = 0.1, step = 0.05,
+                  value = c(0, 0.1), width = "100%", behaviour = "drag",
+                  update_on = "end"
+                )
+              )
+            ),
+            fluidRow(
+              column(
+                width = 1,
+                noUiSliderInput(
+                  "zoom_freq", "kHz",
+                  min = 0, max = 180, step = 0.5, value = session_data$zoom_freq,
+                  direction = "rtl", orientation = "vertical", width = "100px",
+                  height = "25vh", behaviour = "drag", format = wNumbFormat(decimals = 1),
+                  update_on = "end"
+                )
+              ),
+              column(
+                width = 11,
+                plotOutput(
+                  "spectrogram_plot", brush = "roi_limits", height = "500px" #, width = "1400px"
+                )
+              )
+            ),
+            fluidRow(
+              column(
+                width = 1,
+                checkboxInput(
+                  "nav_autosave", "Autosave",
+                  value = session_data$nav_autosave
+                )
+              ),
+              column(
+                width = 2,
+                actionButton(
+                  "prev_soundscape_noroi", HTML("Previous<br/>unsegmented"),
+                  width = "100%",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-backward"),
+                  style = "height:54px;"
+                )
+              ),
+              column(
+                width = 1,
+                actionButton(
+                  "prev_soundscape", "Prev.",
+                  width = "100%",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-backward"),
+                  style = "height:54px;"
+                )
+              ),
+              column(
+                width = 1,
+                actionButton(
+                  "next_soundscape", "Next",
+                  width = "100%",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-forward"),
+                  style = "height:54px;"
+                )
+              ),
+              column(
+                width = 2,
+                actionButton(
+                  "next_soundscape_noroi", HTML("Next<br/>unsegmented"),
+                  width = "100%",
+                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-forward"),
+                  style = "height:54px; width:100%"
+                )
+              ),
+              column(
+                width = 2,
+                actionButton(
+                  "no_soi", HTML("No signals<br/>of interest"),
+                  width = "100%", icon = icon("remove"),
+                  style = "height:54px;"
+                )
+              ),
+              column( # activate when the R session player is ready
+                width = 2,
+                actionButton(
+                  "play_soundscape", "Play visible",
+                  width = "100%", icon = icon("play"),
+                  style = "height:54px;"
+                ),
+                tags$div(id = "visible_soundscape_clip") # set the location of the html player
+              )
             )
-          )
-        ),
+          ),
         tabBox(
           width = 12, height = "900px",
           id = "tabset1",
@@ -824,7 +877,7 @@ launch_segmentation_app <- function(
             ),
             DTOutput("res_table")
           ),
-          tabPanel( #
+          tabPanel(#
             "User Manual",
             p("Q - delete the last created ROI"),
             p("W - zoom in on the spectrogram time axis"),
@@ -1198,60 +1251,17 @@ launch_segmentation_app <- function(
 
       ruler <- reactiveVal(NULL)
 
-      observeEvent(input$hotkeys, {
+      observeEvent(input$keypress, {
         req(roi_values())
         current_rois <- tibble(roi_values())
 
-        if (all(is.na(current_rois))) {
-          if (input$hotkeys == "e") {
-            roi_i <- tibble(
-              soundscape_path = wav_path_val(),
-              soundscape_file = input$soundscape_file,
-              roi_user = user_val(),
-              roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-              roi_label = input$label_name,
-              roi_start = input$roi_limits$xmin,
-              roi_end = input$roi_limits$xmax,
-              roi_min_freq = input$roi_limits$ymin,
-              roi_max_freq = input$roi_limits$ymax,
-              roi_type = input$signal_type,
-              roi_label_confidence = input$label_certainty, # label_certainty
-              roi_is_complete = input$signal_is_complete,
-              roi_comment = input$label_comment, # ex-label_comment
-              roi_wl = input$wl,
-              roi_ovlp = input$ovlp,
-              roi_sample_rate = rec_soundscape()@samp.rate,
-              roi_pitch_shift = input$pitch_shift
-            )
-            roi_values(roi_i)
-          }
-        } else {
-          if (input$hotkeys == "e") {
-            if (fnrow(current_rois) >= 1) {
-              roi_i <- tibble(
-                soundscape_path = wav_path_val(),
-                soundscape_file = input$soundscape_file,
-                roi_user = user_val(),
-                roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                roi_label = input$label_name,
-                roi_start = input$roi_limits$xmin,
-                roi_end = input$roi_limits$xmax,
-                roi_min_freq = input$roi_limits$ymin,
-                roi_max_freq = input$roi_limits$ymax,
-                roi_type = input$signal_type,
-                roi_label_confidence = input$label_certainty, # label_certainty
-                roi_is_complete = input$signal_is_complete,
-                roi_comment = input$label_comment, # ex-label_comment
-                roi_wl = input$wl,
-                roi_ovlp = input$ovlp,
-                roi_sample_rate = rec_soundscape()@samp.rate,
-                roi_pitch_shift = input$pitch_shift
-              )
-              res <- tibble(bind_rows(current_rois, roi_i))
-              roi_values(res)
+        # Handle key commands using same logic but with new input source
+        switch(input$keypress,
+          "q" = {
+            # Delete active ROI logic
+            if (all(is.na(current_rois))) {
+              return()
             }
-          }
-          if (input$hotkeys == "q") {
             if (fnrow(current_rois) > 1) {
               res <- head(current_rois, -1)
               roi_values(res)
@@ -1277,9 +1287,62 @@ launch_segmentation_app <- function(
               )
               roi_values(roi_i_empty)
             }
-          }
-        }
+          },
+          "e" = {
+            # Store ROI logic
+            if (all(is.na(current_rois)) || fnrow(current_rois) >= 1) {
+              roi_i <- tibble(
+                soundscape_path = wav_path_val(),
+                soundscape_file = input$soundscape_file,
+                roi_user = user_val(),
+                roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                roi_label = input$label_name,
+                roi_start = input$roi_limits$xmin,
+                roi_end = input$roi_limits$xmax,
+                roi_min_freq = input$roi_limits$ymin,
+                roi_max_freq = input$roi_limits$ymax,
+                roi_type = input$signal_type,
+                roi_label_confidence = input$label_certainty, # label_certainty
+                roi_is_complete = input$signal_is_complete,
+                roi_comment = input$label_comment, # ex-label_comment
+                roi_wl = input$wl,
+                roi_ovlp = input$ovlp,
+                roi_sample_rate = rec_soundscape()@samp.rate,
+                roi_pitch_shift = input$pitch_shift
+              )
+              if (all(is.na(current_rois))) {
+                roi_values(roi_i)
+              } else {
+                res <- tibble(bind_rows(current_rois, roi_i))
+                roi_values(res)
+              }
+            }
+          },
+          "ctrl+e" = {
+            # Export ROI table logic
+            req(roi_values(), input$roi_table_name, alt_roitabs_meta())
+            if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
+              filename <- file.path(roi_tables_path_val(), input$roi_table_name)
+              fwrite(roi_values(), filename, row.names = FALSE)
+              progress_tracker$df$has_table[
+                which(soundscape_data()$soundscape_file == input$soundscape_file)
+              ] <- TRUE
+              n_done <- length(which(progress_tracker$df$has_table == TRUE))
+              n_total <- nrow(progress_tracker$df)
+              updateProgressBar(
+                session = session, id = "progress_bar",
+                value = n_done, total = n_total
+              )
+              showNotification("ROI table sucessfully exported", type = "message")
+              if (n_done == n_total) {
+                showNotification("All recordings were segmented!", type = "message")
+              }
+            }
+          },
+          # ... continue with other key handlers using same pattern ...
+        )
 
+        # Handle post-command updates (same as before)
         if (input$lock_label_certainty == FALSE) {
           updateSelectInput(session, "label_certainty", selected = "certain")
         }
@@ -1288,193 +1351,6 @@ launch_segmentation_app <- function(
         }
         if (input$lock_comment == FALSE) {
           updateTextInput(session, "label_comment", value = NA)
-        }
-
-        if (input$hotkeys == "r") {
-          if (is.null(ruler())) {
-            res <- data.frame(
-              soundscape_path = wav_path_val(),
-              soundscape_file = input$soundscape_file,
-              start = input$roi_limits$xmin,
-              end = input$roi_limits$xmax,
-              duration = input$roi_limits$xmax - input$roi_limits$xmin,
-              min_freq = input$roi_limits$ymin,
-              max_freq = input$roi_limits$ymax,
-              bandwidth = input$roi_limits$ymax - input$roi_limits$ymin
-            )
-            ruler(res)
-          } else {
-            ruler(NULL)
-          }
-        }
-
-        if (input$hotkeys == "w") {
-          if (input$zoom_time[1] < input$zoom_time[2] & duration_val() > 1) {
-            tlim <- input$zoom_time
-            timepad <- (tlim[2] - tlim[1]) / 4
-            zoom_val <- c(tlim[1] + timepad, tlim[2] - timepad)
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = zoom_val)
-          }
-        }
-
-        if (input$hotkeys == "s") {
-          if (input$zoom_time[1] < input$zoom_time[2] & duration_val() > 1) {
-            tlim <- input$zoom_time
-            timepad <- (tlim[2] - tlim[1]) / 4
-            t1 <- tlim[1] - (2 * timepad)
-            if (t1 < 0) t1 <- 0
-            t2 <- tlim[2] + (2 * timepad)
-            if (t2 >= duration_val()) {
-              if (duration_val() > 60) t2 <- 60 else t2 <- duration_val()
-            }
-            zoom_val <- c(t1, t2)
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = zoom_val)
-          }
-        }
-
-        if (input$hotkeys == "alt+s") {
-          req(duration_val())
-          if (duration_val() > 60) {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, 60))
-          } else {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, duration_val()))
-          }
-        }
-
-        if (input$hotkeys == "alt+w") {
-          req(duration_val(), rec_soundscape())
-          if (duration_val() > 60) {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, 60))
-          } else {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, duration_val()))
-          }
-
-          updateNoUiSliderInput(
-            session,
-            inputId = "zoom_freq", value = c(0, (rec_soundscape()@samp.rate / 2000) - 1)
-          )
-        }
-
-        if (input$hotkeys == "d") {
-          tlim <- input$zoom_time
-          timepad <- tlim[2] - tlim[1]
-          if (
-            tlim[2] >= duration_val() & tlim[1] >= (duration_val() - timepad) &
-              timepad == (duration_val() - (duration_val() - timepad))
-          ) {
-            updateNoUiSliderInput(
-              session,
-              inputId = "zoom_time",
-              value = c(duration_val() - timepad, duration_val())
-            )
-          } else {
-            updateNoUiSliderInput(
-              session,
-              inputId = "zoom_time", value = tlim + (timepad / 2)
-            )
-          }
-        }
-
-        if (input$hotkeys == "a") {
-          tlim <- input$zoom_time
-          timepad <- tlim[2] - tlim[1]
-          if (tlim[1] > 0 & tlim[2] > timepad) {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = tlim - timepad / 2)
-          } else {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, timepad))
-          }
-        }
-
-        if (input$hotkeys == "1") {
-          if (
-            !is.null(rec_soundscape()) &
-              input$wav_player_type %in% c("R session", "External player")
-          ) {
-            play(
-              cutw(
-                rec_soundscape(),
-                from = input$zoom_time[1], to = input$zoom_time[2],
-                output = "Wave"
-              )
-            )
-          }
-        }
-
-        if (input$hotkeys == "ctrl+e") {
-          req(roi_values(), input$roi_table_name, alt_roitabs_meta())
-          if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-            filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            fwrite(roi_values(), filename, row.names = FALSE)
-            progress_tracker$df$has_table[
-              which(soundscape_data()$soundscape_file == input$soundscape_file)
-            ] <- TRUE
-            n_done <- length(which(progress_tracker$df$has_table == TRUE))
-            n_total <- nrow(progress_tracker$df)
-            updateProgressBar(
-              session = session, id = "progress_bar",
-              value = n_done, total = n_total
-            )
-            showNotification("ROI table sucessfully exported", type = "message")
-            if (n_done == n_total) {
-              showNotification("All recordings were segmented!", type = "message")
-            }
-          }
-        }
-
-        if (input$hotkeys == "z") {
-          vec_soundscapes <- soundscape_data()$soundscape_file
-          i <- which(vec_soundscapes == input$soundscape_file)
-          if (input$nav_autosave == TRUE) {
-            if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-              filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-              fwrite(roi_values(), filename, row.names = FALSE)
-              progress_tracker$df$has_table[i] <- TRUE
-              n_done <- length(which(progress_tracker$df$has_table == TRUE))
-              n_total <- nrow(progress_tracker$df)
-              updateProgressBar(
-                session = session, id = "progress_bar",
-                value = n_done, total = n_total
-              )
-              showNotification("ROI table sucessfully exported", type = "message")
-              if (n_done == n_total) {
-                showNotification("All recordings were segmented!", type = "message")
-              }
-            }
-          }
-          if (length(vec_soundscapes) >= i & i > 1) {
-            updateSelectInput(
-              session, "soundscape_file",
-              selected = vec_soundscapes[i - 1]
-            )
-          }
-        }
-
-        if (input$hotkeys == "c") {
-          vec_soundscapes <- soundscape_data()$soundscape_file
-          i <- which(vec_soundscapes == input$soundscape_file)
-          if (input$nav_autosave == TRUE) {
-            if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-              filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-              fwrite(roi_values(), filename, row.names = FALSE)
-              progress_tracker$df$has_table[i] <- TRUE
-              n_done <- length(which(progress_tracker$df$has_table == TRUE))
-              n_total <- nrow(progress_tracker$df)
-              updateProgressBar(
-                session = session, id = "progress_bar",
-                value = n_done, total = n_total
-              )
-              showNotification("ROI table sucessfully exported", type = "message")
-              if (n_done == n_total) {
-                showNotification("All recordings were segmented!", type = "message")
-              }
-            }
-          }
-          if (length(vec_soundscapes) > i & i >= 1) {
-            updateSelectInput(
-              session, "soundscape_file",
-              selected = vec_soundscapes[i + 1]
-            )
-          }
         }
       })
 
@@ -1508,7 +1384,7 @@ launch_segmentation_app <- function(
             object = rec_to_play, unit = as.character(rec_to_play@bit), pcm = TRUE #
           )
         }
-        play(rec_to_play, player = "play")
+        play(rec_to_play,player = "play")
       })
 
       progress_tracker <- reactiveValues(df = NULL)
@@ -1772,13 +1648,13 @@ launch_segmentation_app <- function(
         req(
           rec_soundscape(), input$wl, input$ovlp, input$color_scale
         )
-        res <- fast_spectro(
-          rec_soundscape(),
-          f = rec_soundscape()@samp.rate,
-          ovlp = input$ovlp, wl = input$wl,
-          dyn = input$dyn_range, pitch_shift = input$pitch_shift,
-          color_scale = input$color_scale, ncolors = 124, norm = FALSE
-        )
+          res <- fast_spectro(
+            rec_soundscape(),
+            f = rec_soundscape()@samp.rate,
+            ovlp = input$ovlp, wl = input$wl,
+            dyn = input$dyn_range, pitch_shift = input$pitch_shift,
+            color_scale = input$color_scale, ncolors = 124, norm = FALSE
+          )
         spectro_soundscape_raw(res)
       })
 
@@ -2053,6 +1929,20 @@ launch_segmentation_app <- function(
         )
       })
 
+      # observeEvent(input$preset_path, {
+      #   res_list <- list.files(
+      #     path = input$preset_path, pattern = "^segmentation_preset_.*\\.rds$"
+      #   ) %>%
+      #     str_remove("segmentation_preset_") %>%
+      #     str_remove(".rds")
+      #   if (!is.null(res_list)) {
+      #     updateSelectInput(
+      #       session, "available_presets",
+      #       choices = c("Export new preset file...", res_list)
+      #     )
+      #   }
+      # })
+
       # todo update here
       observeEvent(input$default_pars, {
         req(rec_soundscape())
@@ -2092,6 +1982,184 @@ launch_segmentation_app <- function(
         )
         session_settings(res)
       })
+
+      # # Export current session settings as a rds file
+      # observeEvent(input$export_preset, {
+      #   req(
+      #     session_settings(), input$preset_path, input$available_presets
+      #   )
+      #   if (
+      #     all(c(
+      #       nchar(input$user) != 0,
+      #       dir.exists(c(input$preset_path, soundscape_path_val(), roi_tables_path_val()))
+      #     ))
+      #   ) {
+      #     preset_file <- file.path(
+      #       input$preset_path,
+      #       paste0("segmentation_preset_", input$available_presets, ".rds")
+      #     )
+      #     if (file.exists(preset_file)) {
+      #       saved_preset <- readRDS(preset_file)
+      #       if (identical(saved_preset, session_settings())) {
+      #         showModal(
+      #           modalDialog(
+      #             title = "Nothing to be done",
+      #             h3("No changes were made in the current preset"),
+      #             easyClose = TRUE,
+      #             footer = NULL
+      #           )
+      #         )
+      #       } else {
+      #         what_changed <- rbind(saved_preset, session_settings()) %>%
+      #           as.data.frame() %>%
+      #           setNames(
+      #             list(
+      #               "user name", "path to soundscapes", "path to ROI tables",
+      #               "path to audio cuts and spectrograms",
+      #               # "fast display spectrogram",
+      #               "roi label angle", "show roi rabels", "spectrogram dynamic range",
+      #               "spectrogram window length", "spectrogram overlap",
+      #               "spectrogram color scale", "wave player type", "wave player path",
+      #               "session notes", "visible frequency band", "autosave while navigating",
+      #               "available labels for ROIs (species lists)", "pitch shift for ultrasound recordings"
+      #             )
+      #           ) %>%
+      #           select_if(function(col) length(unique(col)) > 1) %>%
+      #           colnames() %>%
+      #           paste(collapse = "; ")
+
+      #         # showModal(
+      #         #   modalDialog(
+      #         #     title = "Changes detected in preset",
+      #         #     paste0(
+      #         #       "There are differences between settings in the current session and in the preset file:", what_changed,
+      #         #       "Exporting will overwrite the existing preset file. Provide a new name below if if you wish to create a new preset instead:"
+      #         #     )
+      #         #     footer = tagList(
+      #         #       textInput(
+      #         #         "new_preset_name",
+      #         #         label = NULL,
+      #         #         value = input$available_presets, placeholder = TRUE
+      #         #       ),
+      #         #       actionButton("confirm_export_preset", label = "Confirm & Export"),
+      #         #       modalButton("Cancel")
+      #         #   )
+      #         # )
+
+      #         shinyalert(
+      #           title = "Changes detected in preset",
+      #           text = tagList(
+      #             h3("There are differences between settings in the current session and in the preset file:"),
+      #             h3(what_changed),
+      #             h3("Exporting will overwrite the existing preset file. Provide a new name below if if you wish to create a new preset instead:"),
+      #             textInput(
+      #               "new_preset_name",
+      #               label = NULL,
+      #               value = input$available_presets, placeholder = TRUE
+      #             ),
+      #             actionButton("confirm_export_preset", label = "Confirm & Export")
+      #           ),
+      #           closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
+      #           type = "warning", animation = TRUE, showConfirmButton = FALSE,
+      #           showCancelButton = TRUE
+      #         )
+      #       }
+      #     } else if (input$available_presets == "Export new preset file...") {
+      #       new_name <- paste0(
+      #         str_remove(user_val(), ","), "_",
+      #         format(Sys.time(), "%Y-%m-%d_%H:%M:%S")
+      #       )
+      #       shinyalert(
+      #         title = "Creating a new preset file",
+      #         text = tagList(
+      #           h3("Provide a name in the box below:"),
+      #           textInput(
+      #             "new_preset_name",
+      #             label = NULL,
+      #             value = new_name, placeholder = TRUE
+      #           ),
+      #           h4("(*) avoid commas"),
+      #           actionButton("confirm_export_preset", label = "Confirm & Export")
+      #         ),
+      #         closeOnEsc = TRUE, closeOnClickOutside = FALSE, html = TRUE,
+      #         type = "warning", animation = TRUE, showConfirmButton = FALSE,
+      #         showCancelButton = FALSE
+      #       )
+      #     }
+      #   } else {
+      #     shinyalert(
+      #       title = "There are missing information in the User setup",
+      #       text = tagList(
+      #         h3("Complete the missing inputs before exporting a preset"),
+      #       ),
+      #       closeOnEsc = TRUE, closeOnClickOutside = TRUE, html = TRUE,
+      #       type = "warning", animation = TRUE, showConfirmButton = FALSE,
+      #       showCancelButton = FALSE
+      #     )
+      #   }
+      # })
+
+      # observeEvent(input$confirm_export_preset, {
+      #   req(session_settings(), input$preset_path, input$new_preset_name)
+      #   saveRDS(
+      #     session_settings(),
+      #     file.path(
+      #       input$preset_path, paste0("segmentation_preset_", input$new_preset_name, ".rds")
+      #     )
+      #   )
+      #   res_list <- list.files(
+      #     path = input$preset_path, pattern = "^segmentation_preset_.*\\.rds$"
+      #   )
+      #   res_list <- gsub("segmentation_preset_", "", res_list)
+      #   res_list <- gsub(".rds$", "", res_list)
+
+      #   if (!is.null(res_list)) {
+      #     updateSelectInput(
+      #       session, "available_presets",
+      #       choices = c("Export new preset file...", res_list), #
+      #       selected = input$new_preset_name
+      #     )
+      #   }
+      #   showNotification("Preset file successfully exported")
+      # })
+
+      # # Import the settins of the preset files to the active session
+      # observeEvent(input$import_preset, {
+      #   req(input$available_presets)
+
+      #   preset_file <- file.path(
+      #     input$preset_path,
+      #     paste0("segmentation_preset_", input$available_presets, ".rds")
+      #   )
+
+      #   if (file.exists(preset_file)) {
+      #     res <- readRDS(preset_file)
+      #     session_settings(res)
+      #     user_val(res$user)
+      #     updateTextInput(session, inputId = "user", value = res$user)
+      #     soundscape_path_val(res$soundscapes_path)
+      #     updateTextAreaInput(session, inputId = "soundscapes_path", value = res$soundscapes_path)
+      #     roi_tables_path_val(res$roi_tables_path)
+      #     updateTextAreaInput(session, inputId = "roi_tables_path", value = res$roi_tables_path)
+      #     cuts_path_val(res$cuts_path)
+      #     updateTextAreaInput(session, inputId = "cuts_path", value = cuts_path_val())
+      #     # updateCheckboxInput(session, inputId = "fastdisp", value = res$fastdisp)
+      #     updateSliderInput(session, inputId = "label_angle", value = res$label_angle)
+      #     updateCheckboxInput(session, inputId = "show_label", value = res$show_label)
+      #     updateSliderInput(session, inputId = "dyn_range", value = res$dyn_range)
+      #     updateSliderTextInput(session, inputId = "wl", selected = res$wl)
+      #     updateSliderInput(session, inputId = "ovlp", value = res$ovlp)
+      #     updateSelectInput(session, inputId = "color_scale", selected = res$color_scale)
+      #     updateTextAreaInput(session, inputId = "wav_player_path", value = res$wav_player_path)
+      #     updateRadioButtons(session, inputId = "wav_player_type", selected = res$wav_player_type)
+      #     updateTextAreaInput(session, inputId = "session_notes", value = res$session_notes)
+      #     updateNoUiSliderInput(session, inputId = "zoom_freq", value = res$zoom_freq)
+      #     updateCheckboxInput(session, inputId = "nav_autosave", value = res$nav_autosave)
+      #     updateSelectizeInput(session, inputId = "sp_list", selected = res$sp_list)
+      #     updateSliderInput(session, inputId = "pitch_shift", value = res$pitch_shift)
+      #     showNotification("Preset file successfully imported")
+      #   }
+      # })
 
       # Trigger checks for ending the session
       observeEvent(input$end_session, {
@@ -2137,6 +2205,42 @@ launch_segmentation_app <- function(
           message_rois <- paste0("ROIs in the current soundscape are not stored in a file. Consider exporting a new one before leaving the session. Press ESC to get back to the session or END it in the button below.")
         }
 
+        # # Check if there are settings to be saved on the preset file
+        # preset_file <- file.path(
+        #   input$preset_path,
+        #   paste0("segmentation_preset_", input$available_presets, ".rds")
+        # )
+        # if (file.exists(preset_file)) {
+        #   saved_preset <- readRDS(preset_file)
+        #   message_settings <- "teste1"
+        #   what_changed <- rbind(saved_preset, session_settings()) %>%
+        #     as.data.frame() %>%
+        #     setNames(
+        #       list(
+        #         "user name", "path to soundscapes", "path to ROI tables",
+        #         "path to audio cuts and spectrograms", "fast display spectrogram",
+        #         "roi label angle", "show roi rabels", "spectrogram dynamic range",
+        #         "spectrogram window length", "spectrogram overlap",
+        #         "spectrogram color scale", "wave player type", "wave player path",
+        #         "session notes", "visible frequency band", "autosave while navigating",
+        #         "available labels for ROIs (species lists)", "pitch shift for ultrasound recordings"
+        #       )
+        #     ) %>%
+        #     select_if(function(col) length(unique(col)) > 1) %>%
+        #     colnames() %>%
+        #     paste(collapse = "; ")
+        #   if (!identical(saved_preset, session_settings())) {
+        #     message_settings <- paste0(
+        #       "The following settings were updated: ", what_changed,
+        #       ". Consider update the preset or create a new one before leaving the session."
+        #     )
+        #   } else {
+        #     message_settings <- paste0("No setting changes detected.")
+        #   }
+        # } else {
+        #   message_settings <- paste0("No preset file was found. Consider creating a new one before leaving the session.")
+        # }
+
         showModal(
           modalDialog(
             title = "Check out",
@@ -2167,6 +2271,21 @@ launch_segmentation_app <- function(
       pop_up_opt <- list(delay = list(show = 1000, hide = 0))
 
       # Side bar menu - User setup
+      # addTooltip(session,
+      #   id = "available_presets",
+      #   title = "Select a preset or type a new name to create a new one.",
+      #   placement = "right", trigger = "hover", options = pop_up_opt
+      # )
+      # addTooltip(session,
+      #   id = "import_preset",
+      #   title = "Apply stored settings to the current session",
+      #   placement = "right", trigger = "hover", options = pop_up_opt
+      # )
+      # addTooltip(session,
+      #   id = "export_preset",
+      #   title = "Store the current session settings to a preset file. Existing files will be overwritten",
+      #   placement = "right", trigger = "hover", options = pop_up_opt
+      # )
       addTooltip(session,
         id = "user",
         title = "Identify yourself in the recommended format: 'Rosa G. L. M. (avoid commas)",

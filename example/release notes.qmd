@@ -7,6 +7,8 @@ format: pdf
 # increment version number to 0.1.1.9007
 - R/launch_segmentation_app.R
   - Adicionado um pop-up de confirmação para ação de marcar "No signals of interest" e evitar que o usuário seja surpreendido com a remoção de todas as ROIs.
+  - Removidos os botões para navegação entre diretórios na aba de setup. Agora os caminhos devem ser informados diretamente nos argumentos `soundscapes_path`, `roi_tables_path` e `cuts_path` antes da execução do app pelo usuário
+  - Limpeza geral de código em desuso e refatoração de trechos de código para melhorar a estabilidade do app.
 - R/fetch_template_metadata.R
   - Descontinuação do métod "roi_table" para extração de metadados de templates. O método será reimplementado de forma mais consistente e robusta no futuro.
 - R/fetch_score_peaks_n.R
@@ -17,7 +19,7 @@ format: pdf
   - Adicionada uma camada de checagem para impedir erros de execução quando houver detecções de mais de um template no data frame a ser validado.
 - NOVA FUNÇÃO: diagnostic_validations_n.R
   - Função para obter os diagnosticos de validação de `diagnostic_validations_i()` para tabelas de detecções feitas a partir de mais de um template ou de multiplas classes. Os resultados obtidos estão oerganizados em uma lista para cada template ou classe, com elementos internos contendo as tabelas e plots de diagnósticos.
-- 
+-
 
 
 
