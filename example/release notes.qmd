@@ -8,13 +8,15 @@ format: pdf
 - R/launch_segmentation_app.R
   - Adicionado um pop-up de confirmação para ação de marcar "No signals of interest" e evitar que o usuário seja surpreendido com a remoção de todas as ROIs.
   - Removidos os botões para navegação entre diretórios na aba de setup. Agora os caminhos devem ser informados diretamente nos argumentos `soundscapes_path`, `roi_tables_path` e `cuts_path` antes da execução do app pelo usuário
-  - Limpeza geral de código em desuso e refatoração de trechos de código para melhorar a estabilidade do app.
+  - Limpeza geral de código em desuso e refatoração de vários trechos de código para melhorar a estabilidade do app.
+  - Aumentada a resolução do slider de frequência para 0.1kHz
 - R/fetch_template_metadata.R
   - Descontinuação do métod "roi_table" para extração de metadados de templates. O método será reimplementado de forma mais consistente e robusta no futuro.
 - R/fetch_score_peaks_n.R
   - Adição de paralelização com o argumento `ncores`.
 - R/launch_validation_app.R
   - Descontinuada a função de exportar diagnósticos de validação diretamente do app de validação. Agora a obtenção desses diagnósticos, bem como da validação por sobreposição temporal, devem ser obtidos a partir da função `diagnostic_validations_i()`. Apesar disso os diagnósticos continuam sendo exibidos e atualizados em tempo real no app de validação, que serão idênticos aos diagnósticos obtidos por meio da função `diagnostic_validations_i()`.
+  - Refatoração geral do código para melhorar a estabilidade e a escalabilidade do app.
 - diagnostic_validations_i.R
   - Adicionada uma camada de checagem para impedir erros de execução quando houver detecções de mais de um template no data frame a ser validado.
 - NOVA FUNÇÃO: diagnostic_validations_n.R

@@ -235,7 +235,6 @@ launch_segmentation_app <- function(
   }
 
   valid_wl_values <- c(128, 256, 512, 1024, 2048, 4096, 8192, 16384)
-
   if (!is.numeric(wl) || !wl %in% valid_wl_values) {
     stop(sprintf(
       "Error! The value assigned to 'wl' must be numeric and among the expected alternatives: %s.",
@@ -244,7 +243,6 @@ launch_segmentation_app <- function(
   }
 
   session_data$wl <- wl
-
   # Validate 'ovlp': must be numeric, between 0 and 80, and a multiple of 10
   if (!is.numeric(ovlp) || ovlp < 0 || ovlp > 80 || ovlp %% 10 != 0) {
     stop("Error! The value assigned to 'ovlp' must be a numeric value between 0 and 80, in steps of 10.")
@@ -253,31 +251,25 @@ launch_segmentation_app <- function(
 
   # Validate 'color_scale' against expected values
   valid_color_scales <- c("viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2")
-
   if (!is.character(color_scale) || !(color_scale %in% valid_color_scales)) {
     stop(sprintf(
       "Error! The value assigned to 'color_scale' must be one of the following: %s.",
       paste(valid_color_scales, collapse = ", ")
     ))
   }
-
   session_data$color_scale <- color_scale
 
   valid_player_types <- c("HTML player", "R session", "External player")
-
   if (!wav_player_type %in% valid_player_types) {
     stop(sprintf(
       "Error! The selected WAV player method is not valid. Choose one of the following: %s.",
       paste(valid_player_types, collapse = ", ")
     ))
   }
-
   if (wav_player_type == "External player" && !file.exists(wav_player_path)) {
     stop("Error! The path informed in 'wav_player_path' was not found locally.")
   }
-
   session_data$wav_player_type <- wav_player_type
-
   if (wav_player_type == "External player") {
     session_data$wav_player_path <- wav_player_path
   }
@@ -299,19 +291,19 @@ launch_segmentation_app <- function(
     stop("Error! 'zoom_freq' must be a numeric vector of length 2.")
   }
 
-  if (any(zoom_freq < 0) || any(zoom_freq > 180)) {
-    stop("Error! 'zoom_freq' values must be between 0 and 180.")
+  if (any(zoom_freq < 0) || any(zoom_freq > 192)) {
+    stop("Error! 'zoom_freq' values must be between 0 and 192.")
   }
 
   if (zoom_freq[1] >= zoom_freq[2]) {
     session_data$zoom_freq <- sort(zoom_freq)
     warning("Warning! The first value of 'zoom_freq' must be smaller than the second. Sorting to match the expected order.")
   } else {
-    # Round to .5 intervals
-    session_data$zoom_freq <- round(zoom_freq * 2) / 2
+    # Round to 0.1 intervals
+    session_data$zoom_freq <- round(zoom_freq * 10) / 10
     if (any(session_data$zoom_freq != zoom_freq)) {
       warning(
-        "Warning! The values of 'zoom_freq' were rounded to the nearest 0.5 interval. The values are now: ",
+        "Warning! The values of 'zoom_freq' were rounded to the nearest 0.1 interval. The values are now: ",
         session_data$zoom_freq[1], " and ", session_data$zoom_freq[2]
       )
     }
@@ -352,23 +344,36 @@ launch_segmentation_app <- function(
     dir.create(session_data$temp_path, showWarnings = FALSE)
   }
 
-  sp_labels_custom <- if (!is.null(labels_file) && file.exists(labels_file)) {
-    read_xlsx(labels_file)
-  } else {
-    sp_labels_default <- labels_file
-    sp_labels_custom_path <- if (!is.null(project_path)) {
-      file.path(project_path, "app_presets/sp_labels.xlsx")
-    } else {
-      NULL
+  # Load species labels with proper fallback
+  load_species_labels <- function(labels_file, project_path) {
+    # Load default labels from package
+    data("sp_labels", package = "monitoraSom", envir = environment())
+    default_labels <- sp_labels
+    # Return if no custom path needed
+    if (is.null(labels_file) && is.null(project_path)) {
+      return(default_labels)
     }
-    if (!is.null(sp_labels_custom_path) && file.exists(sp_labels_custom_path)) {
-      read_xlsx(sp_labels_custom_path)
-    } else {
-      write.xlsx(sp_labels_default, sp_labels_custom_path)
-      sp_labels_default
+    # Try custom file if provided
+    if (!is.null(labels_file) && file.exists(labels_file)) {
+      return(tryCatch(read_xlsx(labels_file), error = function(e) default_labels))
     }
+    # Handle project path case
+    if (!is.null(project_path)) {
+      preset_path <- file.path(project_path, "app_presets", "sp_labels.xlsx")
+      if (!dir.exists(dirname(preset_path))) {
+        dir.create(dirname(preset_path), recursive = TRUE)
+      }
+      if (!file.exists(preset_path)) {
+        write.xlsx(default_labels, preset_path)
+      }
+      return(tryCatch(
+        read_xlsx(preset_path),
+        error = function(e) default_labels
+      ))
+    }
+    return(default_labels)
   }
-  sp_labels <- coalesce(sp_labels_custom, sp_labels_default)
+  sp_labels <- load_species_labels(labels_file, project_path)
 
   if (!sp_list %in% colnames(sp_labels)) {
     warning("The selected species list is not among the available species lists. Using the default species list.")
@@ -588,7 +593,7 @@ launch_segmentation_app <- function(
               width = 1,
               noUiSliderInput(
                 "zoom_freq", "kHz",
-                min = 0, max = 180, step = 0.5, value = session_data$zoom_freq,
+                min = 0, max = 180, step = 0.1, value = session_data$zoom_freq,
                 direction = "rtl", orientation = "vertical", width = "100px",
                 height = "25vh", behaviour = "drag", format = wNumbFormat(decimals = 1),
                 update_on = "end"
@@ -1011,58 +1016,130 @@ launch_segmentation_app <- function(
       })
 
       wav_path_val <- reactiveVal(NULL)
+
+      # Add safe cleanup function
+      safe_cleanup_temp_files <- function(temp_path, current_file) {
+        if (!dir.exists(temp_path)) {
+          return()
+        }
+
+        # Only remove files from temp directory
+        temp_files <- list.files(temp_path, pattern = "\\.wav$", full.names = TRUE)
+
+        # Remove old files except current
+        for (file in temp_files) {
+          if (file != current_file) {
+            try(file.remove(file), silent = TRUE)
+          }
+        }
+      }
+
       observe({
+        # 1. Input Validation
         req(soundscape_data(), rec_soundscape())
+        validate(need(input$soundscape_file, "No soundscape file selected"))
+
+        # 2. File Path Validation
         i <- which(soundscape_data()$soundscape_file == input$soundscape_file)
         wav_path <- soundscape_data()$soundscape_path[i]
         wav_path_val(wav_path)
-        if (!is.null(wav_path) & length(wav_path) == 1) {
-          if (file.exists(wav_path) & input$wav_player_type == "HTML player") {
+
+        if (is.null(wav_path) || length(wav_path) != 1 ||
+          !file.exists(wav_path) ||
+          input$wav_player_type != "HTML player") {
+          removeUI(selector = "#visible_soundscape_clip_selector")
+          return()
+        }
+
+        # 3. Safe Audio Processing
+        tryCatch(
+          {
+            # Create temp file
             temp_file <- tempfile(tmpdir = session_data$temp_path, fileext = ".wav") %>%
               gsub("\\\\", "/", .)
-            pitch_shift <- abs(input$pitch_shift)
+
+            # Validate pitch shift
+            pitch_shift <- max(0.1, min(abs(input$pitch_shift), 10))
+
+            # Safe time range
+            end_time <- min(input$zoom_time[2], duration_val())
+            start_time <- max(0, input$zoom_time[1])
+
+            # Process audio
             res_cut <- cutw(
               rec_soundscape(),
-              from = input$zoom_time[1],
-              to = ifelse(input$zoom_time[2] > duration_val(), duration_val(), input$zoom_time[2]),
-              output = "Wave"
+              from = start_time, to = end_time, output = "Wave"
             )
-            if (input$pitch_shift < 1) {
+
+            # Apply pitch shift
+            if (pitch_shift < 1) {
               res_cut@samp.rate <- res_cut@samp.rate / pitch_shift
             }
+
+            # Apply bandpass filter
             if (isTRUE(input$visible_bp)) {
-              res_cut <- ffilter(
-                res_cut,
-                f = res_cut@samp.rate,
-                from = (input$zoom_freq[1] / pitch_shift) * 1000,
-                to = (input$zoom_freq[2] / pitch_shift) * 1000,
-                wl = input$wl, output = "Wave", bandpass = TRUE
+              res_cut <- tryCatch(
+                {
+                  ffilter(
+                    res_cut,
+                    f = res_cut@samp.rate,
+                    from = max(0, (input$zoom_freq[1] / pitch_shift) * 1000),
+                    to = (input$zoom_freq[2] / pitch_shift) * 1000,
+                    wl = input$wl, output = "Wave", bandpass = TRUE
+                  )
+                },
+                error = function(e) {
+                  warning("Bandpass filter failed: ", e$message)
+                  res_cut # Return unfiltered audio on error
+                }
               )
             }
+
+            # Apply normalization
             if (isTRUE(input$play_norm)) {
-              res_cut <- normalize(
-                object = res_cut,
-                unit = as.character(res_cut@bit),
-                pcm <- TRUE
+              res_cut <- tryCatch(
+                {
+                  normalize(object = res_cut, unit = as.character(res_cut@bit), pcm = TRUE)
+                },
+                error = function(e) {
+                  warning("Normalization failed: ", e$message)
+                  res_cut # Return unnormalized audio on error
+                }
               )
             }
+
+            # Save processed audio
             savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
+
+            # Update UI
             removeUI(selector = "#visible_soundscape_clip_selector")
             insertUI(
-              selector = "#visible_soundscape_clip", where = "afterEnd",
+              selector = "#visible_soundscape_clip",
+              where = "afterEnd",
               ui = tags$audio(
                 id = "visible_soundscape_clip_selector",
                 src = paste0("audio/", basename(temp_file)),
-                type = "audio/wav", autostart = FALSE, controls = TRUE # , style = "display: none;"
+                type = "audio/wav", autostart = FALSE, controls = TRUE
               )
             )
-            unlink("*.wav")
-            to_remove <- list.files(session_data$temp_path, pattern = ".wav", full.names = TRUE)
-            file.remove(to_remove[to_remove != temp_file])
-          } else {
+
+            # Safe cleanup of old files
+            safe_cleanup_temp_files(session_data$temp_path, temp_file)
+          },
+          error = function(e) {
+            # Handle errors gracefully
+            showNotification(
+              paste("Error processing audio:", e$message),
+              type = "error"
+            )
             removeUI(selector = "#visible_soundscape_clip_selector")
           }
-        }
+        )
+      })
+
+      # Add session cleanup
+      session$onSessionEnded(function() {
+        safe_cleanup_temp_files(session_data$temp_path, NULL)
       })
 
       observeEvent(input$wav_player_type, {
@@ -2151,9 +2228,20 @@ launch_segmentation_app <- function(
         )
       })
 
+      # Add safe cleanup function
+      safe_cleanup_temp_files <- function(temp_path, current_file = NULL) {
+        if (!dir.exists(temp_path)) {
+          return()
+        }
+        # Remove all wav files in temp directory
+        sapply(
+          list.files(temp_path, pattern = "\\.wav$", full.names = TRUE),
+          file.remove
+        )
+      }
       observeEvent(input$confirm_exit, {
-        # Clear temp folder before stopping the app
-        unlink(paste0(getwd(), "/temp/"), recursive = TRUE, force = TRUE)
+        # Clean temp files and stop app
+        safe_cleanup_temp_files(session_data$temp_path, NULL)
         stopApp()
       })
 

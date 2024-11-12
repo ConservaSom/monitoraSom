@@ -87,6 +87,7 @@ launch_validation_app <- function(
     ) {
 
   library(dplyr, warn.conflicts = FALSE)
+  options(dplyr.summarise.inform = FALSE)
 
   # require(tidyr)
   # require(ggplot2)
@@ -112,41 +113,32 @@ launch_validation_app <- function(
   # require(shinydashboard)
   # require(shinyBS)
 
-  options(dplyr.summarise.inform = FALSE)
+  # input validation -----------------------------------------------------------
 
   session_data <- list()
 
   if (!is.null(project_path)) {
-    if (dir.exists(project_path)) {
-      session_data$project_path <- project_path
-    } else {
-      dir.create(project_path)
-      if (dir.exists(project_path)) {
-        session_data$project_path <- project_path
-        warning(
-          paste0("The validation app project directory was sucessfully created at '", project_path, "'")
-        )
-      } else {
-        stop("Error! Tried to create the validation app project directory at '", project_path, "' but failed.")
+    tryCatch({
+      if (!dir.exists(project_path)) {
+        dir.create(project_path)
+        warning("The validation app project directory was successfully created at '", project_path, "'")
       }
-    }
+      session_data$project_path <- project_path
+    }, error = function(e) {
+      stop("Failed to create validation app project directory at '", project_path, "': ", e$message)
+    })
   }
 
   if (!is.null(preset_path)) {
-    if (dir.exists(preset_path)) {
-      session_data$preset_path <- preset_path
-    } else {
+    if (!dir.exists(preset_path)) {
       dir.create(preset_path)
-      if (dir.exists(preset_path)) {
-        session_data$preset_path <- preset_path
-        warning(
-          "The segmentation preset destination directory was created automatically at '",
-          preset_path, "'"
-        )
-      } else {
+      if (!dir.exists(preset_path)) {
         stop("Error! The selected preset destination folder does not exist and could not be created.")
       }
+      warning("The segmentation preset destination directory was created automatically at '", preset_path, "'")
     }
+    session_data$preset_path <- preset_path
+
     # The creation of the temp directory assumes that the preset directory exists
     temp_path <- file.path(preset_path, "temp/")
     if (!dir.exists(temp_path)) {
@@ -165,49 +157,49 @@ launch_validation_app <- function(
     session_data$temp_path <- temp_path
   }
 
+  # Validate and set the validation user
   if (!is.null(validation_user)) {
     session_data$validation_user <- as.character(gsub(",", "", validation_user))
   } else {
-    session_data$validation_user <- as.character(NA)
+    session_data$validation_user <- NA_character_
     warning("Warning! A value was not provided for 'validation_user' variable. Inform the correct value and confirm within the app.")
   }
 
+  # Validate and set the templates path
   if (is.null(templates_path)) {
-    if (dir.exists("roi_cuts/")) {
-      session_data$templates_path <- "roi_cuts/"
-      warning(
-        "Warning! The path to the template wave files was not provided. Using the default path 'roi_cuts/'"
-      )
-    }
-  } else {
+    templates_path <- "roi_cuts/" # Default path
     if (dir.exists(templates_path)) {
       session_data$templates_path <- templates_path
+      warning("Warning! The path to the template wave files was not provided. Using the default path 'roi_cuts/'.")
     } else {
-      stop("Error! The path to the template wave files was not found locally.")
+      stop("Error! The default path 'roi_cuts/' does not exist.")
     }
+  } else if (dir.exists(templates_path)) {
+    session_data$templates_path <- templates_path
+  } else {
+    stop("Error! The provided path to the template wave files was not found locally.")
   }
 
+  # Validate and set the soundscapes path
   session_data$soundscapes_path <- soundscapes_path
   if (!dir.exists(soundscapes_path)) {
     stop("Error! The path to the soundscape wave files was not found locally.")
   }
 
+  # Validate and set the input path
   session_data$input_path <- input_path
-  if (!file.exists(input_path)) {
-    stop("Error! The input file containing detections was not found locally.")
-    # todo Add saanity checks for the input file
+  if (!file.exists(input_path) || tools::file_ext(input_path) != "csv" || file.size(input_path) == 0) {
+    stop("Error! The input file must exist, be a CSV file, and not be empty.")
   }
 
-  if (is.null(output_path)) {
-    session_data$output_path <- input_path
-    warning(
-      "Warning! The output file was not provided. Using the input file as output."
-    )
+  session_data$output_path <- if (is.null(output_path)) {
+    warning("Warning! The output file was not provided. Using the input file as output.")
+    input_path
   } else {
-    session_data$output_path <- output_path
     if (!file.exists(output_path)) {
       warning("Warning! The output file was not found locally. It will be created automatically.")
     }
+    output_path
   }
 
   if (all(val_subset %in% c("NV", "TP", "FP", "UN"))) {
@@ -218,283 +210,132 @@ launch_validation_app <- function(
     )
   }
 
-  # if (all(is.numeric(score_interval))) {
-  #   if (all(score_interval <= 1) & all(score_interval >= -1)) {
-  #     if (score_interval[1] == score_interval[2]) {
-  #       stop("Error! The values provided in 'score_interval' must be different.")
-  #     } else if (score_interval[1] < score_interval[2]) {
-  #       session_data$score_interval <- score_interval
-  #     } else {
-  #       session_data$score_interval <- sort(score_interval)
-  #       warning(
-  #         "Warning! The first value of 'score_interval' must be smaller than the second. Sorting to match the expected order"
-  #       )
-  #     }
-  #   } else {
-  #     stop(
-  #       "Error! At least one value assigned to 'score_interval' is not within the expected interval. Provide only numeric values between -1 and 1."
-  #     )
-  #   }
-  # } else {
-  #   stop(
-  #     "Error! At least one value assigned to 'score_interval' is not numeric. Provide only numeric values between -1 and 1."
-  #   )
-  # }
 
-  if (is.numeric(time_pads)) {
-    if (0 <= time_pads & time_pads <= 16) {
-      session_data$time_pads <- time_pads
-    } else {
-      stop(
-        "Error! The value assigned to 'time_pads' is outside the expected interval. Provide an integer between 0 and 16."
+  if (!is.numeric(time_pads) || time_pads < 0 || time_pads > 16) {
+    stop("Error! The value assigned to 'time_pads' must be a numeric value between 0 and 16.")
+  }
+  session_data$time_pads <- time_pads
+
+  # Function to validate dynamic range vectors
+  validate_dyn_range <- function(dyn_range, name) {
+    if (length(dyn_range) != 2 || !all(is.numeric(dyn_range))) {
+      stop(paste("Error! '", name, "' must be a numeric vector of length 2 with all values numeric.", sep = ""))
+    }
+    if (dyn_range[1] >= dyn_range[2]) {
+      warning(paste("Warning! The first value of '", name, "' must be smaller than the second. Sorting to match the expected order.", sep = ""))
+      return(sort(dyn_range))
+    }
+    return(dyn_range)
+  }
+  # Validate and set dynamic ranges
+  session_data$dyn_range_templ <- validate_dyn_range(dyn_range_templ, "dyn_range_templ")
+  session_data$dyn_range_detec <- validate_dyn_range(dyn_range_detec, "dyn_range_detec")
+  session_data$dyn_range_bar <- validate_dyn_range(dyn_range_bar, "dyn_range_bar")
+
+  valid_wl_values <- c(128, 256, 512, 1024, 2048, 4096, 8192, 16384)
+  if (!is.numeric(wl) || !wl %in% valid_wl_values) {
+    stop(sprintf(
+      "Error! The value assigned to 'wl' must be numeric and among the expected alternatives: %s.",
+      paste(valid_wl_values, collapse = ", ")
+    ))
+  }
+
+
+  session_data$wl <- wl
+  # Validate 'ovlp': must be numeric, between 0 and 80, and a multiple of 10
+  if (!is.numeric(ovlp) || ovlp < 0 || ovlp > 80 || ovlp %% 10 != 0) {
+    stop("Error! The value assigned to 'ovlp' must be a numeric value between 0 and 80, in steps of 10.")
+  }
+  session_data$ovlp <- ovlp
+
+  # Validate 'color_scale' against expected values
+  valid_color_scales <- c("viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2")
+  if (!is.character(color_scale) || !(color_scale %in% valid_color_scales)) {
+    stop(sprintf(
+      "Error! The value assigned to 'color_scale' must be one of the following: %s.",
+      paste(valid_color_scales, collapse = ", ")
+    ))
+  }
+  session_data$color_scale <- color_scale
+
+  valid_player_types <- c("HTML player", "R session", "External player")
+  if (!wav_player_type %in% valid_player_types) {
+    stop(sprintf(
+      "Error! The selected WAV player method is not valid. Choose one of the following: %s.",
+      paste(valid_player_types, collapse = ", ")
+    ))
+  }
+  if (wav_player_type == "External player" && !file.exists(wav_player_path)) {
+    stop("Error! The path informed in 'wav_player_path' was not found locally.")
+  }
+  session_data$wav_player_type <- wav_player_type
+  if (wav_player_type == "External player") {
+    session_data$wav_player_path <- wav_player_path
+  }
+
+  if (any(zoom_freq < 0) || any(zoom_freq > 192)) {
+    stop("Error! 'zoom_freq' values must be between 0 and 192.")
+  }
+
+  if (zoom_freq[1] >= zoom_freq[2]) {
+    session_data$zoom_freq <- sort(zoom_freq)
+    warning("Warning! The first value of 'zoom_freq' must be smaller than the second. Sorting to match the expected order.")
+  } else {
+    # Round to 0.1 intervals
+    session_data$zoom_freq <- round(zoom_freq * 10) / 10
+    if (any(session_data$zoom_freq != zoom_freq)) {
+      warning(
+        "Warning! The values of 'zoom_freq' were rounded to the nearest 0.1 interval. The values are now: ",
+        session_data$zoom_freq[1], " and ", session_data$zoom_freq[2]
       )
     }
-  } else {
-    stop(
-      "Error! The value assigned to 'time_pads' is not numeric."
-    )
   }
 
-  if (length(dyn_range_templ) == 2) {
-    if (all(is.numeric(dyn_range_templ))) {
-      if (dyn_range_templ[1] < dyn_range_templ[2]) {
-          session_data$dyn_range_templ <- dyn_range_templ
-      } else {
-        session_data$dyn_range_templ <- sort(dyn_range_templ)
-        warning(
-          "Warning! The first value of 'dyn_range_templ' must be smaller than the second. Sorting to match the expected order"
-        )
-      }
-    } else {
-      stop(
-        "Error! At least one value of 'dyn_range_templ' is not numeric"
-      )
-    }
-  } else {
-    stop("Error! The 'dyn_range_templ' must be a numeric vector of length equals 2.")
-  }
-
-
-  if (length(dyn_range_detec) == 2) {
-    if (all(is.numeric(dyn_range_detec))) {
-      if (dyn_range_detec[1] < dyn_range_detec[2]) {
-          session_data$dyn_range_detec <- dyn_range_detec
-      } else {
-        session_data$dyn_range_detec <- sort(dyn_range_detec)
-        warning(
-          "Warning! The first value of 'dyn_range_detec' must be smaller than the second. Sorting to match the expected order"
-        )
-      }
-    } else {
-      stop(
-        "Error! At least one value of 'dyn_range_detec' is not numeric"
-      )
-    }
-  } else {
-    stop("Error! The 'dyn_range_detec' must be a numeric vector of length equals 2.")
-  }
-
-  if (length(dyn_range_bar) == 2) {
-    if (all(is.numeric(dyn_range_bar))) {
-      if (dyn_range_bar[1] < dyn_range_bar[2]) {
-          session_data$dyn_range_bar <- dyn_range_bar
-      } else {
-        session_data$dyn_range_bar <- sort(dyn_range_bar)
-        warning(
-          "Warning! The first value of 'dyn_range_bar' must be smaller than the second. Sorting to match the expected order"
-        )
-      }
-    } else {
-      stop(
-        "Error! At least one value of 'dyn_range_bar' is not numeric"
-      )
-    }
-  } else {
-    stop("Error! The 'dyn_range_bar' must be a numeric vector of length equals 2.")
-  }
-
-  if (is.numeric(wl)) {
-    if (wl %in% c(128, 256, 512, 1024, 2048, 4096, 8192, 16384)) {
-      session_data$wl <- wl
-    } else {
-      stop(
-        "Error! The value assigned to 'wl' is not among the expected alternatives: 128, 256, 512, 1024, 2048, 4096, 8192, or 16384."
-      )
-    }
-  } else {
-    stop(
-      "Error! The value assigned to 'wl' is not among the expected alternatives: 128, 256, 512, 1024, 2048, 4096, 8192, or 16384."
-    )
-  }
-
-  if (is.numeric(ovlp)) {
-    if (ovlp %in% seq(0, 80, 10)) {
-      session_data$ovlp <- ovlp
-    } else {
-      stop(
-        "Error! The value assigned to 'ovlp' is outside the expected interval. Provide a numeric value between 0 and 80 in steps of 10."
-      )
-    }
-  } else {
-    stop(
-      "Error! The value assigned to 'time_pads' is not numeric. Provide a value between 0 and 80 in steps of 10."
-    )
-  }
-
-  if (is.character(color_scale)) {
-    if (color_scale %in% c("viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2")) {
-      session_data$color_scale <- color_scale
-    } else {
-      stop(
-        "Error! The value assigned to 'color_scale' is not among the expected alternatives: 'viridis', 'magma', 'inferno', 'cividis', 'greyscale 1', or 'greyscale 2'."
-      )
-    }
-  } else {
-    stop(
-      "Error! The value assigned to 'color_scale' is not among the expected alternatives: 'viridis', 'magma', 'inferno', 'cividis', 'greyscale 1', or 'greyscale 2'."
-    )
-  }
-
-  if (wav_player_type %in% c("HTML player", "R session", "External player")) {
-    if (wav_player_type == "External player") {
-      if (file.exists(wav_player_path)) {
-        session_data$wav_player_path <- wav_player_path
-      } else {
-        stop(
-          "Error! The path informed in 'wav_player_path' was not found locally."
-        )
-      }
-    }
-    session_data$wav_player_type <- wav_player_type
-  } else {
-    stop(
-      "Error! The selected WAV player method is not valid. Select one of the following: 'HTML player', 'R session', 'External player'"
-    )
-  }
-
-  # todo Icrease step resolution to 0.5
-  if (length(zoom_freq) == 2) {
-    if (all(is.numeric(zoom_freq))) {
-      if (zoom_freq[1] < zoom_freq[2]) {
-        if (zoom_freq[1] >= 0 & zoom_freq[2] <= 192) {
-            session_data$zoom_freq <- zoom_freq
-        } else {
-          stop("Error! 'zoom_freq' must be between 0 and 192.")
-        }
-      } else {
-        session_data$zoom_freq <- sort(zoom_freq)
-        warning(
-          "Warning! The first value of 'zoom_freq' must be smaller than the second. Sorting to match the expected order"
-        )
-      }
-    } else {
-      stop(
-        "Error! At least one value of 'zoom_freq' is not numeric"
-      )
-    }
-  } else {
-    stop("Error! The 'zoom_freq' must be a numeric vector of length 2.")
-  }
-
-  if (isTRUE(visible_bp) | isFALSE(visible_bp)) {
-    session_data$visible_bp <- visible_bp
-  } else {
-    stop(
-      "Error! The value assigned to 'visible_bp' is not logical. Set it to TRUE or FALSE."
-    )
-  }
-  if (isTRUE(play_norm) | isFALSE(play_norm)) {
-    session_data$play_norm <- play_norm
-  } else {
-    stop(
-      "Error! The value assigned to 'play_norm' is not logical. Set it to TRUE or FALSE."
-    )
-  }
-
-  if (isTRUE(nav_shuffle) | isFALSE(nav_shuffle)) {
-    session_data$nav_shuffle <- nav_shuffle
-  } else {
-    stop("Error! 'nav_shuffle' must be set to TRUE or FALSE.")
-  }
-
-  if (is.numeric(subset_seed)) {
-    session_data$subset_seed <- subset_seed
-  } else {
+  if (!is.numeric(subset_seed)) {
     stop("Error! Non-numeric value input provided to 'seed'")
   }
+  session_data$subset_seed <- subset_seed
   # todo Add another seed for the diagnostics
 
-  if (isTRUE(auto_next) | isFALSE(auto_next)) {
-    session_data$auto_next <- auto_next
-  } else {
-    stop("Error! 'auto_next' must be set to TRUE or FALSE.")
-  }
-
-  if (isTRUE(nav_autosave) | isFALSE(nav_autosave)) {
-    session_data$nav_autosave <- nav_autosave
-  } else {
-    stop("Error! 'nav_autosave' must be set to TRUE or FALSE.")
-  }
-
-  if (isTRUE(overwrite) | isFALSE(overwrite)) {
-    session_data$overwrite <- overwrite
-  } else {
-    stop("Error! 'overwrite' must be set to TRUE or FALSE.")
-  }
-
-  if (is.null(wav_cuts_path)) {
-    if (dir.exists("detection_cuts/")) {
-      warning(
-        "Warning! The informed 'wav_cuts_path' was not found locally. Using the default path 'detection_cuts/'"
-      )
-    } else {
-      dir.create("detection_cuts/")
-      warning(
-        "Warning! The informed 'wav_cuts_path' was not found locally. Using the default path 'detection_cuts/'"
-      )
+  # Function to validate logical values and assign them to session_data
+  validate_logical_and_assign <- function(value, name) {
+    if (!is.logical(value)) {
+      stop(paste("Error! The value assigned to '", name, "' is not logical. Set it to TRUE or FALSE.", sep = ""))
     }
-    session_data$wav_cuts_path <- "detection_cuts/"
-  } else {
-    if (dir.exists(wav_cuts_path)) {
-      session_data$wav_cuts_path <- wav_cuts_path
+    session_data[[name]] <- value
+  }
+  validate_logical_and_assign(visible_bp, "visible_bp")
+  validate_logical_and_assign(play_norm, "play_norm")
+  validate_logical_and_assign(nav_shuffle, "nav_shuffle")
+  validate_logical_and_assign(auto_next, "auto_next")
+  validate_logical_and_assign(nav_autosave, "nav_autosave")
+  validate_logical_and_assign(overwrite, "overwrite")
+
+  # Function to validate and set paths
+  validate_and_set_path <- function(path, default_path, session_key) {
+    if (is.null(path)) {
+      if (dir.exists(default_path)) {
+        warning(paste("Warning! The informed '", session_key, "' was not found locally. Using the default path '", default_path, "'.", sep = ""))
+      } else {
+        dir.create(default_path, recursive = TRUE)
+        warning(paste("Warning! The informed '", session_key, "' was not found locally. Using the default path '", default_path, "'.", sep = ""))
+      }
+      return(default_path)
     } else {
-      stop("Error! The provided path to store detection cut files was not found locally.")
+      if (dir.exists(path)) {
+        return(path)
+      } else {
+        stop(paste("Error! The provided path to store ", session_key, " was not found locally.", sep = ""))
+      }
     }
   }
+  session_data$wav_cuts_path <- validate_and_set_path(wav_cuts_path, "detection_cuts/", "wav_cuts_path")
+  session_data$spec_path <- validate_and_set_path(spec_path, "detection_spectrograms/", "spec_path")
 
-  #
-  if (is.null(spec_path)) {
-    if (dir.exists("detection_spectrograms/")) {
-      warning(
-        "Warning! The informed 'spec_path' was not found locally. Using the default path 'detection_spectrograms/'"
-      )
-    } else {
-      dir.create("detection_spectrograms/")
-      warning(
-        "Warning! The informed 'spec_path' was not found locally. Using the default path 'detection_spectrograms/'"
-      )
-    }
-    session_data$spec_path <- "detection_spectrograms/"
+  if (!is.numeric(pitch_shift) || !(pitch_shift %in% c(-8, -6, -4, -2, 1))) {
+    stop("Error! The value assigned to 'pitch_shift' is not numeric or not among the expected alternatives: -8, -6, -4, -2, or 1.")
   } else {
-    if (dir.exists(spec_path)) {
-      session_data$spec_path <- spec_path
-    } else {
-      stop("Error! The provided path to store detection spectrograms was not found locally.")
-    }
-  }
-
-  if (is.numeric(pitch_shift)) {
-    if (pitch_shift %in% c(-8, -6, -4, -2, 1)) {
-      session_data$pitch_shift <- pitch_shift
-    } else {
-      stop(
-        "Error! The value assigned to 'pitch_shift' is not among the expected alternatives: -8, -6, -4, -2, or 1."
-      )
-    }
-  } else {
-    stop(
-      "Error! The value assigned to 'pitch_shift' is not among the expected alternatives: -8, -6, -4, -2, or 1."
-    )
+    session_data$pitch_shift <- pitch_shift
   }
 
   auc_trap <- function(x, y) {
@@ -506,10 +347,7 @@ launch_validation_app <- function(
     return(res)
   }
 
-  # This block defines where embedded html wav players will look for the files
-  shiny::addResourcePath("audio", temp_path)
-  # resourcePaths()
-  # todo Clear temp folder when closing the app
+  # hotkeys --------------------------------------------------------------------
 
   hotkeys <- c(
     "q", #
@@ -525,14 +363,31 @@ launch_validation_app <- function(
     "2" #
   )
 
+  # resource paths -------------------------------------------------------------
+
+  # This block defines where embedded html wav players will look for the files
+  shiny::addResourcePath("audio", temp_path)
+  # resourcePaths()
+  # todo Clear temp folder when closing the app
+
+  # app ------------------------------------------------------------------------
+
   shinyApp(
+
+    # UI -----------------------------------------------------------------------
+
     ui = dashboardPage(
       header = dashboardHeader(title = "MonitoraSom", titleWidth = "400px"),
+
+      # Sidebar ----------------------------------------------------------------
       sidebar = dashboardSidebar(
         tags$head(tags$style(HTML(".form-group { margin-bottom: 10px !important; }"))),
         width = "400px",
         # Pop up control. Credits to: soundgen::annotation_app()
         sidebarMenu(
+
+          # User setup ---------------------------------------------------------
+
           menuItem(
             "User setup",
             tabName = "user_setup_tab", startExpanded = TRUE,
@@ -623,6 +478,9 @@ launch_validation_app <- function(
             tags$style(".tooltip {width: 300px;}")
 
           ),
+
+          # Session setup ------------------------------------------------------
+
           menuItem(
             "Session Setup",
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
@@ -685,6 +543,9 @@ launch_validation_app <- function(
               style = "color: #000000; background-color: #33b733; border-color: #288d28; width: 360px;"
             )
           ),
+
+          # Spectrogram parameters -----------------------------------------------
+
           menuItem(
             "Spectrogram Parameters",
             tabName = "spec_par_tab",
@@ -776,6 +637,9 @@ launch_validation_app <- function(
           style = "color: #fff; background-color: #b73333; border-color: #8d2c2c; width: 370px;"
         )
       ),
+
+      # Body -------------------------------------------------------------------
+
       body = dashboardBody(
 
         # Set up shinyjs
@@ -791,6 +655,8 @@ launch_validation_app <- function(
 
         # box(width = 12, verbatimTextOutput("checagem1")),
         # box(width = 6, verbatimTextOutput("checagem2")),
+
+        # Detection spectrogram --------------------------------------------------
 
         box(
           width = 6, height = "550px",
@@ -830,6 +696,9 @@ launch_validation_app <- function(
             )
           )
         ),
+
+        # Template spectrogram -------------------------------------------------
+
         box(
           id = "template_box",
           width = 6, height = "550px",
@@ -840,6 +709,10 @@ launch_validation_app <- function(
               icon = icon("play"), width = "100%", style = "height:50px"
             )
         ),
+
+        # Input box ------------------------------------------------------------
+
+
         box(
           width = 12,
           column(
@@ -940,9 +813,14 @@ launch_validation_app <- function(
               checkboxInput("lock_template", icon("lock", lib = "font-awesome"), value = TRUE)
             )
         ),
+
+        # Outputs --------------------------------------------------------------
+
         tabBox(
           width = 12, height = "900px",
           id = "tabset1",
+
+          # Progress -----------------------------------------------------------
           tabPanel(
             "Progress",
             fluidRow(
@@ -966,10 +844,16 @@ launch_validation_app <- function(
             )
             )
           ),
+
+          # Detection Table -----------------------------------------------------
+
           tabPanel("Detection Table",
             height = "100%",
             DTOutput("res_table")
           ),
+
+          # Soundscape spectrogram -----------------------------------------------
+
           tabPanel(
             "Soundscape Spectrogram",
             column(
@@ -989,6 +873,9 @@ launch_validation_app <- function(
             ),
             hidden(plotOutput("SoundscapeSpectrogram", height = "350px"))
           ),
+
+          # Export Detection -----------------------------------------------------
+
           tabPanel(
             "Export Detection",
             column(
@@ -1022,6 +909,9 @@ launch_validation_app <- function(
                 style = "color: #fff; background-color: #33b76e; border-color: #5da42e;"
               )
             ),
+
+            # Export Spectrogram -------------------------------------------------
+
             column(
               width = 6,
               splitLayout(
@@ -1054,6 +944,9 @@ launch_validation_app <- function(
               )
             )
           ),
+
+          # Diagnostics ----------------------------------------------------------
+
           tabPanel(
             "Diagnostics",
             column(
@@ -1085,6 +978,8 @@ launch_validation_app <- function(
       ),
       skin = "black"
     ),
+
+    # Server -------------------------------------------------------------------
     server = function(input, output, session) {
       # Set a reactive object to detect paths for system volumes
       volumes <- shinyFiles::getVolumes()()
@@ -2652,9 +2547,7 @@ launch_validation_app <- function(
         req(df_cut(), df_output())
 
         dfa <- df_cut() %>%
-          dplyr::select(
-            tidyr::contains("validation")
-          )
+          dplyr::select(tidyr::contains("validation"))
         nrow_unsaved <- 0
 
         if (file.exists(input$output_path)) {
