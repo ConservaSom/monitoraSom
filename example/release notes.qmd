@@ -10,6 +10,8 @@ format: pdf
   - Removidos os botões para navegação entre diretórios na aba de setup. Agora os caminhos devem ser informados diretamente nos argumentos `soundscapes_path`, `roi_tables_path` e `cuts_path` antes da execução do app pelo usuário
   - Limpeza geral de código em desuso e refatoração de vários trechos de código para melhorar a estabilidade do app.
   - Aumentada a resolução do slider de frequência para 0.1kHz
+  - Uso de funções helpers internamente para evitar repetição de código e aumentar a escalabilidade do app.
+  - Foi reformulada a forma com as medições do espectro são exibidas, agora em um box no canto inferior direito do spectrograma.
 - R/fetch_template_metadata.R
   - Descontinuação do métod "roi_table" para extração de metadados de templates. O método será reimplementado de forma mais consistente e robusta no futuro.
 - R/fetch_score_peaks_n.R

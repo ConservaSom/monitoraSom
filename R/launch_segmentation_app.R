@@ -399,7 +399,66 @@ launch_segmentation_app <- function(
     "c", # navigate to the next soudnscape
     "1" # play audio of visible soundscape spectrogram
     # "2" # todo play concatenated audio of all selected rois (default to all if none selected)
+    # todo - play audio with spacebar
+    # todo - add a help button with a popup of all the shortcuts
   )
+
+  # helper functions ---------------------------------------------------------
+
+  # Helper function to play audio with optional filtering and normalization
+  play_within_R <- function(rec, zoom_time, pitch_shift, visible_bp, zoom_freq, wl, play_norm) {
+    tryCatch(
+      {
+        # Debug information
+        message("Debug - Original zoom_time: ", paste(zoom_time, collapse = ", "))
+        message("Debug - Pitch shift: ", pitch_shift)
+
+        # Calculate adjusted times
+        from_time <- zoom_time[1] * abs(pitch_shift)
+        to_time <- zoom_time[2] * abs(pitch_shift)
+
+        message("Debug - Adjusted times: from=", from_time, " to=", to_time)
+
+        # Adjust sample rate for pitch shift
+        if (pitch_shift < 1) {
+          rec@samp.rate <- rec@samp.rate / abs(pitch_shift)
+        }
+
+        # Validate and ensure correct time order
+        if (from_time >= to_time) {
+          message("Invalid time range detected. Swapping values.")
+          temp <- from_time
+          from_time <- to_time
+          to_time <- temp
+        }
+
+        # Cut the audio based on zoom time
+        rec <- cutw(rec, from = from_time, to = to_time, output = "Wave")
+
+        # Rest of the function remains the same
+        if (isTRUE(visible_bp)) {
+          rec <- fir(
+            rec,
+            f = rec@samp.rate,
+            from = (zoom_freq[1] / pitch_shift) * 1000,
+            to = (zoom_freq[2] / pitch_shift) * 1000,
+            wl = wl, output = "Wave"
+          )
+        }
+
+        if (isTRUE(play_norm)) {
+          rec <- normalize(object = rec, unit = as.character(rec@bit), pcm = TRUE)
+        }
+
+        play(rec, player = "play")
+      },
+      error = function(e) {
+        message("Error in play_within_R: ", e$message)
+        message("zoom_time: ", paste(zoom_time, collapse = ", "))
+        message("pitch_shift: ", pitch_shift)
+      }
+    )
+  }
 
   shinyApp(
     ui = dashboardPage(
@@ -691,6 +750,7 @@ launch_segmentation_app <- function(
                 width = 3,
                 selectizeInput(
                   "signal_type", "Type",
+                  # todo - implement custom choices based on a spreadsheet of signal types
                   choices = c(
                     "anuran - advertisement",
                     "anuran - advertisement - duet",
@@ -869,89 +929,80 @@ launch_segmentation_app <- function(
         roi_tables_path_val(input$roi_tables_path)
         cuts_path_val(input$cuts_path)
 
-        if (dir.exists(roi_tables_path_val()) & dir.exists(roi_tables_path_val())) {
-          list_soundscapes <- list.files(
-            soundscape_path_val(),
-            pattern = ".wav", full.names = TRUE,
-            ignore.case = TRUE
-          )
-          roi_tables_raw <- list.files(
-            roi_tables_path_val(),
-            pattern = ".csv", full.names = TRUE,
-            ignore.case = TRUE
-          )
-          roi_tables <- data.frame(
-            roi_table_name = basename(roi_tables_raw),
-            roi_table_path = roi_tables_raw
-          )
-          if (length(list_soundscapes) > 0) {
-            soundscape_data_res <- list_soundscapes %>%
-              data.frame(soundscape_path = ., soundscape_file = basename(.)) |>
-              fmutate(
-                roi_table_prefix = str_remove(soundscape_file, ".wav|.WAV"),
-                n_char = nchar(roi_table_prefix)
-              ) |>
-              fmutate(
-                has_table = (
-                  roi_table_prefix %in% substr(
-                    list.files(
-                      roi_tables_path_val(),
-                      pattern = ".csv", full.names = FALSE,
-                      ignore.case = TRUE
-                    ), 1, n_char
-                  )
-                )
-              )
-            updateSelectizeInput(
-              session, "soundscape_file",
-              choices = soundscape_data_res$soundscape_file, server = TRUE
-            )
-            soundscape_data(soundscape_data_res)
-            showNotification("Setup sucessfull!", type = "message")
-            roi_tables_data(roi_tables)
+        if (!dir.exists(soundscape_path_val()) || !dir.exists(roi_tables_path_val())) {
+          error_msg <- if (!dir.exists(soundscape_path_val()) && !dir.exists(roi_tables_path_val())) {
+            "The paths to Soundscapes and to ROI tables do not exist"
+          } else if (!dir.exists(soundscape_path_val())) {
+            "The provided Soundscape path does not exist"
           } else {
-            showModal(
-              modalDialog(
-                title = "Setup error",
-                "There are no readable WAV files in the provided Soundscape path",
-                footer = tagList(modalButton("OK")), easyClose = TRUE
-              )
-            )
+            "The provided path to ROI tables does not exist"
           }
-        } else if (!dir.exists(soundscape_path_val()) & dir.exists(roi_tables_path_val())) {
+
           showModal(
             modalDialog(
-              title = "Setup error",
-              "The provided Soundscape path does not exist",
+              title = "Setup error", error_msg,
               footer = tagList(modalButton("OK")), easyClose = TRUE
             )
           )
-        } else if (dir.exists(soundscape_path_val()) & !dir.exists(roi_tables_path_val())) {
-          showModal(
-            modalDialog(
-              title = "Setup error",
-              "The provided path to ROI tables does not exist",
-              footer = tagList(modalButton("OK")), easyClose = TRUE
-            )
-          )
-        } else if (!dir.exists(soundscape_path_val()) & !dir.exists(roi_tables_path_val())) {
-          showModal(
-            modalDialog(
-              title = "Setup error",
-              "The paths to Soundscapes and to ROI tables do not exist",
-              footer = tagList(modalButton("OK")), easyClose = TRUE
-            )
-          )
+          return()
         }
 
+        list_soundscapes <- list.files(
+          soundscape_path_val(),
+          pattern = ".wav", full.names = TRUE, ignore.case = TRUE
+        )
+        roi_tables_raw <- list.files(
+          roi_tables_path_val(),
+          pattern = ".csv", full.names = TRUE, ignore.case = TRUE
+        )
+        roi_tables <- data.frame(
+          roi_table_name = basename(roi_tables_raw),
+          roi_table_path = roi_tables_raw
+        )
+
+        if (length(list_soundscapes) == 0) {
+          showModal(modalDialog(
+            title = "Setup error",
+            "There are no readable WAV files in the provided Soundscape path",
+            footer = tagList(modalButton("OK")),
+            easyClose = TRUE
+          ))
+          return()
+        }
+
+        soundscape_data_res <- data.frame(
+          soundscape_path = list_soundscapes,
+          soundscape_file = basename(list_soundscapes)
+        )
+        soundscape_data_res$roi_table_prefix <- gsub(
+          ".wav|.WAV", "", soundscape_data_res$soundscape_file
+        )
+        soundscape_data_res$n_char <- nchar(soundscape_data_res$roi_table_prefix)
+        roi_table_files <- list.files(
+          roi_tables_path_val(),
+          pattern = ".csv", full.names = FALSE, ignore.case = TRUE
+        )
+        soundscape_data_res$has_table <- sapply(
+          soundscape_data_res$roi_table_prefix,
+          function(prefix) {
+            any(prefix == substr(roi_table_files, 1, nchar(prefix)))
+          }
+        )
+        updateSelectizeInput(
+          session, "soundscape_file",
+          choices = soundscape_data_res$soundscape_file, server = TRUE
+        )
+        soundscape_data(soundscape_data_res)
+        showNotification("Setup sucessfull!", type = "message")
+        roi_tables_data(roi_tables)
+
         if (!dir.exists(cuts_path_val())) {
-          showModal(
-            modalDialog(
-              title = "Setup error",
-              "The path to export audio and spectrograms from ROIs does not exist",
-              footer = tagList(modalButton("OK")), easyClose = TRUE
-            )
-          )
+          showModal(modalDialog(
+            title = "Setup error",
+            "The path to export audio and spectrograms from ROIs does not exist",
+            footer = tagList(modalButton("OK")),
+            easyClose = TRUE
+          ))
           disable("export_selected_cut")
         } else {
           enable("export_selected_cut")
@@ -981,165 +1032,108 @@ launch_segmentation_app <- function(
         )
       })
 
-      # Reactive object with the soundscape recording
+      # Reactive values for soundscape data
       rec_soundscape <- reactiveVal(NULL)
       duration_val <- reactiveVal(NULL)
       observe({
-        req(soundscape_data())
-        i <- which(soundscape_data()$soundscape_file == input$soundscape_file)
-        wav_path <- soundscape_data()$soundscape_path[i]
-
-        if (!is.null(wav_path) & length(wav_path) == 1) {
-          res <- readWave(wav_path)
-          duration_val(duration(res))
-
-          updateNoUiSliderInput(
-            session,
-            inputId = "zoom_time",
-            range = c(0, duration_val()),
-            value = c(0, ifelse(duration_val() >= 60, 60, duration_val()))
-          )
-          updateSelectizeInput(
-            session,
-            inputId = "soundscape_file",
-            label = paste0(
-              "Soundscape (", i, " of ", nrow(soundscape_data()), ")"
-            )
-          )
-          updateNoUiSliderInput(
-            session,
-            inputId = "zoom_freq",
-            range = c(0, (res@samp.rate / 2000) - 1)
-          )
-          rec_soundscape(res)
-        }
-      })
-
-      wav_path_val <- reactiveVal(NULL)
-
-      # Add safe cleanup function
-      safe_cleanup_temp_files <- function(temp_path, current_file) {
-        if (!dir.exists(temp_path)) {
+        req(soundscape_data(), input$soundscape_file)
+        wav_data <- soundscape_data()
+        current_index <- which(wav_data$soundscape_file == input$soundscape_file)
+        wav_path <- wav_data$soundscape_path[current_index]
+        if (is.null(wav_path) || length(wav_path) != 1 || !file.exists(wav_path)) {
           return()
         }
-
-        # Only remove files from temp directory
-        temp_files <- list.files(temp_path, pattern = "\\.wav$", full.names = TRUE)
-
-        # Remove old files except current
-        for (file in temp_files) {
-          if (file != current_file) {
-            try(file.remove(file), silent = TRUE)
-          }
-        }
-      }
-
-      observe({
-        # 1. Input Validation
-        req(soundscape_data(), rec_soundscape())
-        validate(need(input$soundscape_file, "No soundscape file selected"))
-
-        # 2. File Path Validation
-        i <- which(soundscape_data()$soundscape_file == input$soundscape_file)
-        wav_path <- soundscape_data()$soundscape_path[i]
-        wav_path_val(wav_path)
-
-        if (is.null(wav_path) || length(wav_path) != 1 ||
-          !file.exists(wav_path) ||
-          input$wav_player_type != "HTML player") {
-          removeUI(selector = "#visible_soundscape_clip_selector")
-          return()
-        }
-
-        # 3. Safe Audio Processing
         tryCatch(
           {
-            # Create temp file
-            temp_file <- tempfile(tmpdir = session_data$temp_path, fileext = ".wav") %>%
-              gsub("\\\\", "/", .)
+            wav_obj <- readWave(wav_path)
+            wav_duration <- duration(wav_obj)
+            duration_val(wav_duration)
+            rec_soundscape(wav_obj)
 
-            # Validate pitch shift
-            pitch_shift <- max(0.1, min(abs(input$pitch_shift), 10))
-
-            # Safe time range
-            end_time <- min(input$zoom_time[2], duration_val())
-            start_time <- max(0, input$zoom_time[1])
-
-            # Process audio
-            res_cut <- cutw(
-              rec_soundscape(),
-              from = start_time, to = end_time, output = "Wave"
+            # Update UI elements
+            updateNoUiSliderInput(
+              session,
+              inputId = "zoom_time",
+              range = c(0, wav_duration), value = c(0, min(wav_duration, 60))
             )
-
-            # Apply pitch shift
-            if (pitch_shift < 1) {
-              res_cut@samp.rate <- res_cut@samp.rate / pitch_shift
-            }
-
-            # Apply bandpass filter
-            if (isTRUE(input$visible_bp)) {
-              res_cut <- tryCatch(
-                {
-                  ffilter(
-                    res_cut,
-                    f = res_cut@samp.rate,
-                    from = max(0, (input$zoom_freq[1] / pitch_shift) * 1000),
-                    to = (input$zoom_freq[2] / pitch_shift) * 1000,
-                    wl = input$wl, output = "Wave", bandpass = TRUE
-                  )
-                },
-                error = function(e) {
-                  warning("Bandpass filter failed: ", e$message)
-                  res_cut # Return unfiltered audio on error
-                }
-              )
-            }
-
-            # Apply normalization
-            if (isTRUE(input$play_norm)) {
-              res_cut <- tryCatch(
-                {
-                  normalize(object = res_cut, unit = as.character(res_cut@bit), pcm = TRUE)
-                },
-                error = function(e) {
-                  warning("Normalization failed: ", e$message)
-                  res_cut # Return unnormalized audio on error
-                }
-              )
-            }
-
-            # Save processed audio
-            savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
-
-            # Update UI
-            removeUI(selector = "#visible_soundscape_clip_selector")
-            insertUI(
-              selector = "#visible_soundscape_clip",
-              where = "afterEnd",
-              ui = tags$audio(
-                id = "visible_soundscape_clip_selector",
-                src = paste0("audio/", basename(temp_file)),
-                type = "audio/wav", autostart = FALSE, controls = TRUE
-              )
+            updateSelectizeInput(
+              session,
+              inputId = "soundscape_file",
+              label = sprintf("Soundscape (%d of %d)", current_index, nrow(wav_data))
             )
-
-            # Safe cleanup of old files
-            safe_cleanup_temp_files(session_data$temp_path, temp_file)
+            updateNoUiSliderInput(
+              session,
+              inputId = "zoom_freq",
+              range = c(0, (wav_obj@samp.rate / 2000) - 1)
+            )
           },
           error = function(e) {
-            # Handle errors gracefully
             showNotification(
-              paste("Error processing audio:", e$message),
+              sprintf("Error reading wav file: %s", e$message),
               type = "error"
             )
-            removeUI(selector = "#visible_soundscape_clip_selector")
           }
         )
       })
 
-      # Add session cleanup
-      session$onSessionEnded(function() {
-        safe_cleanup_temp_files(session_data$temp_path, NULL)
+      wav_path_val <- reactiveVal(NULL)
+      observe({
+        req(soundscape_data(), rec_soundscape())
+        i <- which(soundscape_data()$soundscape_file == input$soundscape_file)
+        wav_path <- soundscape_data()$soundscape_path[i]
+        wav_path_val(wav_path)
+        if (!is.null(wav_path) & length(wav_path) == 1) {
+          if (file.exists(wav_path) & input$wav_player_type == "HTML player") {
+            temp_file <- gsub(
+              "\\\\", "/",
+              tempfile(tmpdir = session_data$temp_path, fileext = ".wav")
+            )
+            pitch_shift <- abs(input$pitch_shift)
+            res_cut <- cutw(
+              rec_soundscape(),
+              from = input$zoom_time[1],
+              to = ifelse(
+                input$zoom_time[2] > duration_val(),
+                duration_val(), input$zoom_time[2]
+              ),
+              output = "Wave"
+            )
+            if (input$pitch_shift < 1) {
+              res_cut@samp.rate <- res_cut@samp.rate / pitch_shift
+            }
+            if (isTRUE(input$visible_bp)) {
+              res_cut <- ffilter(
+                res_cut,
+                f = res_cut@samp.rate,
+                from = (input$zoom_freq[1] / pitch_shift) * 1000,
+                to = (input$zoom_freq[2] / pitch_shift) * 1000,
+                wl = input$wl, output = "Wave", bandpass = TRUE
+              )
+            }
+            if (isTRUE(input$play_norm)) {
+              res_cut <- normalize(
+                object = res_cut,
+                unit = as.character(res_cut@bit),
+                pcm <- TRUE
+              )
+            }
+            savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
+            removeUI(selector = "#visible_soundscape_clip_selector")
+            insertUI(
+              selector = "#visible_soundscape_clip", where = "afterEnd",
+              ui = tags$audio(
+                id = "visible_soundscape_clip_selector",
+                src = paste0("audio/", basename(temp_file)),
+                type = "audio/wav", autostart = FALSE, controls = TRUE # , style = "display: none;"
+              )
+            )
+            unlink("*.wav")
+            to_remove <- list.files(session_data$temp_path, pattern = ".wav", full.names = TRUE)
+            file.remove(to_remove[to_remove != temp_file])
+          } else {
+            removeUI(selector = "#visible_soundscape_clip_selector")
+          }
+        }
       })
 
       observeEvent(input$wav_player_type, {
@@ -1207,27 +1201,32 @@ launch_segmentation_app <- function(
         )
       })
 
-      # # Create a reactive object with the content of the active ROI table
+      # Create a reactive object with the content of the active ROI table
+      # Create a reactive object with the content of the active ROI table
       roi_values <- reactiveVal(NULL)
       observeEvent(input$roi_table_name, {
         req(alt_roitabs_meta(), input$roi_table_name, user_val())
         active_roi_table_path <- alt_roitabs_meta() %>%
           fsubset(roi_table_name == input$roi_table_name) %>%
           pull(roi_table_path)
-
-        # Unless the file exists, the reactive object remains empty
+        var_names <- c(
+          "soundscape_path", "soundscape_file", "roi_user", "roi_input_timestamp",
+          "roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
+          "roi_type", "roi_label_confidence", "roi_is_complete", "roi_comment",
+          "roi_wl", "roi_ovlp", "roi_sample_rate", "roi_pitch_shift"
+        )
+        create_empty_roi_df <- function() {
+          data.frame(matrix(NA, nrow = 0, ncol = length(var_names), dimnames = list(NULL, var_names)))
+        }
         if (file.exists(active_roi_table_path)) {
-          # res <- as.data.frame(fread(file = active_roi_table_path))
-          var_names <- c(
-            "soundscape_path", "soundscape_file", "roi_user", "roi_input_timestamp",
-            "roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
-            "roi_type", "roi_label_confidence", "roi_is_complete", "roi_comment",
-            "roi_wl", "roi_ovlp", "roi_sample_rate", "roi_pitch_shift"
-          )
           res_raw <- fread(file = active_roi_table_path) %>%
             as.data.frame()
-          missing_vars <- var_names[!var_names %in% names(res_raw)]
-          if (length(missing_vars) != 0) res_raw[missing_vars] <- NA
+          res_raw <- lapply(var_names, function(var) {
+            if (!var %in% names(res_raw)) {
+              res_raw[[var]] <- NA
+            }
+            return(res_raw)
+          })[[1]]
           res <- res_raw %>%
             transmute(
               soundscape_path = soundscape_path,
@@ -1248,115 +1247,142 @@ launch_segmentation_app <- function(
               roi_sample_rate = roi_sample_rate,
               roi_pitch_shift = roi_pitch_shift
             )
-          roi_values(res)
         } else {
-          res <- data.frame(
-            soundscape_path = NA, # new
-            soundscape_file = NA, # ex-soundscape
-            roi_user = NA, # ex-user
-            roi_input_timestamp = NA, # ex-time_stamp
-            roi_label = NA, # ex-label
-            roi_start = NA, # ex-start
-            roi_end = NA, # ex-end
-            roi_min_freq = NA, # fica como está
-            roi_max_freq = NA, # fica como está
-            roi_type = NA,
-            roi_label_confidence = NA, # label_certainty
-            roi_is_complete = NA,
-            roi_comment = NA, # ex-label_comment
-            roi_wl = NA,
-            roi_ovlp = NA,
-            roi_sample_rate = NA,
-            roi_pitch_shift = NA
-          )
-          roi_values(res)
+          res <- create_empty_roi_df()
         }
+        roi_values(res)
       })
 
       ruler <- reactiveVal(NULL)
+
+      # Define shared save function for buttons and hotkeys
+      save_roi_table <- function() {
+        req(roi_values(), input$roi_table_name, alt_roitabs_meta())
+        if (all(is.na(roi_values())) || fnrow(roi_values()) == 0) {
+          return()
+        }
+        filename <- file.path(roi_tables_path_val(), input$roi_table_name)
+        fwrite(roi_values(), filename, row.names = FALSE)
+        current_index <- which(
+          soundscape_data()$soundscape_file == input$soundscape_file
+        )
+        progress_tracker$df$has_table[current_index] <- TRUE
+        n_done <- sum(progress_tracker$df$has_table)
+        n_total <- nrow(progress_tracker$df)
+        updateProgressBar(
+          session = session, id = "progress_bar", value = n_done, total = n_total
+        )
+        showNotification("ROI table successfully exported", type = "message")
+        if (n_done == n_total) {
+          showNotification("All recordings were segmented!", type = "message")
+        }
+      }
+
+      # Define shared navigation function
+      navigate_soundscape <- function(direction) {
+        req(soundscape_data())
+        vec_soundscapes <- soundscape_data()$soundscape_file
+        current_index <- which(vec_soundscapes == input$soundscape_file)
+        if (input$nav_autosave && !all(is.na(roi_values())) && fnrow(roi_values()) > 0) {
+          save_roi_table()
+        }
+        new_index <- switch(direction,
+          "prev" = if (current_index > 1) current_index - 1 else current_index,
+          "next" = if (current_index < length(vec_soundscapes)) current_index + 1 else current_index
+        )
+        if (new_index != current_index) {
+          updateSelectInput(
+            session, "soundscape_file", selected = vec_soundscapes[new_index]
+          )
+        }
+      }
+
+      # Define shared navigation function for unsegmented soundscapes
+      navigate_unsegmented <- function(direction) {
+        req(progress_tracker$df)
+
+        # Get unsegmented soundscapes and current position
+        unsegmented_data <- progress_tracker$df %>%
+          filter(has_table == FALSE | soundscape_file == input$soundscape_file)
+
+        unsegmented_files <- unsegmented_data$soundscape_file
+        current_index <- which(unsegmented_files == input$soundscape_file)
+
+        # Handle autosave if enabled
+        if (input$nav_autosave && !all(is.na(roi_values())) && fnrow(roi_values()) > 0) {
+          save_roi_table()
+        }
+
+        # Calculate new index based on direction
+        new_index <- switch(direction,
+          "prev" = if (current_index > 1) current_index - 1 else current_index,
+          "next" = if (current_index < length(unsegmented_files)) current_index + 1 else current_index
+        )
+
+        # Update selection if index changed
+        if (new_index != current_index) {
+          updateSelectInput(
+            session, "soundscape_file",
+            selected = unsegmented_files[new_index]
+          )
+        }
+      }
 
       observeEvent(input$hotkeys, {
         req(roi_values())
         current_rois <- tibble(roi_values())
 
-        if (all(is.na(current_rois))) {
-          if (input$hotkeys == "e") {
-            roi_i <- tibble(
-              soundscape_path = wav_path_val(),
-              soundscape_file = input$soundscape_file,
-              roi_user = user_val(),
-              roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-              roi_label = input$label_name,
-              roi_start = input$roi_limits$xmin,
-              roi_end = input$roi_limits$xmax,
-              roi_min_freq = input$roi_limits$ymin,
-              roi_max_freq = input$roi_limits$ymax,
-              roi_type = input$signal_type,
-              roi_label_confidence = input$label_certainty, # label_certainty
-              roi_is_complete = input$signal_is_complete,
-              roi_comment = input$label_comment, # ex-label_comment
-              roi_wl = input$wl,
-              roi_ovlp = input$ovlp,
-              roi_sample_rate = rec_soundscape()@samp.rate,
-              roi_pitch_shift = input$pitch_shift
-            )
-            roi_values(roi_i)
-          }
-        } else {
-          if (input$hotkeys == "e") {
-            if (fnrow(current_rois) >= 1) {
-              roi_i <- tibble(
-                soundscape_path = wav_path_val(),
-                soundscape_file = input$soundscape_file,
-                roi_user = user_val(),
-                roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                roi_label = input$label_name,
-                roi_start = input$roi_limits$xmin,
-                roi_end = input$roi_limits$xmax,
-                roi_min_freq = input$roi_limits$ymin,
-                roi_max_freq = input$roi_limits$ymax,
-                roi_type = input$signal_type,
-                roi_label_confidence = input$label_certainty, # label_certainty
-                roi_is_complete = input$signal_is_complete,
-                roi_comment = input$label_comment, # ex-label_comment
-                roi_wl = input$wl,
-                roi_ovlp = input$ovlp,
-                roi_sample_rate = rec_soundscape()@samp.rate,
-                roi_pitch_shift = input$pitch_shift
-              )
-              res <- tibble(bind_rows(current_rois, roi_i))
-              roi_values(res)
-            }
-          }
-          if (input$hotkeys == "q") {
-            if (fnrow(current_rois) > 1) {
-              res <- head(current_rois, -1)
-              roi_values(res)
-            } else {
-              roi_i_empty <- tibble(
-                soundscape_path = NA,
-                soundscape_file = NA,
-                roi_user = NA,
-                roi_input_timestamp = NA,
-                roi_label = NA,
-                roi_start = NA,
-                roi_end = NA,
-                roi_min_freq = NA,
-                roi_max_freq = NA,
-                roi_type = NA,
-                roi_label_confidence = NA,
-                roi_is_complete = NA,
-                roi_comment = NA,
-                roi_wl = NA,
-                roi_ovlp = NA,
-                roi_sample_rate = NA,
-                roi_pitch_shift = NA
-              )
-              roi_values(roi_i_empty)
-            }
-          }
-        }
+         if (input$hotkeys == "e") {
+           # Create a new ROI entry
+           roi_i <- tibble(
+             soundscape_path = wav_path_val(),
+             soundscape_file = input$soundscape_file,
+             roi_user = user_val(),
+             roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+             roi_label = input$label_name,
+             roi_start = input$roi_limits$xmin,
+             roi_end = input$roi_limits$xmax,
+             roi_min_freq = input$roi_limits$ymin,
+             roi_max_freq = input$roi_limits$ymax,
+             roi_type = input$signal_type,
+             roi_label_confidence = input$label_certainty,
+             roi_is_complete = input$signal_is_complete,
+             roi_comment = input$label_comment,
+             roi_wl = input$wl,
+             roi_ovlp = input$ovlp,
+             roi_sample_rate = rec_soundscape()@samp.rate,
+             roi_pitch_shift = input$pitch_shift
+           )
 
+           # Update roi_values based on current_rois
+           if (all(is.na(current_rois))) {
+             roi_values(roi_i)
+           } else {
+             if (fnrow(current_rois) >= 1) {
+               res <- bind_rows(current_rois, roi_i)
+               roi_values(res)
+             }
+           }
+         } else if (input$hotkeys == "q") {
+           # Remove the last ROI entry if more than one exists
+           if (fnrow(current_rois) > 1) {
+             res <- head(current_rois, -1)
+             roi_values(res)
+           } else {
+             # Create an empty ROI entry if no entries remain
+             roi_i_empty <- tibble(
+               soundscape_path = NA, soundscape_file = NA, roi_user = NA,
+               roi_input_timestamp = NA, roi_label = NA, roi_start = NA,
+               roi_end = NA, roi_min_freq = NA, roi_max_freq = NA, roi_type = NA,
+               roi_label_confidence = NA, roi_is_complete = NA, roi_comment = NA,
+               roi_wl = NA, roi_ovlp = NA, roi_sample_rate = NA,
+               roi_pitch_shift = NA
+             )
+             roi_values(roi_i_empty)
+           }
+         }
+
+        # these should be kept dependent on hotkey pressing
         if (input$lock_label_certainty == FALSE) {
           updateSelectInput(session, "label_certainty", selected = "certain")
         }
@@ -1372,12 +1398,13 @@ launch_segmentation_app <- function(
             res <- data.frame(
               soundscape_path = wav_path_val(),
               soundscape_file = input$soundscape_file,
-              start = input$roi_limits$xmin,
-              end = input$roi_limits$xmax,
-              duration = input$roi_limits$xmax - input$roi_limits$xmin,
-              min_freq = input$roi_limits$ymin,
-              max_freq = input$roi_limits$ymax,
-              bandwidth = input$roi_limits$ymax - input$roi_limits$ymin
+              roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+              roi_start = input$roi_limits$xmin,
+              roi_end = input$roi_limits$xmax,
+              roi_duration = input$roi_limits$xmax - input$roi_limits$xmin,
+              roi_min_freq = input$roi_limits$ymin,
+              roi_max_freq = input$roi_limits$ymax,
+              roi_bandwidth = input$roi_limits$ymax - input$roi_limits$ymin
             )
             ruler(res)
           } else {
@@ -1385,207 +1412,128 @@ launch_segmentation_app <- function(
           }
         }
 
-        if (input$hotkeys == "w") {
-          if (input$zoom_time[1] < input$zoom_time[2] & duration_val() > 1) {
-            tlim <- input$zoom_time
-            timepad <- (tlim[2] - tlim[1]) / 4
-            zoom_val <- c(tlim[1] + timepad, tlim[2] - timepad)
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = zoom_val)
+        if (input$hotkeys %in% c("w", "s")) {
+          zoom_range <- input$zoom_time
+          if (zoom_range[1] >= zoom_range[2] || duration_val() <= 1) {
+            return()
           }
-        }
-
-        if (input$hotkeys == "s") {
-          if (input$zoom_time[1] < input$zoom_time[2] & duration_val() > 1) {
-            tlim <- input$zoom_time
-            timepad <- (tlim[2] - tlim[1]) / 4
-            t1 <- tlim[1] - (2 * timepad)
-            if (t1 < 0) t1 <- 0
-            t2 <- tlim[2] + (2 * timepad)
-            if (t2 >= duration_val()) {
-              if (duration_val() > 60) t2 <- 60 else t2 <- duration_val()
+          if (input$hotkeys == "w") {
+            current_width <- diff(zoom_range)
+            padding <- current_width * 0.25 # Zoom in: 25% padding
+            new_zoom <- c(
+              min(zoom_range[1] + padding, duration_val()),
+              max(zoom_range[2] - padding, 0)
+            )
+          } else {
+            current_width <- diff(zoom_range)
+            padding <- current_width * 0.5 # Zoom out: 50% padding
+            new_zoom <- c(
+              max(zoom_range[1] - padding, 0),
+              min(zoom_range[2] + padding, duration_val())
+            )
+            if (diff(new_zoom) > 60) {
+              new_zoom[2] <- min(new_zoom[1] + 60, duration_val())
             }
-            zoom_val <- c(t1, t2)
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = zoom_val)
+          }
+          if (new_zoom[1] < new_zoom[2]) {
+            updateNoUiSliderInput(session, inputId = "zoom_time", value = new_zoom)
           }
         }
 
         if (input$hotkeys == "alt+s") {
           req(duration_val())
-          if (duration_val() > 60) {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, 60))
-          } else {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, duration_val()))
-          }
+          updateNoUiSliderInput(
+            session,
+            inputId = "zoom_time", value = c(0, min(60, duration_val()))
+          )
         }
 
         if (input$hotkeys == "alt+w") {
           req(duration_val(), rec_soundscape())
-          if (duration_val() > 60) {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, 60))
-          } else {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, duration_val()))
-          }
-
           updateNoUiSliderInput(
             session,
-            inputId = "zoom_freq", value = c(0, (rec_soundscape()@samp.rate / 2000) - 1)
+            inputId = "zoom_time", value = c(0, min(60, duration_val()))
+          )
+          updateNoUiSliderInput(
+            session,
+            inputId = "zoom_freq",
+            value = c(0, (rec_soundscape()@samp.rate / 2000) - 1)
           )
         }
 
         if (input$hotkeys == "d") {
-          tlim <- input$zoom_time
-          timepad <- tlim[2] - tlim[1]
-          if (
-            tlim[2] >= duration_val() & tlim[1] >= (duration_val() - timepad) &
-              timepad == (duration_val() - (duration_val() - timepad))
-          ) {
-            updateNoUiSliderInput(
-              session,
-              inputId = "zoom_time",
-              value = c(duration_val() - timepad, duration_val())
-            )
+          zoom_range <- input$zoom_time
+          window_width <- diff(zoom_range)
+          step_size <- window_width / 2
+          is_at_end <- zoom_range[2] >= duration_val() &&
+            zoom_range[1] >= (duration_val() - window_width)
+          new_zoom <- if (is_at_end) {
+            c(duration_val() - window_width, duration_val())
           } else {
-            updateNoUiSliderInput(
-              session,
-              inputId = "zoom_time", value = tlim + (timepad / 2)
-            )
+            pmin(zoom_range + step_size, duration_val())
           }
+          updateNoUiSliderInput(session, inputId = "zoom_time", value = new_zoom)
         }
 
         if (input$hotkeys == "a") {
-          tlim <- input$zoom_time
-          timepad <- tlim[2] - tlim[1]
-          if (tlim[1] > 0 & tlim[2] > timepad) {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = tlim - timepad / 2)
+          zoom_range <- input$zoom_time
+          window_width <- diff(zoom_range)
+          step_size <- window_width / 2
+          is_at_start <- zoom_range[1] <= 0
+          new_zoom <- if (is_at_start) {
+            c(0, window_width)
           } else {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = c(0, timepad))
+            pmax(zoom_range - step_size, 0)
           }
-        }
-
-        if (input$hotkeys == "1") {
-          if (
-            !is.null(rec_soundscape()) &
-              input$wav_player_type %in% c("R session", "External player")
-          ) {
-            play(
-              cutw(
-                rec_soundscape(),
-                from = input$zoom_time[1], to = input$zoom_time[2],
-                output = "Wave"
-              )
-            )
-          }
-        }
-
-        if (input$hotkeys == "ctrl+e") {
-          req(roi_values(), input$roi_table_name, alt_roitabs_meta())
-          if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-            filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            fwrite(roi_values(), filename, row.names = FALSE)
-            progress_tracker$df$has_table[
-              which(soundscape_data()$soundscape_file == input$soundscape_file)
-            ] <- TRUE
-            n_done <- length(which(progress_tracker$df$has_table == TRUE))
-            n_total <- nrow(progress_tracker$df)
-            updateProgressBar(
-              session = session, id = "progress_bar",
-              value = n_done, total = n_total
-            )
-            showNotification("ROI table sucessfully exported", type = "message")
-            if (n_done == n_total) {
-              showNotification("All recordings were segmented!", type = "message")
-            }
-          }
+          updateNoUiSliderInput(session, inputId = "zoom_time", value = new_zoom)
         }
 
         if (input$hotkeys == "z") {
-          vec_soundscapes <- soundscape_data()$soundscape_file
-          i <- which(vec_soundscapes == input$soundscape_file)
-          if (input$nav_autosave == TRUE) {
-            if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-              filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-              fwrite(roi_values(), filename, row.names = FALSE)
-              progress_tracker$df$has_table[i] <- TRUE
-              n_done <- length(which(progress_tracker$df$has_table == TRUE))
-              n_total <- nrow(progress_tracker$df)
-              updateProgressBar(
-                session = session, id = "progress_bar",
-                value = n_done, total = n_total
-              )
-              showNotification("ROI table sucessfully exported", type = "message")
-              if (n_done == n_total) {
-                showNotification("All recordings were segmented!", type = "message")
-              }
-            }
-          }
-          if (length(vec_soundscapes) >= i & i > 1) {
-            updateSelectInput(
-              session, "soundscape_file",
-              selected = vec_soundscapes[i - 1]
-            )
-          }
+          navigate_soundscape("prev")
+        } else if (input$hotkeys == "c") {
+          navigate_soundscape("next")
         }
 
-        if (input$hotkeys == "c") {
-          vec_soundscapes <- soundscape_data()$soundscape_file
-          i <- which(vec_soundscapes == input$soundscape_file)
-          if (input$nav_autosave == TRUE) {
-            if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-              filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-              fwrite(roi_values(), filename, row.names = FALSE)
-              progress_tracker$df$has_table[i] <- TRUE
-              n_done <- length(which(progress_tracker$df$has_table == TRUE))
-              n_total <- nrow(progress_tracker$df)
-              updateProgressBar(
-                session = session, id = "progress_bar",
-                value = n_done, total = n_total
-              )
-              showNotification("ROI table sucessfully exported", type = "message")
-              if (n_done == n_total) {
-                showNotification("All recordings were segmented!", type = "message")
-              }
-            }
-          }
-          if (length(vec_soundscapes) > i & i >= 1) {
-            updateSelectInput(
-              session, "soundscape_file",
-              selected = vec_soundscapes[i + 1]
+        if (input$hotkeys == "ctrl+e") {
+          save_roi_table()
+        }
+
+        # todo - implementar play pela barra de espaço
+        if (input$hotkeys == "1") {
+          if (
+            !is.null(rec_soundscape()) &&
+              input$wav_player_type %in% c("R session", "External player")
+            ) {
+              play_within_R(
+                rec_soundscape(),
+                zoom_time = input$zoom_time, pitch_shift = input$pitch_shift,
+                visible_bp = input$visible_bp, zoom_freq = input$zoom_freq,
+                wl = input$wl, play_norm = input$play_norm
             )
           }
         }
       })
+      # play_within_R
 
-      # Play the soundscape
+      # todo - implementar play pela barra de espaço
       observeEvent(input$play_soundscape, {
         req(
-          input$wav_player_path, rec_soundscape(),
+          input$wav_player_path,
+          rec_soundscape(),
           input$wav_player_type %in% c("R session", "External player")
         )
-        rec_to_play <- rec_soundscape()
-        pitch_shift <- abs(input$pitch_shift)
-        if (input$pitch_shift < 1) {
-          rec_to_play@samp.rate <- rec_to_play@samp.rate / pitch_shift
-        }
-        rec_to_play <- cutw(
-          rec_to_play,
-          from = input$zoom_time[1] * pitch_shift, to = input$zoom_time[2] * pitch_shift,
-          output = "Wave"
+
+        # Validate zoom time before calling play function
+        validate(need(
+          input$zoom_time[1] < input$zoom_time[2], "Invalid time range selected"
+        ))
+
+        play_within_R(
+          rec_soundscape(),
+          zoom_time = input$zoom_time, pitch_shift = input$pitch_shift,
+          visible_bp = input$visible_bp, zoom_freq = input$zoom_freq,
+          wl = input$wl, play_norm = input$play_norm
         )
-        if (isTRUE(input$visible_bp)) {
-          rec_to_play <- fir(
-            rec_to_play,
-            f = rec_to_play@samp.rate,
-            from = (input$zoom_freq[1] / pitch_shift) * 1000,
-            to = (input$zoom_freq[2] / pitch_shift) * 1000,
-            wl = input$wl, output = "Wave"
-          )
-        }
-        if (isTRUE(input$play_norm)) {
-          rec_to_play <- normalize(
-            object = rec_to_play, unit = as.character(rec_to_play@bit), pcm = TRUE #
-          )
-        }
-        play(rec_to_play, player = "play")
       })
 
       progress_tracker <- reactiveValues(df = NULL)
@@ -1623,82 +1571,11 @@ launch_segmentation_app <- function(
         }
       })
 
-      observeEvent(input$save_roi, {
-        req(roi_values(), input$roi_table_name, alt_roitabs_meta())
-        if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-          filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-          fwrite(roi_values(), filename, row.names = FALSE)
-          progress_tracker$df$has_table[
-            which(soundscape_data()$soundscape_file == input$soundscape_file)
-          ] <- TRUE
-          n_done <- length(which(progress_tracker$df$has_table == TRUE))
-          n_total <- nrow(progress_tracker$df)
-          updateProgressBar(
-            session = session, id = "progress_bar",
-            value = n_done, total = n_total
-          )
-          showNotification("ROI table sucessfully exported", type = "message")
-          if (n_done == n_total) {
-            showNotification("All recordings were segmented!", type = "message")
-          }
-        }
-      })
-
-      observeEvent(input$prev_soundscape, {
-        vec_soundscapes <- soundscape_data()$soundscape_file
-        i <- which(vec_soundscapes == input$soundscape_file)
-        if (input$nav_autosave == TRUE) {
-          if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-            filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            fwrite(roi_values(), filename, row.names = FALSE)
-            progress_tracker$df$has_table[i] <- TRUE
-            n_done <- length(which(progress_tracker$df$has_table == TRUE))
-            n_total <- nrow(progress_tracker$df)
-            updateProgressBar(
-              session = session, id = "progress_bar",
-              value = n_done, total = n_total
-            )
-            showNotification("ROI table sucessfully exported", type = "message")
-            if (n_done == n_total) {
-              showNotification("All recordings were segmented!", type = "message")
-            }
-          }
-        }
-        if (length(vec_soundscapes) >= i & i > 1) {
-          updateSelectInput(
-            session, "soundscape_file",
-            selected = vec_soundscapes[i - 1]
-          )
-        }
-      })
-
-      observeEvent(input$next_soundscape, {
-        vec_soundscapes <- soundscape_data()$soundscape_file
-        i <- which(vec_soundscapes == input$soundscape_file)
-        if (input$nav_autosave == TRUE) {
-          if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-            filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            fwrite(roi_values(), filename, row.names = FALSE)
-            progress_tracker$df$has_table[i] <- TRUE
-            n_done <- length(which(progress_tracker$df$has_table == TRUE))
-            n_total <- nrow(progress_tracker$df)
-            updateProgressBar(
-              session = session, id = "progress_bar",
-              value = n_done, total = n_total
-            )
-            showNotification("ROI table sucessfully exported", type = "message")
-            if (n_done == n_total) {
-              showNotification("All recordings were segmented!", type = "message")
-            }
-          }
-        }
-        if (length(vec_soundscapes) > i & i >= 1) {
-          updateSelectInput(
-            session, "soundscape_file",
-            selected = vec_soundscapes[i + 1]
-          )
-        }
-      })
+      observeEvent(input$save_roi, save_roi_table())
+      observeEvent(input$prev_soundscape, navigate_soundscape("prev"))
+      observeEvent(input$next_soundscape, navigate_soundscape("next"))
+      observeEvent(input$next_soundscape_noroi, navigate_unsegmented("next"))
+      observeEvent(input$prev_soundscape_noroi, navigate_unsegmented("prev"))
 
       observeEvent(input$no_soi, {
         showModal(modalDialog(
@@ -1715,10 +1592,9 @@ launch_segmentation_app <- function(
 
       observeEvent(input$confirm_no_soi, {
         req(
-          roi_values(), wav_path_val(), user_val(), rec_soundscape(),
+          wav_path_val(), user_val(), rec_soundscape(),
           soundscape_data()
         )
-        # create it
         roi_i <- tibble(
           soundscape_path = wav_path_val(),
           soundscape_file = input$soundscape_file,
@@ -1739,108 +1615,15 @@ launch_segmentation_app <- function(
           roi_pitch_shift = input$pitch_shift
         )
         roi_values(roi_i)
-        # save it
-        filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-        fwrite(roi_values(), filename, row.names = FALSE)
-        progress_tracker$df$has_table[
-          which(soundscape_data()$soundscape_file == input$soundscape_file)
-        ] <- TRUE
-        n_done <- length(which(progress_tracker$df$has_table == TRUE))
-        n_total <- nrow(progress_tracker$df)
-        updateProgressBar(
-          session = session, id = "progress_bar",
-          value = n_done, total = n_total
-        )
+        save_roi_table()
         showNotification(
-          "ROI table sucessfully exported (marked as dissmissed)",
+          "Recording marked as having no signals of interest",
           type = "message"
         )
-        if (n_done == n_total) {
-          showNotification("All recordings were segmented!", type = "message")
-        }
-        # next
-        vec_soundscapes <- soundscape_data()$soundscape_file
-        i <- which(vec_soundscapes == input$soundscape_file)
-        if (length(vec_soundscapes) > i & i >= 1) {
-          updateSelectInput(
-            session, "soundscape_file",
-            selected = vec_soundscapes[i + 1]
-          )
-        }
+        navigate_soundscape("next")
         removeModal()
       })
 
-      # todo Adicionar versao para hotkeys no F
-
-      observeEvent(input$next_soundscape_noroi, {
-        noroi_data <- progress_tracker$df %>%
-          filter(
-            has_table == FALSE | soundscape_file == input$soundscape_file
-          )
-        noroi_vec_soundscapes <- noroi_data$soundscape_file
-        noroi_i <- which(noroi_vec_soundscapes == input$soundscape_file)
-        if (input$nav_autosave == TRUE) {
-          if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-            vec_soundscapes <- soundscape_data()$soundscape_file
-            i <- which(vec_soundscapes == input$soundscape_file)
-            filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            fwrite(roi_values(), filename, row.names = FALSE)
-            progress_tracker$df$has_table[i] <- TRUE
-            n_done <- length(which(progress_tracker$df$has_table == TRUE))
-            n_total <- nrow(progress_tracker$df)
-            updateProgressBar(
-              session = session, id = "progress_bar",
-              value = n_done, total = n_total
-            )
-            showNotification("ROI table sucessfully exported", type = "message")
-            if (n_done == n_total) {
-              showNotification("All recordings were segmented!", type = "message")
-            }
-          }
-        }
-        if (length(noroi_vec_soundscapes) > noroi_i & noroi_i >= 1) {
-          updateSelectInput(
-            session, "soundscape_file",
-            selected = noroi_vec_soundscapes[noroi_i + 1]
-          )
-        }
-      })
-
-      # todo Adicionar versao para hotkeys no T
-
-      observeEvent(input$prev_soundscape_noroi, {
-        noroi_data <- progress_tracker$df %>%
-          filter(
-            has_table == FALSE | soundscape_file == input$soundscape_file
-          )
-        noroi_vec_soundscapes <- noroi_data$soundscape_file
-        noroi_i <- which(noroi_vec_soundscapes == input$soundscape_file)
-        if (input$nav_autosave == TRUE) {
-          if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
-            vec_soundscapes <- soundscape_data()$soundscape_file
-            i <- which(vec_soundscapes == input$soundscape_file)
-            filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-            fwrite(roi_values(), filename, row.names = FALSE)
-            progress_tracker$df$has_table[i] <- TRUE
-            n_done <- length(which(progress_tracker$df$has_table == TRUE))
-            n_total <- nrow(progress_tracker$df)
-            updateProgressBar(
-              session = session, id = "progress_bar",
-              value = n_done, total = n_total
-            )
-            showNotification("ROI table sucessfully exported", type = "message")
-            if (n_done == n_total) {
-              showNotification("All recordings were segmented!", type = "message")
-            }
-          }
-        }
-        if (length(noroi_vec_soundscapes) >= noroi_i & noroi_i > 1) {
-          updateSelectInput(
-            session, "soundscape_file",
-            selected = noroi_vec_soundscapes[noroi_i - 1]
-          )
-        }
-      })
 
       # Spectrogram ----------------------------------------------------------------
 
@@ -1859,11 +1642,51 @@ launch_segmentation_app <- function(
         spectro_soundscape_raw(res)
       })
 
-      # # IN case necessary, process the spectrogram outside of the output object
-      # rois_to_plot <- reactiveVal(NULL)
-      # spectro_soundscape <- reactiveVal(NULL)
-      # observe({
-      # })
+      # Helper function to extract acoustic measurements from a selection
+      # todo - adicionar novas variaveis de acordo com a necessidade
+      # todo - colocar essa função para fora do app para uso geral
+      # todo - adicionar variaveis do warbleR para o calculo de medidas acusticas
+      # todo - adicionar plot dos contornos de frequencia
+                  # res <- data.frame(
+                  #   soundscape_path = wav_path_val(),
+                  #   soundscape_file = input$soundscape_file,
+                  #   start = input$roi_limits$xmin,
+                  #   end = input$roi_limits$xmax,
+                  #   duration = input$roi_limits$xmax - input$roi_limits$xmin,
+                  #   min_freq = input$roi_limits$ymin,
+                  #   max_freq = input$roi_limits$ymax,
+                  #   bandwidth = input$roi_limits$ymax - input$roi_limits$ymin
+                  # )
+      extract_acoustic_measurements <- function(rec, ruler_data, wl, ovlp) {
+        if (is.null(rec) || is.null(ruler_data)) {
+          return(NULL)
+        }
+        snd_selection <- cutw(
+          rec,
+          f = rec@samp.rate, from = ruler_data$roi_start, to = ruler_data$roi_end,
+          units = "seconds", output = "Wave"
+        )
+        dom_freq <- mean(
+          dfreq(
+            snd_selection,
+            f = snd_selection@samp.rate, wl = wl, ovlp = ovlp,
+            bandpass = c(ruler_data$roi_min_freq, ruler_data$roi_max_freq) * 1000,
+            plot = FALSE
+          )[, 2]
+        )
+        ac_stats <- acoustat(
+          snd_selection,
+          f = snd_selection@samp.rate, wl = wl, ovlp = ovlp, fraction = 80,
+          flim = c(ruler_data$roi_min_freq, ruler_data$roi_max_freq),
+          plot = FALSE
+        )
+        list(
+          dom_freq = dom_freq,
+          ac_stats = ac_stats[-c(1, 2)] %>%
+            as.data.frame() %>%
+            transmute(t10 = time.P1, t90 = time.P2, f10 = freq.P1, f90 = freq.P2)
+        )
+      }
 
       output$spectrogram_plot <- renderPlot(execOnResize = TRUE, {
         req(
@@ -1881,8 +1704,6 @@ launch_segmentation_app <- function(
           input$color_scale %in% c("greyscale 1", "greyscale 2"),
           "black", "white"
         )
-        # Sys.sleep(0.3)
-
 
         spectro_plot <- spectro_soundscape_raw() +
           coord_cartesian(
@@ -1901,13 +1722,15 @@ launch_segmentation_app <- function(
           labs(x = "Time (s)", y = "Frequency (kHz)") +
           theme(legend.position = "none")
 
+        # todo - add more resolution to the axis values
+        # todo - add freqeuncy and time guides
+
 
         rois_to_plot <- roi_values() |>
           mutate(id = row_number()) |>
           fsubset(
             roi_start < zoom_time[2] & roi_end > zoom_time[1]
           )
-
 
         if (nrow(rois_to_plot) > 0) {
           if (unique(rois_to_plot$soundscape_file) == input$soundscape_file) {
@@ -1947,137 +1770,71 @@ launch_segmentation_app <- function(
           }
         }
 
+        # Add ruler if the content is not null
+        # todo - adicionar novas variaveis de acordo com a necessidade
+        # todo - fazer a posição mudar para evitar sobreposição com os limites do plot
         if (!is.null(ruler())) {
-          snd_to_measure <- cutw(
-            rec_soundscape(),
-            f = rec_soundscape()@samp.rate,
-            from = ruler()$start, to = ruler()$end, units = "seconds",
-            output = "Wave"
-          )
-
-          dom_freq <- mean(
-            dfreq(
-              snd_to_measure,
-              f = snd_to_measure@samp.rate, wl = input$wl, ovlp = input$ovlp,
-              bandpass = c(ruler()$min_freq, ruler()$max_freq) * 1000,
-              plot = FALSE
-            )[, 2]
-          )
-
-          ac_stats <- acoustat(
-            snd_to_measure,
-            f = snd_to_measure@samp.rate, wl = input$wl, ovlp = input$ovlp,
-            fraction = 80, plot = FALSE,
-            # tlim = c(ruler()$start, ruler()$end),
-            flim = c(ruler()$min_freq, ruler()$max_freq)
-          ) %>%
-            .[-c(1, 2)] %>%
-            as.data.frame() %>%
-            transmute(
-              t10 = time.P1,
-              t90 = time.P2,
-              f10 = freq.P1,
-              f90 = freq.P2
-            )
-
           spectro_plot <- spectro_plot +
-            annotate(
-              "rect",
-              alpha = 0.2, linewidth = 0.5, linetype = "solid",
-              color = "yellow",
-              xmin = ruler()$start, xmax = ruler()$end,
-              ymin = ruler()$min_freq, ymax = ruler()$max_freq
-            ) +
-            annotate(
-              "label",
-              alpha = 1, color = "black",
-              hjust = c(
-                "right", "right", "right", "right", "right", "left"
-              ),
-              vjust = c(
-                "top", "bottom", "bottom", "top", "top", "center"
-              ),
-              size = rep(5, 6),
-              angle = c(
-                90, 0, 0, 90, 0, 0
-              ),
-              x = c(
-                ruler()$end,
-                ruler()$start, ruler()$start,
-                ruler()$end - (ruler()$duration / 2),
-                ruler()$start, ruler()$end
-              ),
-              y = c(
-                ruler()$min_freq,
-                ruler()$min_freq, ruler()$max_freq,
-                ruler()$min_freq,
-                ruler()$max_freq - (ruler()$bandwidth / 2),
-                dom_freq
-              ),
-              label = c(
-                paste0("t=", round(ruler()$end, 3)),
-                paste0(
-                  "f0=", round(ruler()$min_freq, 3), "\n",
-                  "t0=", round(ruler()$start, 3)
-                ),
-                paste0("f=", round(ruler()$max_freq, 3)),
-                paste0("d=", round(ruler()$duration, 3)),
-                paste0("bw=", round(ruler()$bandwidth, 3)),
-                paste0("fdom=", round(dom_freq, 3))
-              )
-            ) +
-            annotate(
-              "segment",
-              color = "yellow", size = 0.5,
-              linetype = "solid",
-              x = ruler()$start,
-              xend = ruler()$end,
-              y = dom_freq
-            ) +
-            annotate(
-              "segment",
-              color = "yellow", size = 0.5, linetype = rep("dotted", 4),
-              x = c(ruler()$start, ruler()$start, ruler()$start + ac_stats$t10, ruler()$start + ac_stats$t90),
-              xend = c(ruler()$end, ruler()$end, ruler()$start + ac_stats$t10, ruler()$start + ac_stats$t90),
-              y = c(ac_stats$f10, ac_stats$f90, ruler()$min_freq, ruler()$min_freq),
-              yend = c(ac_stats$f10, ac_stats$f90, ruler()$max_freq, ruler()$max_freq)
+            geom_rect(
+              data = ruler(),
+              aes(xmin = roi_start, xmax = roi_end, ymin = roi_min_freq, ymax = roi_max_freq),
+              fill = NA, color = "yellow", linetype = "dashed"
             )
+
+          tryCatch(
+            {
+              measurements <- extract_acoustic_measurements(
+                rec = rec_soundscape(), ruler_data = ruler(),
+                wl = input$wl, ovlp = input$ovlp
+              )
+              if (!is.null(measurements)) {
+                measurement_text <- paste0(
+                  "ROI Measurements\n",
+                  "═══════════════\n",
+                  "Time Parameters\n",
+                  sprintf("%-12s %8.3f s\n", "Start:", ruler()$roi_start),
+                  sprintf("%-12s %8.3f s\n", "End:", ruler()$roi_end),
+                  sprintf("%-12s %8.3f s\n", "Duration:", ruler()$roi_duration),
+                  sprintf("%-12s %8.3f s\n", "T10-T90:", with(measurements$ac_stats, t90 - t10)),
+                  "\nFrequency Parameters\n",
+                  sprintf("%-10s %8.3f kHz\n", "Min Freq:", ruler()$roi_min_freq),
+                  sprintf("%-10s %8.3f kHz\n", "Max Freq:", ruler()$roi_max_freq),
+                  sprintf("%-10s %8.3f kHz\n", "Bandwidth:", ruler()$roi_bandwidth),
+                  sprintf("%-10s %8.3f kHz\n", "F10-F90:", with(measurements$ac_stats, f90 - f10)),
+                  sprintf("%-10s %8.3f kHz\n", "Dom. Freq:", measurements$dom_freq)
+                )
+                spectro_plot <- spectro_plot +
+                  annotate(
+                    "label",
+                    label = measurement_text, x = Inf, y = -Inf, hjust = 1,
+                    vjust = 0, color = "yellow", fill = "black", alpha = 0.8,
+                    label.padding = unit(0.8, "lines"), label.size = 0.5,
+                    size = 4, family = "mono"
+                  )
+              }
+            },
+            error = function(e) {
+              warning("Error calculating measurements: ", e$message)
+            }
+          )
         }
-
-
         spectro_plot
       })
 
       output$res_table <- renderDT(
         {
           req(roi_values())
-          datatable(
-            roi_values(),
-            editable = TRUE,
-            colnames = c(
-              "soundscape_path", "soundscape_file", "roi_user", "roi_input_timestamp",
-              "roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
-              "roi_type", "roi_label_confidence", "roi_is_complete", "roi_comment",
-              "roi_wl", "roi_ovlp", "roi_sample_rate", "roi_pitch_shift"
-            ),
-            options = list(
-              pageLength = 50, info = FALSE, dom = "tpl",
-              columnDefs = list(
-                list(
-                  visible = FALSE,
-                  targets = c(
-                    "soundscape_path", "soundscape_file", "roi_user",
-                    "roi_input_timestamp", "roi_sample_rate"
-                  )
-                )
-              )
-            )
-          ) %>%
-            formatRound(c("roi_start", "roi_end"), 3) %>%
-            formatRound(c("roi_min_freq", "roi_max_freq"), 1)
+          roi_df <- roi_values()
+          if (nrow(roi_df) == 0) {
+            return(data.frame())
+          }
+          roi_df[, c(
+            "roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
+            "roi_type", "roi_label_confidence", "roi_is_complete", "roi_comment"
+          )]
         },
         server = TRUE,
-        options = list(lengthChange = FALSE)
+        options = list(lengthChange = FALSE, pageLength = 20, scrollX = TRUE)
       )
 
       observeEvent(input$res_table_cell_edit, {
@@ -2230,19 +1987,36 @@ launch_segmentation_app <- function(
 
       # Add safe cleanup function
       safe_cleanup_temp_files <- function(temp_path, current_file = NULL) {
-        if (!dir.exists(temp_path)) {
-          return()
+        if (is.null(temp_path) || !dir.exists(temp_path)) {
+          return(invisible(NULL))
         }
-        # Remove all wav files in temp directory
-        sapply(
-          list.files(temp_path, pattern = "\\.wav$", full.names = TRUE),
-          file.remove
+        temp_files <- list.files(
+          path = temp_path, pattern = "\\.wav$", full.names = TRUE
         )
+        for (file in temp_files) {
+          if (!identical(file, current_file) && file.exists(file)) {
+            try(file.remove(file), silent = TRUE)
+          }
+        }
+        invisible(NULL)
       }
+
+      # Handle manual exit
       observeEvent(input$confirm_exit, {
-        # Clean temp files and stop app
-        safe_cleanup_temp_files(session_data$temp_path, NULL)
+        tryCatch(
+          {
+            safe_cleanup_temp_files(session_data$temp_path)
+          },
+          error = function(e) {
+            warning("Error cleaning temporary files: ", e$message)
+          }
+        )
         stopApp()
+      })
+
+      # Handle session end
+      session$onSessionEnded(function() {
+        safe_cleanup_temp_files(session_data$temp_path)
       })
 
       # teste_val <- reactiveVal(NULL)
@@ -2254,198 +2028,83 @@ launch_segmentation_app <- function(
       # General popover options
       pop_up_opt <- list(delay = list(show = 1000, hide = 0))
 
-      # Side bar menu - User setup
-      addTooltip(session,
-        id = "user",
-        title = "Identify yourself in the recommended format: 'Rosa G. L. M. (avoid commas)",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "soundscapes_path",
-        title = "Parent location that contains only template files or folders of these",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "roi_tables_path",
-        title = "Path to the location where ROI tables will be exported to",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "cuts_path",
-        title = "Path to the location where audio cuts and spectrograms will be exported to",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "user_setup_confirm",
-        title = "Setup confirmation required to start the segmentation",
-        placement = "right", trigger = "hover", options = pop_up_opt
+      # Define tooltips configuration
+      tooltips <- list(
+        # User Setup
+        user = "Format: 'FirstName I. S.' (no commas)",
+        soundscapes_path = "Root folder containing soundscape files",
+        roi_tables_path = "Output folder for ROI tables",
+        cuts_path = "Output folder for audio cuts and spectrograms",
+        user_setup_confirm = "Confirm settings to begin",
+
+        # Session Setup
+        label_angle = "Label rotation angle (90° recommended)",
+        wl = "FFT window length (affects time/frequency resolution)",
+        ovlp = "Window overlap % (higher = better resolution)",
+        pitch_shift = "Adjust playback pitch for ultrasound",
+        dyn_range = "Amplitude range shown in spectrogram",
+        show_label = "Toggle ROI labels visibility",
+        color_scale = "Spectrogram color scheme",
+        wav_player_type = "Audio playback method",
+        wav_player_path = "External player executable path",
+        default_pars = "Reset to default settings",
+
+        # Spectrogram Controls
+        zoom_freq = "Adjust visible frequency range",
+        zoom_time = "Adjust visible time range",
+
+        # Navigation
+        prev_soundscape_noroi = "Previous file",
+        prev_soundscape = "Previous unprocessed file",
+        play_soundscape = "Play visible section",
+        next_soundscape = "Next file",
+        next_soundscape_noroi = "Next unprocessed file",
+        no_soi = "Mark the whole spectrogram as No signals of interest (erase all ROIs)",
+
+        # ROI Input
+        soundscape_file = "Select current soundscape",
+        roi_table_name = "Select ROI table",
+        sp_list = "Choose label list",
+        label_name = "Name for next ROI",
+        signal_type = "Type of sound",
+        label_certainty = "Confidence in identification",
+        lock_label_certainty = "Lock label certainty value",
+        signal_is_complete = "Signal fully captured in ROI",
+        lock_is_complete = "Lock signal completeness value",
+        label_comment = "Notes (use _ or ; as separators)",
+        lock_comment = "Lock label comment",
+
+        # ROI Actions
+        save_roi = "Save current ROI table",
+        export_new_roi_table = "Create new ROI table",
+        export_selected_cut = "Export selected ROI audio",
+        delete_selected_rois = "Remove selected ROIs"
       )
 
-      #  # Side bar menu - Session setup
-      # addTooltip(
-      #   session,
-      #   id = "fastdisp",
-      #   title = "Requires que 'fftw' package",
-      #   placement = "right", trigger = "hover", options = pop_up_opt
-      # )
-      addTooltip(session,
-        id = "label_angle",
-        title = "Adjust the angle of labels in the spectrogram. Recommended 90º for a less cluttering.",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "wl",
-        title = "Tradeoff between time and frequency resolution",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "ovlp",
-        title = "Increase if more resultion is needed. Performance may decrease for values above 80%",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "pitch_shift",
-        title = "Adjust the pitch of ultrasound recordings to improve visualization",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-
-      addTooltip(session,
-        id = "dyn_range",
-        title = "Adjust what portion of the amplitude scale is shown in the spectrograms",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "show_label",
-        title = "Show the label alongside the ROI. Hide in case of ROI cluttering",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "color_scale",
-        title = "Available palettes for representing spectrogram colors",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "wav_player_type",
-        title = "Select the method to play wav files",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "wav_player_path",
-        title = "Necessary when 'External plyer' is selected. If the executable is not available, 'HTML player' will be automatically selected",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "default_pars",
-        title = "Set spectrogram parameters back to the default",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-
-      # Body - Spectrogram parameters
-
-      addTooltip(session,
-        id = "zoom_freq",
-        title = "Zoom in, zoom out and slide to navigate in the fdrequency axis (affects exported spectrograms)",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "zoom_time",
-        title = "Zoom in, zoom out and slide to navigate in the time axis",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-
-      # Box - Soundscape spectrogram
-
-      addTooltip(session,
-        id = "prev_soundscape_noroi",
-        title = "Navigate to the previous soundscape",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "prev_soundscape",
-        title = "Navigate to the previous soundscape without ROIs",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "play_soundscape",
-        title = "Play visible portion of the soundscape",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "next_soundscape",
-        title = "Navigate to the next soundscape",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "next_soundscape_noroi",
-        title = "Navigate to the next soundscape without ROIs",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-
-      # Box - Setup and Input
-
-      addTooltip(session,
-        id = "soundscape_file",
-        title = "Select one of the available soundscapes",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "roi_table_name",
-        title = "Alternative ROI tables available for the selected soundscape",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "sp_list",
-        title = "Select available lists of labels for autocompletion",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "label_name",
-        title = "Label the content of the next roi",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "signal_type",
-        title = "Identify the signal type",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "label_certainty",
-        title = "Inform the certainty level for the label",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "signal_is_complete",
-        title = "Inform if the entire target signal is clearly within ROI limits",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "label_comment",
-        title = 'Provide additional information (avoid "quotation marks" and separate different fields of content with "_" or ";") ',
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-
-      # Box - ROI table
-
-      addTooltip(session,
-        id = "save_roi",
-        title = "Export the changes made to the currently active ROI table",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "export_new_roi_table",
-        title = "Export new ROI table",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "export_selected_cut",
-        title = "Export audio cuts of the ROIs selected in the table below",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      addTooltip(session,
-        id = "delete_selected_rois",
-        title = "Delete the ROIs selected in the table below",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
+      # Apply tooltips
+      for (id in names(tooltips)) {
+        addTooltip(
+          session,
+          id = id,
+          title = tooltips[[id]],
+          placement = if (id %in% c(
+            "zoom_time", "soundscape_file", "roi_table_name",
+            "sp_list", "label_name", "signal_type",
+            "label_certainty", "signal_is_complete",
+            "label_comment", "save_roi", "export_new_roi_table",
+            "export_selected_cut", "delete_selected_rois",
+            "prev_soundscape_noroi", "prev_soundscape",
+            "play_soundscape", "next_soundscape",
+            "next_soundscape_noroi"
+          )) {
+            "bottom"
+          } else {
+            "right"
+          },
+          trigger = "hover",
+          options = pop_up_opt
+        )
+      }
     }
   )
 }
