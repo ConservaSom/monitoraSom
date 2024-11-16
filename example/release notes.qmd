@@ -12,13 +12,21 @@ format: pdf
   - Aumentada a resolução do slider de frequência para 0.1kHz
   - Uso de funções helpers internamente para evitar repetição de código e aumentar a escalabilidade do app.
   - Foi reformulada a forma com as medições do espectro são exibidas, agora em um box no canto inferior direito do spectrograma.
+  - Modificação do atalho para play/pause do audio para a barra de espaço, que agora funciona tanto para "HTML player" quanto para "R session" e "External player".
+
+- R/launch_validation_app.R
+  - Descontinuada a função de exportar diagnósticos de validação diretamente do app de validação. Agora a obtenção desses diagnósticos, bem como da validação por sobreposição temporal, devem ser obtidos a partir da função `diagnostic_validations_i()`. Apesar disso os diagnósticos continuam sendo exibidos e atualizados em tempo real no app de validação, que serão idênticos aos diagnósticos obtidos por meio da função `diagnostic_validations_i()`.
+  - Refatoração geral do código para melhorar a estabilidade e a escalabilidade do app.
+
+- R/fast_spectro.R
+  - Adicionado o argumento `freq_guide_interval` para controlar o intervalo entre as linhas de grade de frequência no spectrograma. Para ocultar as linhas de grade de frequência, o usuário deve definir `freq_guide_interval = 0`.
+  - Adicionado o argumento `time_guide_interval` para controlar o intervalo entre as linhas de grade de tempo no spectrograma. Para ocultar as linhas de grade de tempo, o usuário deve definir `time_guide_interval = 0`.
+
 - R/fetch_template_metadata.R
   - Descontinuação do métod "roi_table" para extração de metadados de templates. O método será reimplementado de forma mais consistente e robusta no futuro.
 - R/fetch_score_peaks_n.R
   - Adição de paralelização com o argumento `ncores`.
-- R/launch_validation_app.R
-  - Descontinuada a função de exportar diagnósticos de validação diretamente do app de validação. Agora a obtenção desses diagnósticos, bem como da validação por sobreposição temporal, devem ser obtidos a partir da função `diagnostic_validations_i()`. Apesar disso os diagnósticos continuam sendo exibidos e atualizados em tempo real no app de validação, que serão idênticos aos diagnósticos obtidos por meio da função `diagnostic_validations_i()`.
-  - Refatoração geral do código para melhorar a estabilidade e a escalabilidade do app.
+
 - diagnostic_validations_i.R
   - Adicionada uma camada de checagem para impedir erros de execução quando houver detecções de mais de um template no data frame a ser validado.
 - NOVA FUNÇÃO: diagnostic_validations_n.R

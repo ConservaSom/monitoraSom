@@ -93,8 +93,10 @@
 launch_segmentation_app <- function(
     project_path = NULL, preset_path = NULL, user = NULL,
     soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
-    labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)", label_angle = 90,
-    show_label = TRUE, dyn_range = c(-60, 0), dyn_range_bar = c(-144, 0),
+    labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)",
+    label_angle = 90, show_label = TRUE,
+    time_guide_interval = 3, freq_guide_interval = 2,
+    dyn_range = c(-60, 0), dyn_range_bar = c(-144, 0),
     wl = 1024, ovlp = 0, color_scale = "inferno",
     wav_player_type = "HTML player", wav_player_path = "play",
     visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
@@ -191,24 +193,31 @@ launch_segmentation_app <- function(
       session_data$cuts_path <- cuts_path
     }
   }
-  # Validate "label_angle" variable: must be numeric, within 0-180 range, and a multiple of 10
-  if (!is.numeric(label_angle)) {
-    stop("Error! 'label_angle' must be numeric.")
-  }
 
-  if (label_angle < 0 || label_angle > 180) {
-    stop("Error! 'label_angle' must be between 0 and 180.")
+  if (
+    !is.numeric(label_angle) ||
+      !all(c(label_angle %% 10 == 0, label_angle >= 0, label_angle <= 90))
+  ) {
+    stop("Error! 'label_angle' must be numeric, a multiple of 10 between 0 and 90.")
   }
-
-  if (label_angle %% 10 != 0) {
-    stop("Error! 'label_angle' must be a multiple of 10.")
-  }
-
   session_data$label_angle <- label_angle
+
   if (!is.logical(show_label)) {
     stop("Error! 'show_label' must be a logical value (TRUE or FALSE).")
   }
   session_data$show_label <- show_label
+
+  # validate time_guide_interval and freq_guide_interval
+  if (!is.numeric(time_guide_interval) || time_guide_interval <= 0) {
+    session_data$time_guide_interval <- 3 # Default value
+  } else {
+    session_data$time_guide_interval <- time_guide_interval
+  }
+  if (!is.numeric(freq_guide_interval) || freq_guide_interval <= 0) {
+    session_data$freq_guide_interval <- 2 # Default value
+  } else {
+    session_data$freq_guide_interval <- freq_guide_interval
+  }
 
   if (length(dyn_range) != 2 || !all(is.numeric(dyn_range))) {
     stop("Error! 'dyn_range' must be a numeric vector of length 2.")
@@ -344,6 +353,12 @@ launch_segmentation_app <- function(
     dir.create(session_data$temp_path, showWarnings = FALSE)
   }
 
+  # validate the pitch shift value
+  if (!is.numeric(pitch_shift) || pitch_shift < -8 || pitch_shift > 1) {
+    stop("Error! The value assigned to 'pitch_shift' must be a numeric value between -8 and 1.")
+  }
+  session_data$pitch_shift <- pitch_shift
+
   # Load species labels with proper fallback
   load_species_labels <- function(labels_file, project_path) {
     # Load default labels from package
@@ -396,11 +411,7 @@ launch_segmentation_app <- function(
     "s", # zoom out in time
     "alt+s", # zoom out to full soundscape duration
     "d", # navigate forward in in time within a sounscape
-    "c", # navigate to the next soudnscape
-    "1" # play audio of visible soundscape spectrogram
-    # "2" # todo play concatenated audio of all selected rois (default to all if none selected)
-    # todo - play audio with spacebar
-    # todo - add a help button with a popup of all the shortcuts
+    "c" # navigate to the next soudnscape
   )
 
   # helper functions ---------------------------------------------------------
@@ -464,7 +475,32 @@ launch_segmentation_app <- function(
     ui = dashboardPage(
       header = dashboardHeader(title = "MonitoraSom", titleWidth = "400px"),
       sidebar = dashboardSidebar(
-        tags$head(tags$style(HTML(".form-group { margin-bottom: 10px !important; }"))),
+        tags$head(
+          tags$style(HTML(".form-group { margin-bottom: 10px !important; }")),
+          # Add JavaScript for spacebar audio control
+          tags$script("
+            $(document).on('keydown', function(e) {
+                // Ignore if focus is on an input element
+                if (e.target.tagName === 'INPUT') return true;
+                // Handle spacebar press
+                if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();  // Prevent page scroll
+                    // For HTML player
+                    var audioPlayer = document.getElementById('visible_soundscape_clip_selector');
+                    if (audioPlayer) {
+                        if (audioPlayer.paused) {
+                            audioPlayer.play();
+                        } else {
+                            audioPlayer.pause();
+                        }
+                    } else {
+                        // For R session/External player
+                        Shiny.setInputValue('toggle_play', Math.random());
+                    }
+                }
+            });
+        ")
+        ),
         width = "400px",
         sidebarMenu(
           menuItem(
@@ -517,10 +553,19 @@ launch_segmentation_app <- function(
               cellWidths = c("75%", "25%"),
               sliderInput(
                 "label_angle", "Adjust label angle (º)",
-                min = 0, max = 180, step = 10, value = session_data$label_angle,
+                min = 0, max = 90, step = 10, value = session_data$label_angle,
                 post = "º"
               ),
               checkboxInput("show_label", "Show label", value = session_data$show_label)
+            ),
+            splitLayout(
+              cellWidths = c("50%", "50%"),
+              numericInput("time_guide_interval", "Time Guide Interval (s)",
+                value = session_data$time_guide_interval, min = 0.01, max = 60, step = 0.01
+              ),
+              numericInput("freq_guide_interval", "Freq Guide Interval (kHz)",
+                value = session_data$freq_guide_interval, min = 0.01, max = 192, step = 0.01
+              )
             ),
             sliderInput(
               "dyn_range", "Dynamic range (dB)",
@@ -903,9 +948,9 @@ launch_segmentation_app <- function(
             p("Alt + W - reset zoom on the spectrogram time and frequency axes"),
             p("Alt + S - reset zoom on the spectrogram time axis"),
             p("Ctrl + E - export the current ROI table"),
-            # p("1 - play audio of visible soundscape spectrogram"),
             p("Ctrl + - Zoom in the whole interface"),
-            p("Ctrl - - Zoom out the whole interface")
+            p("Ctrl - - Zoom out the whole interface"),
+            p("Spacebar - play/pause the visible soundscape audio")
           )
         )
       ),
@@ -1156,6 +1201,45 @@ launch_segmentation_app <- function(
         }
       })
 
+      # Add this at the beginning of the server function (around line 921)
+      audio_playing <- reactiveVal(FALSE)
+
+      # Add this in the server section, near other observeEvent handlers (around line 1525)
+      observeEvent(input$toggle_play, {
+        req(
+          rec_soundscape(),
+          input$wav_player_type %in% c("R session", "External player")
+        )
+
+        if (!audio_playing()) {
+          # Start playback
+          validate(need(
+            input$zoom_time[1] < input$zoom_time[2],
+            "Invalid time range selected"
+          ))
+
+          audio_playing(TRUE)
+          play_within_R(
+            rec_soundscape(),
+            zoom_time = input$zoom_time,
+            pitch_shift = input$pitch_shift,
+            visible_bp = input$visible_bp,
+            zoom_freq = input$zoom_freq,
+            wl = input$wl,
+            play_norm = input$play_norm
+          )
+        } else {
+          # Stop playback
+          audio_playing(FALSE)
+          if (input$wav_player_type == "R session") {
+            try(tuneR::stopAudio(), silent = TRUE)
+          } else {
+            system("killall play", ignore.stderr = TRUE) # For Linux/Mac
+            system("taskkill /IM play.exe /F", ignore.stderr = TRUE) # For Windows
+          }
+        }
+      })
+
       # Filter available ROI tables based in the prefix retrieved from the
       # soundscape file names
       alt_roitabs_meta <- reactiveVal(NULL)
@@ -1324,6 +1408,41 @@ launch_segmentation_app <- function(
           updateSelectInput(
             session, "soundscape_file",
             selected = unsegmented_files[new_index]
+          )
+        }
+      }
+
+      # Create a single play function to handle all playback requests
+      play_audio <- function() {
+        req(rec_soundscape())
+
+        # Validate time range
+        validate(need(
+          input$zoom_time[1] < input$zoom_time[2],
+          "Invalid time range selected"
+        ))
+
+        if (input$wav_player_type == "HTML player") {
+          runjs("
+            var player = document.getElementById('visible_soundscape_clip_selector');
+            if (player) {
+              if (player.paused) {
+                player.play();
+              } else {
+                player.pause();
+              }
+            }
+          ")
+        } else if (input$wav_player_type %in% c("R session", "External player")) {
+          req(input$wav_player_path)
+          play_within_R(
+            rec_soundscape(),
+            zoom_time = input$zoom_time,
+            pitch_shift = input$pitch_shift,
+            visible_bp = input$visible_bp,
+            zoom_freq = input$zoom_freq,
+            wl = input$wl,
+            play_norm = input$play_norm
           )
         }
       }
@@ -1498,42 +1617,15 @@ launch_segmentation_app <- function(
           save_roi_table()
         }
 
-        # todo - implementar play pela barra de espaço
-        if (input$hotkeys == "1") {
-          if (
-            !is.null(rec_soundscape()) &&
-              input$wav_player_type %in% c("R session", "External player")
-            ) {
-              play_within_R(
-                rec_soundscape(),
-                zoom_time = input$zoom_time, pitch_shift = input$pitch_shift,
-                visible_bp = input$visible_bp, zoom_freq = input$zoom_freq,
-                wl = input$wl, play_norm = input$play_norm
-            )
-          }
+        # Handle hotkeys (1 and space)
+        if (input$hotkeys == "space") {
+          play_audio()
         }
       })
-      # play_within_R
 
-      # todo - implementar play pela barra de espaço
+      # Handle play button
       observeEvent(input$play_soundscape, {
-        req(
-          input$wav_player_path,
-          rec_soundscape(),
-          input$wav_player_type %in% c("R session", "External player")
-        )
-
-        # Validate zoom time before calling play function
-        validate(need(
-          input$zoom_time[1] < input$zoom_time[2], "Invalid time range selected"
-        ))
-
-        play_within_R(
-          rec_soundscape(),
-          zoom_time = input$zoom_time, pitch_shift = input$pitch_shift,
-          visible_bp = input$visible_bp, zoom_freq = input$zoom_freq,
-          wl = input$wl, play_norm = input$play_norm
-        )
+        play_audio()
       })
 
       progress_tracker <- reactiveValues(df = NULL)
@@ -1637,16 +1729,15 @@ launch_segmentation_app <- function(
           f = rec_soundscape()@samp.rate,
           ovlp = input$ovlp, wl = input$wl,
           dyn = input$dyn_range, pitch_shift = input$pitch_shift,
-          color_scale = input$color_scale, ncolors = 124, norm = FALSE
+          color_scale = input$color_scale, ncolors = 124, norm = FALSE,
+          time_guide_interval = input$time_guide_interval,
+          freq_guide_interval = input$freq_guide_interval
         )
         spectro_soundscape_raw(res)
       })
 
       # Helper function to extract acoustic measurements from a selection
-      # todo - adicionar novas variaveis de acordo com a necessidade
-      # todo - colocar essa função para fora do app para uso geral
-      # todo - adicionar variaveis do warbleR para o calculo de medidas acusticas
-      # todo - adicionar plot dos contornos de frequencia
+
                   # res <- data.frame(
                   #   soundscape_path = wav_path_val(),
                   #   soundscape_file = input$soundscape_file,
@@ -2044,6 +2135,8 @@ launch_segmentation_app <- function(
         pitch_shift = "Adjust playback pitch for ultrasound",
         dyn_range = "Amplitude range shown in spectrogram",
         show_label = "Toggle ROI labels visibility",
+        time_guide_interval = "Time guide interval (s)",
+        freq_guide_interval = "Frequency guide interval (kHz)",
         color_scale = "Spectrogram color scheme",
         wav_player_type = "Audio playback method",
         wav_player_path = "External player executable path",
