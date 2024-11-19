@@ -14,62 +14,67 @@
 #'   matching. The two methods available are: "cor" (Pearson correlation
 #'   coefficient) or "dtw" (dynamic time warping). Defaults to "cor".
 #' @param output A character string indicating the output of the function. The
-#'  two options are: "detections" (default) or "scores". If "detections" is
-#'  selected, the function will return the output of the function
-#' 'fetch_score_peaks_i()'. If "scores" is selected, the function will return
-#' the raw output of the matching algorithm.
-#' @param buffer_size A character string indicating the size of the buffer to
-#'  be used in the function 'fetch_score_peaks_i()'. The two options are:
-#'  "template" (default) or the number of frames of the template spectrogram to
-#'  be used as buffer.
-#' @param min_score A numeric value indicating the minimum score to be used in
-#' the function 'fetch_score_peaks_i()'.
-#' @param min_quant A numeric value indicating the minimum quantile to be used
-#' in the function 'fetch_score_peaks_i()'.
-#' @param top_n A numeric value indicating the number of top detections to be
-#' used in the function 'fetch_score_peaks_i()'.
+#'  two options are: "detections" (default) or "scores".
+#' @param buffer_size A character string indicating the size of the buffer.
+#' @param min_score Minimum score threshold (numeric between 0 and 1).
+#' @param min_quant Minimum quantile threshold (numeric between 0 and 1).
+#' @param top_n Number of top detections to return (positive integer).
 #'
-#' @return A tibble row containing the input data frame with an additional
-#'   column "score_vec", which is a list of length one containing a data frame
-#'   with the columns "time_vec" (the time value of each spectrogram frame) and
-#'   "score_vec" (the matching score obtained when the template and the
-#'   soundscape spectrogram of samew dimensions are alligned at that frame). The
-#'   length of the "score_vec" is equal to the number of frames of the
-#'   soundscape spectrogram minus the number of frames of the template
-#'   spectrogram (i.e. the number of possible allignments between the two
-#'   spectrograms. The score is not available for the first and last frames of
-#'   the soundscape spectrogram because score cannot be calculated between
-#'   spectrograms of different dimensions. To produce a score vector with the
-#'   same number of frames of the soundscape spectrogram, pads with length quals
-#'   half the number of frames from the template are added to the beginning and
-#'   end of the score vector.
+#' @return A tibble containing either detection results or raw scores.
 #'
 #' @export
-#' @import purrr
+#' @import purrr dplyr
 #' @importFrom tuneR readWave
 #' @importFrom seewave spectro
 #' @importFrom dtwclust dtw_basic
 #' @importFrom slider slide
 match_i <- function(
-    df_grid_i,
-    score_method = "cor", output = "detections", buffer_size = "template",
-    min_score = NULL, min_quant = NULL, top_n = NULL
-    ) {
-    require(dplyr)
-    soundscape_spectro <- tuneR::readWave(df_grid_i$soundscape_path) %>%
-        seewave::spectro(
-            ., wl = df_grid_i$template_wl, ovlp = df_grid_i$template_ovlp,
-            flim = c(df_grid_i$template_min_freq, df_grid_i$template_max_freq),
-            plot = FALSE, norm = TRUE
-        )
-    spectro_template <- tuneR::readWave(df_grid_i$template_path) %>%
-        seewave::spectro(
-            .,
-            wl = df_grid_i$template_wl, ovlp = df_grid_i$template_ovlp,
-            tlim = c(df_grid_i$template_start, df_grid_i$template_end),
-            flim = c(df_grid_i$template_min_freq, df_grid_i$template_max_freq),
-            plot = FALSE, norm = TRUE
-        )
+    df_grid_i, score_method = "cor", output = "detections",
+    buffer_size = "template", min_score = NULL, min_quant = NULL,
+    top_n = NULL) {
+    score_method <- match.arg(score_method, c("cor", "dtw"))
+    output <- match.arg(output, c("detections", "scores"))
+
+    if (!is.null(min_score) && (!is.numeric(min_score) || min_score < 0 || min_score > 1)) {
+        stop("min_score must be NULL or a number between 0 and 1")
+    }
+    if (!is.null(min_quant) && (!is.numeric(min_quant) || min_quant < 0 || min_quant > 1)) {
+        stop("min_quant must be NULL or a number between 0 and 1")
+    }
+    if (!is.null(top_n) && (!is.numeric(top_n) || top_n < 1)) {
+        stop("top_n must be NULL or a positive integer")
+    }
+
+    spec_params <- list(
+        wl = df_grid_i$template_wl,
+        ovlp = df_grid_i$template_ovlp,
+        flim = c(df_grid_i$template_min_freq, df_grid_i$template_max_freq),
+        plot = FALSE,
+        norm = TRUE
+    )
+
+    tryCatch(
+        {
+            soundscape_spectro <- readWave(df_grid_i$soundscape_path)
+            soundscape_spectro <- do.call(
+                spectro, c(list(soundscape_spectro), spec_params)
+            )
+
+            spectro_template <- readWave(df_grid_i$template_path)
+            spectro_template <- do.call(
+                spectro,
+                c(
+                    list(spectro_template), spec_params,
+                    list(
+                        tlim = c(df_grid_i$template_start, df_grid_i$template_end)
+                    )
+                )
+            )
+        },
+        error = function(e) {
+            stop(paste("Error generating spectrograms:", e$message))
+        }
+    )
     mat_soundscape <- t(soundscape_spectro$amp)
     mat_template <- t(spectro_template$amp)
     sliding_window <- nrow(mat_template)
@@ -81,6 +86,7 @@ match_i <- function(
         .complete = TRUE
     ) %>%
         base::Filter(base::Negate(is.null), .)
+
     if (score_method == "cor") {
         score_vec <- lapply(
             1:length(ind),
@@ -104,7 +110,9 @@ match_i <- function(
                 dtwclust::dtw_basic(
                     mat_soundscape[ind[[x]], ], mat_template,
                     backtrack = F, norm = norm, step.pattern = step.pattern,
-                    window.size = round(sliding_window + (stretch * sliding_window), 0),
+                    window.size = round(
+                        sliding_window + (stretch * sliding_window), 0
+                    ),
                     normalize = FALSE
                 )
             }
@@ -116,9 +124,11 @@ match_i <- function(
             c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1)) %>%
             tidyr::replace_na(min(., na.rm = TRUE))
     }
+
     if (length(score_vec) > length(soundscape_spectro$time)) {
         score_vec <- head(score_vec, -1)
     }
+
     res_raw <- as_tibble(df_grid_i)
     res_raw$score_sliding_window <- sliding_window
     res_raw$score_method <- score_method
@@ -128,14 +138,16 @@ match_i <- function(
             score_vec = score_vec
         )
     )
+
     if (output == "detections") {
-        res <- fetch_score_peaks_i(
+        fetch_score_peaks_i(
             res_raw,
-            buffer_size = buffer_size, min_score = min_score,
-            min_quant = min_quant, top_n = top_n
+            buffer_size = buffer_size,
+            min_score = min_score,
+            min_quant = min_quant,
+            top_n = top_n
         )
-        return(res)
-    } else if (output == "scores") {
-        return(res_raw)
+    } else {
+        res_raw
     }
 }

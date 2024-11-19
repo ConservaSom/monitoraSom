@@ -27,54 +27,51 @@ fetch_match_grid <- function(soundscape_data, template_data) {
 
   require(purrr)
   require(dplyr)
-
   res <- cross_join(soundscape_data, template_data)
+  warnings <- character()
+  missing_soundscapes <- !file.exists(res$soundscape_path)
 
-  # check if files in soundscape_path exist
-  check_1 <- map_vec(res$soundscape_path, ~ file.exists(.x))
-  if (any(check_1 == FALSE)) {
-    n <- sum(check_1 == FALSE)
-    stop(paste0("There are ", n, " files from soundscape_path that do not exist"))
+  if (any(missing_soundscapes)) {
+    n <- sum(missing_soundscapes)
+    warnings <- c(warnings, paste0(n, " files from soundscape_path do not exist. These will not be included in the matching grid."))
+    res <- res[!missing_soundscapes, ]
   }
-
-  # check if files in template_path exist
-  check_2 <- map_vec(res$template_path, ~ file.exists(.x))
-  if (any(check_2 == FALSE)) {
-    n <- sum(check_2 == FALSE)
-    stop(paste0("There are ", n, " files from template_path that do not exist"))
+  missing_templates <- !file.exists(res$template_path)
+  if (any(missing_templates)) {
+    n <- sum(missing_templates)
+    warnings <- c(warnings, paste0("There are ", n, " crossings in which the template files do not exist. These will not be included in the matching grid."))
+    res <- res[!missing_templates, ]
   }
-
-  # check if sample rates are compatible
-  check_3 <- res$soundscape_sample_rate == res$template_sample_rate
-  if (any(check_3 == FALSE)) {
-    n <- sum(check_3 == FALSE)
-    stop(paste0("There are ", n, " files with incompatible sample rates"))
+  incompatible_sample_rates <- res$soundscape_sample_rate != res$template_sample_rate
+  if (any(incompatible_sample_rates)) {
+    n <- sum(incompatible_sample_rates)
+    warnings <- c(warnings, paste0("There are ", n, " crossings in which the soundscape and template files have incompatible sample rates. These will not be included in the matching grid."))
+    res <- res[!incompatible_sample_rates, ]
   }
-
-  # check if template min_freq max_freq are compatible with the shared sample rates
-  check_4 <- res$template_min_freq * 1000 < res$soundscape_sample_rate / 2
-  if (any(check_4 == FALSE)) {
-    n <- sum(check_4 == FALSE)
-    stop(paste0("There are ", n, " templates with minimum frequencies higher than the Nyquist frequency (sample_rate / 2)"))
+  nyquist_frequency <- res$soundscape_sample_rate / 2
+  incompatible_min_freq <- res$template_min_freq * 1000 >= nyquist_frequency
+  if (any(incompatible_min_freq)) {
+    n <- sum(incompatible_min_freq)
+    warnings <- c(warnings, paste0(n, " templates have minimum frequencies higher than the Nyquist frequency (sample_rate / 2). These will not be included in the matching grid."))
+    res <- res[!incompatible_min_freq, ]
   }
-
-  # check if template max_freq are compatible with the shared sample rates
-  check5 <- res$template_max_freq * 1000 < res$soundscape_sample_rate / 2
-  if (any(check5 == FALSE)) {
-    n <- sum(check5 == FALSE)
-    stop(paste0("There are ", n, " templates with maximum frequencies higher than the Nyquist frequency (sample_rate / 2)"))
+  incompatible_max_freq <- res$template_max_freq * 1000 >= nyquist_frequency
+  if (any(incompatible_max_freq)) {
+    n <- sum(incompatible_max_freq)
+    warnings <- c(warnings, paste0(n, " templates have maximum frequencies higher than the Nyquist frequency (sample_rate / 2). These will not be included in the matching grid."))
+    res <- res[!incompatible_max_freq, ]
   }
-
-  # check if template duration is smaller than soundscape duration
-  check_6 <- res$template_end - res$template_start < res$soundscape_duration
-  if (any(check_6 == FALSE)) {
-    n <- sum(check_6 == FALSE)
-    stop(paste0("There are ", n, " templates with duration higher than the soundscape duration"))
+  template_duration_exceeds <- (res$template_end - res$template_start) >= res$soundscape_duration
+  if (any(template_duration_exceeds)) {
+    n <- sum(template_duration_exceeds)
+    warnings <- c(warnings, paste0(n, " templates have durations higher than the soundscape duration. These will not be included in the matching grid."))
+    res <- res[!template_duration_exceeds, ]
+  }
+  if (length(warnings) > 0) {
+    warning(paste(warnings, collapse = "\n"))
+  } else {
+    message("All files are compatible and included in the matching grid.")
   }
   n <- nrow(res)
-  message("All files locally available, are compatible and resulted in a grid of ", n, " matchings")
-
   return(res)
 }
-
-

@@ -35,143 +35,96 @@
 #'@import dplyr purrr collapse
 #'@export
 fetch_score_peaks_i <- function(
-  match_res_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
-  top_n = NULL
-  ) {
-
-  data <- match_res_i$score_vec[[1]]$score_vec
-
-  if (buffer_size == "template") {
-    min_points <- match_res_i$score_sliding_window
-  } else {
-    min_points <- buffer_size
+    match_res_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
+    top_n = NULL) {
+  if (!is.list(match_res_i) ||
+      is.null(match_res_i$score_vec) ||
+      is.null(match_res_i$score_vec[[1]]$score_vec) ||
+      is.null(match_res_i$score_sliding_window)) {
+    stop("Invalid match_res_i: missing required components")
   }
 
-  # if (type == "valley") data <- -data
-  slope_diffs <- diff(sign(diff(data, na.pad = FALSE)))
-  peak_locations <- sapply(
-    which(slope_diffs < 0),
-    FUN = function(x) {
-      start_idx <- x - min_points + 1
-      start_idx <- ifelse(start_idx > 0, start_idx, 1)
-      end_idx <- x + min_points + 1
-      end_idx <- ifelse(end_idx < length(data), end_idx, length(data))
-      if (all(data[c(start_idx:x, (x + 2):end_idx)] <= data[x + 1])) {
-        return(x + 1)
-      } else {
-        return(numeric(0))
-      }
-    }
-  ) |> unlist()
+  if (!is.null(min_score) && (!is.numeric(min_score) || min_score < 0 || min_score > 1)) {
+    stop("min_score must be a numeric value between 0 and 1")
+  }
+  if (!is.null(min_quant) && (!is.numeric(min_quant) || min_quant < 0 || min_quant > 1)) {
+    stop("min_quant must be a numeric value between 0 and 1")
+  }
+  if (!is.null(top_n) && (!is.numeric(top_n) || top_n < 1)) {
+    stop("top_n must be a positive numeric value")
+  }
 
-  peak_locations <- peak_locations[
-    c(
-      which(
-        as.integer(peak_locations - match_res_i$score_sliding_window) > 0 &
-          as.integer(peak_locations + match_res_i$score_sliding_window) <
-            nrow(match_res_i$score_vec[[1]])
-      )
-    )
+  data <- match_res_i$score_vec[[1]]$score_vec
+  min_points <- if (buffer_size == "template") {
+    match_res_i$score_sliding_window
+  } else {
+    if (!is.numeric(buffer_size) || buffer_size < 0) {
+      stop("buffer_size must be 'template' or a non-negative numeric value")
+    }
+    buffer_size
+  }
+
+  diffs <- diff(data, na.pad = FALSE)
+  slope_diffs <- diff(sign(diffs))
+  potential_peaks <- which(slope_diffs < 0) + 1
+
+  valid_peaks <- sapply(potential_peaks, function(x) {
+    start_idx <- max(1, x - min_points)
+    end_idx <- min(length(data), x + min_points)
+    surrounding_data <- data[c(start_idx:(x - 1), (x + 1):end_idx)]
+    all(surrounding_data <= data[x])
+  })
+
+  peak_locations <- potential_peaks[valid_peaks]
+  valid_range <- peak_locations[
+    peak_locations - match_res_i$score_sliding_window > 0 &
+      peak_locations + match_res_i$score_sliding_window < nrow(match_res_i$score_vec[[1]])
   ]
+
+  if (length(valid_range) == 0) return(data.frame())
+
   pad_length <- match_res_i$score_sliding_window %/% 2
+  score_vec <- match_res_i$score_vec[[1]]$score_vec[valid_range]
 
   res <- data.frame(
-    peak_index = peak_locations,
-    peak_score = match_res_i$score_vec[[1]]$score_vec[peak_locations],
-    peak_quant = round(
-      ecdf(
-        match_res_i$score_vec[[1]]$score_vec
-      )(
-        match_res_i$score_vec[[1]]$score_vec[peak_locations]), 3
-    )
-  ) %>%
-    fmutate(
-      soundscape_path = match_res_i$soundscape_path,
-      soundscape_file = match_res_i$soundscape_file,
-      template_path = match_res_i$template_path,
-      template_file = match_res_i$template_file,
-      template_name = match_res_i$template_name,
-      template_min_freq = match_res_i$template_min_freq,
-      template_max_freq = match_res_i$template_max_freq,
-      template_start = match_res_i$template_start,
-      template_end = match_res_i$template_end,
-      detection_start = as.vector(
-        match_res_i$score_vec[[1]]$time_vec[peak_locations - as.integer(pad_length)]
-      ),
-      detection_end = as.vector(
-        match_res_i$score_vec[[1]]$time_vec[peak_locations + as.integer(pad_length)]
-      ),
-      detection_wl = match_res_i$template_wl,
-      detection_ovlp = match_res_i$template_ovlp,
-      detection_sample_rate = match_res_i$template_sample_rate,
-      detection_buffer = min_points,
-      detec_min_score = NA,
-      detec_min_quant = NA,
-      detec_top_n = NA
-    ) %>%
-    fselect(
-      soundscape_path, soundscape_file,
-      template_path, template_file, template_name, template_min_freq,
-      template_max_freq, template_start, template_end,
-      detection_start, detection_end, detection_wl,
-      detection_ovlp, detection_sample_rate, detection_buffer,
-      detec_min_score, detec_min_quant, detec_top_n, peak_index, peak_score,
-      peak_quant
-    )
+    soundscape_path = match_res_i$soundscape_path,
+    soundscape_file = match_res_i$soundscape_file,
+    template_path = match_res_i$template_path,
+    template_file = match_res_i$template_file,
+    template_name = match_res_i$template_name,
+    template_min_freq = match_res_i$template_min_freq,
+    template_max_freq = match_res_i$template_max_freq,
+    template_start = match_res_i$template_start,
+    template_end = match_res_i$template_end,
+    detection_start = match_res_i$score_vec[[1]]$time_vec[valid_range - pad_length],
+    detection_end = match_res_i$score_vec[[1]]$time_vec[valid_range + pad_length],
+    detection_wl = match_res_i$template_wl,
+    detection_ovlp = match_res_i$template_ovlp,
+    detection_sample_rate = match_res_i$template_sample_rate,
+    detection_buffer = min_points,
+    detection_min_score = NA_real_,
+    detection_min_quant = NA_real_,
+    detection_top_n = NA_integer_,
+    peak_index = valid_range,
+    peak_score = score_vec,
+    peak_quant = round(ecdf(data)(score_vec), 3)
+  )
 
-    if (!is.null(min_score)) {
-      if (is.numeric(min_score) & min_score >= 0 & min_score <= 1) {
-        res_temp <- fsubset(res, peak_score >= min_score) |>
-          fmutate(detec_min_score = min_score)
-        if (nrow(res) == 0) {
-          warning("No detections found with the specified min_score, returning all available detections instead")
-          res <- fsubset(res, peak_score >= 0)
-        } else {
-          res <- res_temp
-        }
-      } else {
-        stop("min_score must be a numeric value between 0 and 1")
-      }
-    }
+  if (!is.null(min_score)) {
+    res <- subset(res, peak_score >= min_score)
+    if (nrow(res) > 0) res$detection_min_score <- min_score
+  }
 
-    if (!is.null(min_quant)) {
-      if (is.numeric(min_quant) & min_quant >= 0 & min_quant <= 1) {
-        res_temp <- fsubset(res, peak_quant >= min_quant) |>
-          fmutate(detec_min_quant = min_quant)
-        if (nrow(res) == 0) {
-          res <- fsubset(res, peak_quant >= 0)
-          warning("No detections found with the specified min_quant, returning all available detections instead")
-        } else {
-          res <- res_temp
-        }
-      } else {
-        stop("min_quant must be a numeric value between 0 and 1")
-      }
-    }
+  if (!is.null(min_quant)) {
+    res <- subset(res, peak_quant >= min_quant)
+    if (nrow(res) > 0) res$detection_min_quant <- min_quant
+  }
 
-    if (!is.null(top_n)) {
-      if (is.numeric(top_n)) {
-        if (top_n >= 1) {
-          if (top_n <= nrow(res)) {
-            res <- res %>%
-              arrange(-peak_quant) %>%
-              slice(1:top_n) %>%
-              arrange(peak_index) %>%
-              fmutate(detec_top_n = top_n)
-          } else {
-            res <- res %>%
-              fmutate(detec_top_n = top_n)
-            warning(
-              "top_n must be smaller than the number of detections, returning all available detections instead"
-            )
-          }
-        } else {
-          stop("top_n must be equal or larger than 1")
-        }
-      } else {
-        stop("top_n must be a numeric value")
-      }
-    }
+  if (!is.null(top_n) && top_n <= nrow(res)) {
+    res <- res[order(-res$peak_quant)[1:top_n], ]
+    res <- res[order(res$peak_index), ]
+    res$detection_top_n <- top_n
+  }
 
   return(res)
 }

@@ -16,6 +16,9 @@
 #' @import furrr purrr tuneR
 #' @export
 fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
+
+  require(tuneR)
+  require(dplyr)
   require(pbapply)
 
   soundscape_list <- list.files(

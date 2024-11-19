@@ -274,7 +274,7 @@ fast_spectro <- function(
           range <- diff(range(x))
           decimals <- if (range <= 0.1) {
             3
-          } else if (range <= 1) {
+          } else if (range <= 5) {
             2
           } else if (range <= 10) {
             1
@@ -293,8 +293,10 @@ fast_spectro <- function(
           if (length(x) == 0) return(NULL)
           range <- diff(range(x))
           decimals <- if (range <= 0.1) {
+            3
+          } else if (range <= 5) {
             2
-          } else if (range <= 1) {
+          } else if (range <= 10) {
             1
           } else {
             0

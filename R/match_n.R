@@ -55,26 +55,14 @@
 #' @importFrom purrr list_rbind
 #' @export
 match_n <- function(
-    df_grid,
-    score_method = "cor", ncores = 1, output = "detections", output_file = NULL,
-    autosave_action = "append", buffer_size = "template", min_score = NULL,
-    min_quant = NULL, top_n = NULL) {
+    df_grid, score_method = "cor", ncores = 1, output = "detections",
+    output_file = NULL, autosave_action = "append", buffer_size = "template",
+    min_score = NULL, min_quant = NULL, top_n = NULL) {
 
-  grid_list <- group_split(rowwise(df_grid))
+  output <- match.arg(output, c("detections", "scores"))
+  autosave_action <- match.arg(autosave_action, c("append", "replace"))
 
-  validate_output_path <- function(output_file, extension) {
-    if (
-      dir.exists(dirname(output_file)) &&
-        grepl(paste0("\\.", extension, "$"), output_file)) {
-      return(TRUE)
-    } else {
-      stop(
-        paste("The path for the", toupper(extension), "output file is not valid")
-      )
-    }
-  }
-
-  if (ncores > 1 & Sys.info()["sysname"] == "Windows") {
+  if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
     if (ncores <= parallel::detectCores()) {
       ncores <- parallel::makePSOCKcluster(getOption("cl.cores", ncores))
     } else {
@@ -88,106 +76,111 @@ match_n <- function(
 
   if (output == "detections") {
     if (is.null(output_file)) {
-      # run the no sink version returning the result object
+      grid_list <- group_split(rowwise(df_grid))
       res <- pbapply::pblapply(
         grid_list,
         function(x) {
           match_i(
-            df_grid_i = x,
-            score_method = score_method, output = "detections",
+            df_grid_i = x, score_method = score_method, output = "detections",
             buffer_size = buffer_size, min_score = min_score,
             min_quant = min_quant, top_n = top_n
           )
         },
         cl = ncores
-      ) %>%
-        list_rbind(.)
+      ) %>% list_rbind()
       message("Template matching finished. Detections have been returned to the R session")
       return(res)
     } else {
-      if (validate_output_path(output_file, "csv")) {
-        if (!(autosave_action %in% c("append", "replace"))) {
-          stop("Invalid autosave action. Choose 'append' or 'replace'")
-        }
-        if (file.exists(output_file) & autosave_action == "replace") {
-          file.remove(output_file)
-        }
-        if (file.exists(output_file) & autosave_action == "replace" |
-          !file.exists(output_file)
-        ) {
-          writeLines(
-            paste(
-              "\"soundscape_path\"", "\"soundscape_file\"", "\"template_path\"",
-              "\"template_file\"", "\"template_name\"", "\"template_min_freq\"",
-              "\"template_max_freq\"", "\"template_start\"", "\"template_end\"",
-              "\"detection_start\"", "\"detection_end\"", "\"detection_wl\"",
-              "\"detection_ovlp\"", "\"detection_sample_rate\"",
-              "\"detection_buffer\"", "\"detec_min_score\"",
-              "\"detec_min_quant\"", "\"detec_top_n\"", "\"peak_index\"",
-              "\"peak_score\"", "\"peak_quant\"",
-              sep = ","
-            ),
-            output_file
-          )
-        }
-        match_i_sink <- function(
-          df_grid_i, score_method, output, output_file, buffer_size, min_score,
-          min_quant, top_n
-          ) {
-          res <- match_i(
-            df_grid_i = df_grid_i, score_method = score_method,
-            output = "detections", buffer_size = buffer_size,
-            min_score = min_score, min_quant = min_quant, top_n = top_n
-          )
-          sink(output_file, append = TRUE)
-          write.table(res, sep = ",", row.names = F, col.names = F)
-          sink()
-        }
-        dump <- pbapply::pblapply(
-          grid_list,
-          function(x) {
-            match_i_sink(
-              df_grid_i = x, score_method = score_method,
-              output = "detections", output_file = output_file,
+      if (!dir.exists(dirname(output_file)) || !grepl("\\.csv$", output_file)) {
+        stop("The path for the CSV output file is not valid")
+      }
+      if (file.exists(output_file) && autosave_action == "replace") {
+        file.remove(output_file)
+      }
+      if (!file.exists(output_file) || autosave_action == "replace") {
+        csv_headers <- c(
+          "soundscape_path", "soundscape_file", "template_path",
+          "template_file", "template_name", "template_min_freq",
+          "template_max_freq", "template_start", "template_end",
+          "detection_start", "detection_end", "detection_wl",
+          "detection_ovlp", "detection_sample_rate", "detection_buffer",
+          "detection_min_score", "detection_min_quant", "detection_top_n",
+          "peak_index", "peak_score", "peak_quant"
+        )
+        writeLines(paste(csv_headers, collapse = ","), output_file)
+      }
+      if (file.exists(output_file) && autosave_action == "append") {
+        df_check <- data.table::fread(output_file)
+        if (nrow(df_check) > 0) {
+          df_check <- df_check %>%
+            transmute(
+              soundscape_file = soundscape_file,
+              template_file = template_file,
+              template_wl = detection_wl,
+              template_ovlp = detection_ovlp,
+              template_sample_rate = detection_sample_rate,
+              buffer_size = detection_buffer,
+              min_score = detection_min_score,
+              min_quant = detection_min_quant,
+              top_n = detection_top_n
+            )
+          df_grid_check <- df_grid %>%
+            mutate(
               buffer_size = buffer_size, min_score = min_score,
               min_quant = min_quant, top_n = top_n
+            ) %>%
+            select(
+              soundscape_file, template_file, template_wl, template_ovlp,
+              template_sample_rate, buffer_size, min_score, min_quant, top_n
             )
-          },
-          cl = ncores
-        )
-        message(
-          "Template matching finished. Detections have been saved to ",
-          output_file
-        )
+          idx <- which(!df_grid_check$soundscape_file %in% df_check$soundscape_file)
+          df_grid <- df_grid_check[idx, ]
+          if (nrow(df_grid) == 0) {
+            message(
+              "All matches have already been processed. No new detections were computed."
+            )
+            return(NULL)
+          }
+        }
       }
+      grid_list <- group_split(rowwise(df_grid))
+      pbapply::pblapply(
+        grid_list,
+        function(x) {
+          res <- match_i(
+            df_grid_i = x, score_method = score_method, output = "detections",
+            buffer_size = buffer_size, min_score = min_score,
+            min_quant = min_quant, top_n = top_n
+          )
+          sink(output_file, append = TRUE)
+          write.table(res, sep = ",", row.names = FALSE, col.names = FALSE)
+          sink()
+        },
+        cl = ncores
+      )
+      message("Template matching finished. Detections have been saved to ", output_file)
     }
-  } else if (output == "scores") {
+  } else {
     res <- pbapply::pblapply(
       grid_list,
       function(x) {
         match_i(
-          df_grid_i = x,
-          score_method = score_method, output = "scores",
+          df_grid_i = x, score_method = score_method, output = "scores",
           buffer_size = buffer_size, min_score = min_score,
           min_quant = min_quant, top_n = top_n
         )
       },
       cl = ncores
-    ) %>%
-      list_rbind(.)
+    ) %>% list_rbind()
     if (!is.null(output_file)) {
-      if (validate_output_path(output_file, "rds")) {
-        saveRDS(res, output_file)
-        message(
-          "Template matching finished. Raw scores have been saved to ",
-          output_file
-        )
+      if (!dir.exists(dirname(output_file)) || !grepl("\\.rds$", output_file)) {
+        stop("The path for the RDS output file is not valid")
       }
+      saveRDS(res, output_file)
+      message("Template matching finished. Raw scores have been saved to ", output_file)
     } else {
-      return(res)
       message("Template matching finished. Raw scores have been returned to the R session")
+      return(res)
     }
-  } else {
-    stop("Invalid output type")
   }
 }

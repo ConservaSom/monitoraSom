@@ -46,8 +46,7 @@
 #'
 #' @export
 #' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR
-#'   collapse DT shinyWidgets shinydashboard shinyFiles
-#'   keys shinyjs shinyBS cutpointr
+#'   collapse DT shinyWidgets shinydashboard keys shinyjs shinyBS cutpointr
 #' @importFrom caret downSample upSample
 #' @importFrom ROSE ROSE
 #' @importFrom data.table fread fwrite
@@ -82,6 +81,7 @@ launch_validation_app <- function(
     time_pads = 1, ovlp = 0, wl = 2048, dyn_range_bar = c(-144, 0),
     dyn_range_templ = c(-84, 0), dyn_range_detec = c(-84, 0),
     color_scale = "inferno", zoom_freq = c(0, 23),
+    time_guide_interval = 1, freq_guide_interval = 1,
     nav_shuffle = FALSE, subset_seed = 123, auto_next = TRUE, nav_autosave = TRUE,
     overwrite = FALSE, pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
     ) {
@@ -109,7 +109,6 @@ launch_validation_app <- function(
   # require(shinyjs)
   # require(kableExtra)
   # require(keys)
-  # require(shinyFiles)
   # require(shinydashboard)
   # require(shinyBS)
 
@@ -118,15 +117,18 @@ launch_validation_app <- function(
   session_data <- list()
 
   if (!is.null(project_path)) {
-    tryCatch({
-      if (!dir.exists(project_path)) {
-        dir.create(project_path)
-        warning("The validation app project directory was successfully created at '", project_path, "'")
+    tryCatch(
+      {
+        if (!dir.exists(project_path)) {
+          dir.create(project_path)
+          warning("The validation app project directory was successfully created at '", project_path, "'")
+        }
+        session_data$project_path <- project_path
+      },
+      error = function(e) {
+        stop("Failed to create validation app project directory at '", project_path, "': ", e$message)
       }
-      session_data$project_path <- project_path
-    }, error = function(e) {
-      stop("Failed to create validation app project directory at '", project_path, "': ", e$message)
-    })
+    )
   }
 
   if (!is.null(preset_path)) {
@@ -210,6 +212,17 @@ launch_validation_app <- function(
     )
   }
 
+  # validate time_guide_interval and freq_guide_interval
+  if (!is.numeric(time_guide_interval) || time_guide_interval <= 0) {
+    session_data$time_guide_interval <- 3 # Default value
+  } else {
+    session_data$time_guide_interval <- time_guide_interval
+  }
+  if (!is.numeric(freq_guide_interval) || freq_guide_interval <= 0) {
+    session_data$freq_guide_interval <- 2 # Default value
+  } else {
+    session_data$freq_guide_interval <- freq_guide_interval
+  }
 
   if (!is.numeric(time_pads) || time_pads < 0 || time_pads > 16) {
     stop("Error! The value assigned to 'time_pads' must be a numeric value between 0 and 16.")
@@ -239,7 +252,6 @@ launch_validation_app <- function(
       paste(valid_wl_values, collapse = ", ")
     ))
   }
-
 
   session_data$wl <- wl
   # Validate 'ovlp': must be numeric, between 0 and 80, and a multiple of 10
@@ -295,12 +307,13 @@ launch_validation_app <- function(
     stop("Error! Non-numeric value input provided to 'seed'")
   }
   session_data$subset_seed <- subset_seed
-  # todo Add another seed for the diagnostics
 
   # Function to validate logical values and assign them to session_data
   validate_logical_and_assign <- function(value, name) {
     if (!is.logical(value)) {
-      stop(paste("Error! The value assigned to '", name, "' is not logical. Set it to TRUE or FALSE.", sep = ""))
+      stop(paste("Error! The value assigned to '", name,
+        "' is not logical. Set it to TRUE or FALSE.", sep = ""
+      ))
     }
     session_data[[name]] <- value
   }
@@ -392,80 +405,36 @@ launch_validation_app <- function(
             "User setup",
             tabName = "user_setup_tab", startExpanded = TRUE,
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-user"),
-            splitLayout(
-              cellWidths = c("75%", "25%"),
-              # path to the soundscape directory
-              textAreaInput(
-                inputId = "preset_path", label = "Path to preset files (.rds)",
-                value = session_data$preset_path,
-                placeholder = "Paste or load path here",
-                height = "40px", width = "395px", resize = "vertical"
-              ),
-              shinyDirButton(
-                id = "preset_path_load", label = "Load", title = "Teste",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-              ),
-              tags$style(type = "text/css", "#preset_path_load { margin-top: 40px;}")
+            textAreaInput(
+              inputId = "preset_path", label = "Path to preset files (.rds)",
+              value = session_data$preset_path,
+              placeholder = "Paste or load path here",
+              height = "40px", width = "395px", resize = "vertical"
             ),
             textInput("validation_user", "User name (*):",
               value = session_data$validation_user,
               placeholder = "Identify yourself here", width = "100%"
             ),
-            splitLayout(
-              cellWidths = c("75%", "25%"),
-              icon = icon(lib = "glyphicon", "glyphicon glyphicon-import"),
-              textAreaInput("templates_path", "Templates path (*)",
-                value = session_data$templates_path,
-                placeholder = "Paste or load path here",
-                height = "40px", resize = "vertical", width = "100%"
-              ),
-              shinyDirButton(
-                id = "templates_path_load", label = "Load", title = "Teste",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-              ),
-              tags$style(type = "text/css", "#templates_path_load { margin-top: 40px;}")
+            textAreaInput("templates_path", "Templates path (*)",
+              value = session_data$templates_path,
+              placeholder = "Paste or load path here",
+              height = "40px", resize = "vertical", width = "100%"
             ),
-            splitLayout(
-              cellWidths = c("75%", "25%"),
-              textAreaInput("soundscapes_path", "Soundscapes path (*)",
-                value = session_data$soundscapes_path,
-                placeholder = "Paste or load path here",
-                height = "40px", width = "395px", resize = "vertical"
-              ),
-              shinyDirButton(
-                id = "soundscapes_path_load", label = "Load", title = "Teste",
-                multiple = FALSE,
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-              ),
-              tags$style(type = "text/css", "#soundscapes_path_load { margin-top: 40px;}")
+            textAreaInput("soundscapes_path", "Soundscapes path (*)",
+              value = session_data$soundscapes_path,
+              placeholder = "Paste or load path here",
+              height = "40px", width = "395px", resize = "vertical"
             ),
-            splitLayout(
-              cellWidths = c("75%", "25%"),
-              textAreaInput("input_path", "Detections table path (input) (*)",
-                value = session_data$input_path,
-                placeholder = "Paste or load path here",
-                height = "40px", width = "395px", resize = "vertical"
-              ),
-              shinyFilesButton(
-                id = "input_path_load", label = "Load", title = "Teste", multiple = FALSE,
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-              ),
-              tags$style(type = "text/css", "#input_path_load { margin-top: 40px;}")
+            textAreaInput("input_path", "Detections table path (input) (*)",
+              value = session_data$input_path,
+              placeholder = "Paste or load path here",
+              height = "40px", width = "395px", resize = "vertical"
             ),
-            splitLayout(
-              cellWidths = c("75%", "25%"),
               textAreaInput("output_path", "Validated data path (output) (*)",
                 value = session_data$output_path,
                 placeholder = "Paste or load path here",
                 height = "40px", width = "395px", resize = "vertical"
-              ),
-              shinyFilesButton(
-                id = "output_path_load", label = "Load", title = "Teste", multiple = FALSE,
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-export")
-              ),
-              tags$style(type = "text/css", "#output_path_load { margin-top: 40px;}")
             ),
-            # todo Mudar de input path para "user_setup"
             actionButton("user_setup_confirm", "Confirm Paths",
               icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
               style = "color: #000000; background-color: #33b733; border-color: #288d28; width: 360px;"
@@ -476,7 +445,6 @@ launch_validation_app <- function(
               options = list(delay = list(show = 1000, hide = 0))
             ),
             tags$style(".tooltip {width: 300px;}")
-
           ),
 
           # Session setup ------------------------------------------------------
@@ -504,14 +472,14 @@ launch_validation_app <- function(
               value = c(0, 1)
             ),
             # top n detections
-            column(
-              width = 6,
-              textInput("top_n_detecs", "Top detections", value = 0, width = "100%")
+            splitLayout(
+              cellWidths = c("50%", "50%"),
+              textInput("top_n_detecs", "Top detections", value = 0, width = "100%"),
+              checkboxInput(
+                "top_by_file", "Search top scores within soundscape files",
+                value = FALSE, width = "100%"
+              )
             ),
-            column(width = 6, checkboxInput(
-              "top_by_file", "Search top scores within soundscape files",
-              value = FALSE, width = "100%"
-            )),
             # arrange the order of validation per score
             selectInput(
               "order_by", "Order by",
@@ -550,6 +518,15 @@ launch_validation_app <- function(
             "Spectrogram Parameters",
             tabName = "spec_par_tab",
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
+            splitLayout(
+              cellWidths = c("50%", "50%"),
+              numericInput("time_guide_interval", "Time Guide Interval (s)",
+                value = session_data$time_guide_interval, min = 0.01, max = 60, step = 0.01
+              ),
+              numericInput("freq_guide_interval", "Freq Guide Interval (kHz)",
+                value = session_data$freq_guide_interval, min = 0.01, max = 192, step = 0.01
+              )
+            ),
             sliderInput(
               "time_pads", "Pad size (s):",
               min = 0, max = 16, width = "100%", step = 0.5,
@@ -605,19 +582,11 @@ launch_validation_app <- function(
               choices = c("HTML player", "R session", "External player"), inline = TRUE,
               selected = session_data$wav_player_type
             ),
-            splitLayout(
-              cellWidths = c("75%", "25%"),
-              textAreaInput(
-                "wav_player_path",
-                label = "Path to player executable (default = 'play')",
-                height = "40px", resize = "vertical",
-                value = session_data$wav_player_path
-              ),
-              shinyDirButton(
-                id = "wav_player_path_load", label = "Load", title = "Teste",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-export")
-              ),
-              tags$style(type = "text/css", "#wav_player_path_load { margin-top: 40px;}")
+            textAreaInput(
+              "wav_player_path",
+              label = "Path to player executable (default = 'play')",
+              height = "40px", resize = "vertical",
+              value = session_data$wav_player_path
             ),
             actionButton(
               inputId = "get_templ_pars",
@@ -677,7 +646,7 @@ launch_validation_app <- function(
               width = 8,
               tags$div(id = "detection_player"),
               actionButton(
-                "play_detec", "Play Detection (2)",
+                "play_detec", "Play Detection (1)",
                 icon = icon("play"), width = "100%", style = "height:50px"
               )
             ),
@@ -705,14 +674,14 @@ launch_validation_app <- function(
             plotOutput("TemplateSpectrogram", height = "475px"),
             tags$div(id = "template_player"),
             actionButton(
-              "play_template", "Play Template (1)",
+              "play_template", "Play Template (2)",
               icon = icon("play"), width = "100%", style = "height:50px"
             )
         ),
 
         # Input box ------------------------------------------------------------
 
-
+        # todo - reorganize the ui within this box
         box(
           width = 12,
           column(
@@ -880,29 +849,17 @@ launch_validation_app <- function(
             "Export Detection",
             column(
               width = 6,
-              splitLayout(
-                cellWidths = c("80%", "20%"),
-                textInput(
-                  "wav_cuts_path", "Wave cuts path",
-                  value = session_data$wav_cuts_path, width = "100%",
-                  placeholder = "Paste or load here the path to export the wav file"
-                ),
-                shinyDirButton(
-                  id = "wav_cuts_path_load", label = "Load path", title = "Teste",
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-                ),
-                tags$style(type = "text/css", "#wav_cuts_path_load { margin-top: 25px; width: 100%; }")
+              textInput(
+                "wav_cuts_path", "Wave cuts path",
+                value = session_data$wav_cuts_path, width = "100%",
+                placeholder = "Paste or load here the path to export the wav file"
               ),
-              splitLayout(
-                cellWidths = c("80%", "20%"),
-                textInput(
-                  "wav_cut_name", "Wav file name (*.wav)",
-                  value = NULL, width = "100%",
-                  placeholder = "Input the file name here"
-                ),
-                actionButton("reset_wav_cut_name", "Reset filename", width = "100%"),
-                tags$style(type = "text/css", "#reset_wav_cut_name { margin-top: 25px;}")
+              textInput(
+                "wav_cut_name", "Wav file name (*.wav)",
+                value = NULL, width = "100%",
+                placeholder = "Input the file name here"
               ),
+              actionButton("reset_wav_cut_name", "Reset filename", width = "100%"),
               actionButton(
                 "confirm_wav_export", "Export wav file (r)",
                 width = "100%",
@@ -914,29 +871,17 @@ launch_validation_app <- function(
 
             column(
               width = 6,
-              splitLayout(
-                cellWidths = c("80%", "20%"),
-                textInput(
-                  "spec_path", "Spectrogram cuts path",
-                  value = session_data$spec_path, width = "100%",
-                  placeholder = "Paste or load here the path to export the spectrogram"
-                ),
-                shinyDirButton(
-                  id = "spec_path_load", label = "Load path", title = "Teste",
-                  icon = icon(lib = "glyphicon", "glyphicon glyphicon-import")
-                ),
-                tags$style(type = "text/css", "#spec_path_load { margin-top: 25px; width: 100%; }")
+              textInput(
+                "spec_path", "Spectrogram cuts path",
+                value = session_data$spec_path, width = "100%",
+                placeholder = "Paste or load here the path to export the spectrogram"
               ),
-              splitLayout(
-                cellWidths = c("80%", "20%"),
-                textInput(
-                  "spec_name", "Spectrogram file name (*.jpeg)",
-                  value = NULL, width = "100%",
-                  placeholder = "Input the file name here"
-                ),
-                actionButton("reset_spec_filename", "Reset filename", width = "100%"),
-                tags$style(type = "text/css", "#reset_spec_filename { margin-top: 25px;}")
+              textInput(
+                "spec_name", "Spectrogram file name (*.jpeg)",
+                value = NULL, width = "100%",
+                placeholder = "Input the file name here"
               ),
+              actionButton("reset_spec_filename", "Reset filename", width = "100%"),
               actionButton(
                 "confirm_spec_export", "Export spectrogram (t)",
                 width = "100%",
@@ -981,104 +926,6 @@ launch_validation_app <- function(
 
     # Server -------------------------------------------------------------------
     server = function(input, output, session) {
-      # Set a reactive object to detect paths for system volumes
-      volumes <- shinyFiles::getVolumes()()
-
-      # Open the server side for choosing the directory with
-      # the templates
-      shinyDirChoose(
-        input, "templates_path_load",
-        session = session,
-        roots = volumes
-      )
-      # Observe the interface input to update the text input
-      observeEvent(input$templates_path_load, {
-        res <- parseDirPath(
-          volumes, input$templates_path_load
-        ) %>%
-          as.character() %>%
-          gsub("//", "/", .)
-        updateTextInput(
-          session,
-          inputId = "templates_path", value = res
-        )
-      })
-
-      # Open the server side for choosing the directory with
-      # the soundscapes
-      shinyDirChoose(
-        input, "soundscapes_path_load",
-        session = session,
-        roots = volumes
-      )
-      # Observe the interface input to update the text input
-      observeEvent(input$soundscapes_path_load, {
-        res <- parseDirPath(
-          volumes, input$soundscapes_path_load
-        ) %>%
-          as.character() %>%
-          gsub("//", "/", .)
-        updateTextInput(
-          session,
-          inputId = "soundscapes_path", value = res
-        )
-      })
-
-      # Set the path to the player executable
-      shinyFileChoose(input, "wav_player_path_load",
-        session = session, roots = volumes
-      )
-      observeEvent(input$wav_player_path_load, {
-        input_file <- parseFilePaths(
-          roots = volumes, input$wav_player_path_load
-        ) %>%
-          as.data.frame() %>%
-          .$datapath %>%
-          gsub("//", "/", .)
-        updateTextInput(session, inputId = "wav_player_path", value = input_file)
-      })
-
-      # Open the server side for choosing the csv input with detections
-      shinyFileChoose(
-        input, "input_path_load",
-        session = session, roots = volumes
-      )
-      # observe the input and update the text accordingly
-      observeEvent(input$input_path_load, {
-        input_file <- parseFilePaths(
-          roots = volumes, input$input_path_load
-        ) %>%
-          as.data.frame() %>%
-          .$datapath %>%
-          gsub("//", "/", .)
-        if (!is.null(input$input_path_load)) {
-          updateTextInput(
-            session,
-            inputId = "input_path", value = input_file
-          )
-        }
-      })
-
-      # Open the server side for choosing the csv in which validations will be stored
-      shinyFileChoose(
-        input, "output_path_load",
-        session = session, roots = volumes
-      )
-      # observe and update the text accordingly
-      observeEvent(input$output_path_load, {
-        output_file <- parseFilePaths(
-          roots = volumes, input$output_path_load
-        ) %>%
-          as.data.frame() %>%
-          .$datapath %>%
-          gsub("//", "/", .)
-        if (!is.null(input$output_path_load)) {
-          updateTextInput(
-            session,
-            inputId = "output_path", value = output_file
-          )
-        }
-      })
 
       # Create a reactive object for storing the path
       templates_path <- reactiveVal(NULL)
@@ -1088,100 +935,206 @@ launch_validation_app <- function(
       df_full <- reactiveValues(data = NULL)
       df_output <- reactiveVal(NULL)
       df_ref_templates <- reactiveVal(NULL)
-      # On confirmation of the provided path...
+
       observeEvent(input$user_setup_confirm, {
+        # Initial input validation
         req(
           input$input_path, input$output_path, input$soundscapes_path,
           input$templates_path, input$validation_user
         )
+
+        # Validate paths and files
+        validation_errors <- character()
+
+        # Check input file
+        if (!file.exists(input$input_path)) {
+          validation_errors <- c(validation_errors, "Input file does not exist")
+        } else {
+          tryCatch(
+            {
+              test_read <- fread(input$input_path, nrows = 1)
+            },
+            error = function(e) {
+              validation_errors <<- c(
+                validation_errors,
+                sprintf("Cannot read input file: %s", e$message)
+              )
+            }
+          )
+        }
+
+        # Check directories
+        paths_to_check <- list(
+          "Soundscapes directory" = input$soundscapes_path,
+          "Templates directory" = input$templates_path
+        )
+
+        for (path_name in names(paths_to_check)) {
+          path <- paths_to_check[[path_name]]
+          if (!dir.exists(path)) {
+            validation_errors <- c(
+              validation_errors,
+              sprintf("%s does not exist", path_name)
+            )
+          } else if (length(list.files(path,
+            pattern = ".wav$",
+            recursive = TRUE, ignore.case = TRUE
+          )) == 0) {
+            validation_errors <- c(
+              validation_errors,
+              sprintf("No WAV files found in %s", path_name)
+            )
+          }
+        }
+
+        # Check output path
+        output_dir <- dirname(input$output_path)
+        if (!dir.exists(output_dir)) {
+          validation_errors <- c(
+            validation_errors,
+            "Output directory does not exist"
+          )
+        }
+
+        # If there are validation errors, show them and stop
+        if (length(validation_errors) > 0) {
+          showModal(modalDialog(
+            title = "Setup Validation Errors",
+            tags$div(
+              tags$p("Please correct the following errors:"),
+              tags$ul(
+                lapply(validation_errors, function(error) tags$li(error))
+              )
+            ),
+            easyClose = TRUE,
+            footer = modalButton("OK")
+          ))
+          return()
+        }
+
+        # Show warning about input/output paths
         if (input$input_path == input$output_path) {
-          showModal(
-            modalDialog(
-              title = "Input and output files are the same",
-              "There is risk of overwritting previsous validations. Make sure the Overwrite check is not enabled to protect your data.",
+          showModal(modalDialog(
+            title = "Warning: Input and Output Files Are the Same",
+            tags$div(
+              tags$p(
+                icon("warning"),
+                "Risk of overwriting previous validations!"
+              ),
+              tags$p("Make sure the Overwrite check is not enabled to protect your data.")
+            ),
+            easyClose = TRUE,
+            footer = modalButton("I Understand")
+          ))
+        } else {
+          showModal(modalDialog(
+            title = "Different Input and Output Files",
+            tags$div(
+              tags$p(
+                icon("info-circle"),
+                "You are creating a new output file."
+              ),
+              tags$p("If the output file already exists, it may be overwritten. Consider backing up existing data.")
+            ),
+            easyClose = TRUE,
+            footer = modalButton("Proceed")
+          ))
+        }
+
+        # Safe data loading
+        tryCatch(
+          {
+            df_soundscapes <- data.frame(
+              soundscape_path = list.files(
+                input$soundscapes_path,
+                pattern = ".wav$", recursive = TRUE, full.names = TRUE,
+                ignore.case = TRUE
+              )
+            ) %>%
+              mutate(soundscape_file = basename(soundscape_path))
+
+            df_templates <- data.frame(
+              template_path = list.files(
+                input$templates_path,
+                pattern = ".wav$", recursive = TRUE, full.names = TRUE,
+                ignore.case = TRUE
+              )
+            ) %>%
+              mutate(template_file = basename(template_path))
+            df_ref_templates(df_templates)
+
+            res <- fread(input$input_path, data.table = FALSE, header = TRUE) %>%
+              mutate(
+                soundscape_path = as.character(NA),
+                template_path = as.character(NA)
+              ) %>%
+              rows_update(df_templates, by = "template_file", unmatched = "ignore") %>%
+              rows_update(df_soundscapes, by = "soundscape_file", unmatched = "ignore")
+
+            var_names <- c(
+              "detection_id", "validation_user", "validation_time", "validation",
+              "validation_note"
+            )
+
+            # Add variables for review inputs if needed
+            if (!all(var_names %in% colnames(res))) {
+              res <- res %>%
+                mutate(
+                  detection_id = 1:nrow(.),
+                  validation_user = NA_character_,
+                  validation_time = NA_character_,
+                  validation = "NV",
+                  validation_note = NA_character_
+                )
+            } else if ("validation_time" %in% colnames(res)) {
+              res <- res %>%
+                mutate(
+                  validation_time = as.character(validation_time),
+                  validation_note = as.character(validation_note)
+                )
+            }
+
+            updateSelectInput(
+              session, "template_name",
+              choices = unique(res$template_name)
+            )
+
+            # Update progress bar
+            updateProgressBar(
+              session = session, id = "prog_bar_full",
+              value = length(which(res$validation %in% c("TP", "FP", "UN"))),
+              total = nrow(res)
+            )
+
+            # Update reactive values
+            df_full$data <- res
+            df_output(res)
+
+            showModal(modalDialog(
+              title = "Setup Successful",
+              tags$div(
+                tags$p(icon("check"), "Paths updated successfully."),
+                tags$p("You can now proceed with the validation.")
+              ),
               easyClose = TRUE,
-              footer = NULL
-            )
-          )
-        }
-        if (input$input_path != input$output_path) {
-          showModal(
-            modalDialog(
-              title = "Input and output files are different",
-              "Proceed if you wish to create a new output file. If the output file already exists, consider choosing another name or make a backup copy, as exporting new detections may silently overwrite it.",
+              footer = modalButton("OK")
+            ))
+          },
+          error = function(e) {
+            showModal(modalDialog(
+              title = "Error Processing Data",
+              tags$div(
+                tags$p(
+                  icon("exclamation-triangle"),
+                  "An error occurred while processing the data:"
+                ),
+                tags$pre(e$message)
+              ),
               easyClose = TRUE,
-              footer = NULL
-            )
-          )
-        }
-        df_soundscapes <- data.frame(
-          soundscape_path = list.files(
-            input$soundscapes_path,
-            pattern = ".wav$", recursive = TRUE, full.names = TRUE,
-            ignore.case = TRUE
-          )
-        ) %>%
-          mutate(soundscape_file = basename(soundscape_path))
-
-        df_templates <- data.frame(
-          template_path = list.files(
-            input$templates_path,
-            pattern = ".wav$", recursive = TRUE, full.names = TRUE,
-            ignore.case = TRUE
-          )
-        ) %>%
-          mutate(template_file = basename(template_path))
-        df_ref_templates(df_templates)
-
-        res <- fread(input$input_path, data.table = FALSE, header = TRUE) %>%
-          mutate(
-            soundscape_path = as.character(NA),
-            template_path = as.character(NA)
-          ) %>%
-          rows_update(df_templates, by = "template_file", unmatched = "ignore") %>%
-          rows_update(df_soundscapes, by = "soundscape_file", unmatched = "ignore")
-
-        var_names <- c(
-          "detection_id", "validation_user", "validation_time", "validation",
-          "validation_note"
+              footer = modalButton("OK")
+            ))
+          }
         )
-
-        # Add variables for review inputs in case those are not in res
-        if (!all(var_names %in% colnames(res))) {
-          res <- res %>%
-            mutate(
-              detection_id = 1:nrow(.),
-              validation_user = NA_character_,
-              validation_time = NA_character_,
-              validation = "NV",
-              validation_note = NA_character_
-              # todo colocar "validation_label"
-            )
-        } else if ("validation_time" %in% colnames(res)) {
-          res <- res %>%
-            mutate(
-              validation_time = as.character(validation_time),
-              validation_note = as.character(validation_note)
-            )
-        }
-
-        updateSelectInput(
-          session, "template_name", # todo Importante!
-          choices = unique(res$template_name)
-        )
-
-        # Initial upodate of the progress bar
-        updateProgressBar(
-          session = session, id = "prog_bar_full",
-          value = length(which(res$validation %in% c("TP", "FP", "UN"))),
-          total = nrow(res)
-        )
-
-        # Two diential reactive objects for modification control
-        df_full$data <- res
-        df_output(res)
-
-        showNotification("Paths updated successfully")
       })
 
 
@@ -1189,21 +1142,16 @@ launch_validation_app <- function(
       # samples above the specified threshold to avoid showing soundscapes
       # without detections
       df_cut <- reactiveVal(NULL)
-      #
       vec_soundscapes <- reactiveVal(NULL)
-      #
       df_template <- reactiveVal(NULL)
 
       observeEvent(input$confirm_session_setup, {
         req(df_full$data)
-
         if (!is.null(df_output())) {
           df_full$data <- df_output()
         }
-
         val_subset <- input$val_subset
         val_subset[val_subset == "NA" & is.na(val_subset)] <- "NV"
-
         order_options <- list(
           "Original file order" = function(res) res,
           "Random" = function(res, seed = input$subset_seed) {
@@ -1368,6 +1316,7 @@ launch_validation_app <- function(
         }
       })
 
+      # todo - activate this to navigate between soundscapes directly
       # observeEvent(input$soundscape_file, {
       #   req(df_cut(), det_counter(), det_i())
       #   i <- which(df_cut()$detection_id == input$detec)
@@ -1379,8 +1328,7 @@ launch_validation_app <- function(
       # })
 
       # Reactive object containing the wav of the active template
-
-      # df_ref_templates()
+      # todo - change the rendered template spectrogram according to the selected template
       observeEvent(input$lock_template, {
         if (input$lock_template != TRUE) {
           enable("custom_reference")
@@ -1403,19 +1351,12 @@ launch_validation_app <- function(
         if (nrow(df_template()) == 0 | is.na(wav_path) | !file.exists(wav_path)) {
           rec_template(NULL)
         } else {
-          rec_start <- df_template()$template_start - zoom_pad()
-          pre_silence <- 0
-          rec_end <- df_template()$template_end + zoom_pad()
-          pos_silence <- 0
 
-          if (rec_start < 0) {
-            pre_silence <- abs(rec_start)
-            rec_start <- 0
-          }
-          if (rec_end > (df_template()$template_end - df_template()$template_start)) {
-            pos_silence <- rec_end - (df_template()$template_end - df_template()$template_start)
-            rec_end <- (df_template()$template_end - df_template()$template_start)
-          }
+          template_duration <- df_template()$template_end - df_template()$template_start
+          rec_start <- max(0, df_template()$template_start - zoom_pad())
+          pre_silence <- max(0, -(df_template()$template_start - zoom_pad()))
+          rec_end <- min(template_duration, df_template()$template_end + zoom_pad())
+          pos_silence <- max(0, (df_template()$template_end + zoom_pad()) - template_duration)
 
           if (length(wav_path) == 1) {
             res <- readWave(
@@ -1509,8 +1450,6 @@ launch_validation_app <- function(
 
       observeEvent(input$default_pars, {
         req(det_i())
-        # todo Update defaults to session_data
-        # todo Update pad slider
         updateSliderInput(session, inputId = "dyn_range_templ", value = session_data$dyn_range_templ)
         updateSliderInput(session, inputId = "dyn_range_detec", value = session_data$dyn_range_detec)
         updateSliderTextInput(session, inputId = "wl", selected = session_data$wl)
@@ -1525,14 +1464,14 @@ launch_validation_app <- function(
           range = c(0, (min(df_cut()$detection_sample_rate) / 2000) - 1),
           value = c(0, (min(df_cut()$detection_sample_rate) / 2000) - 1)
         )
+        updateSliderInput(session, inputId = "time_guide_interval", value = session_data$time_guide_interval)
+        updateSliderInput(session, inputId = "freq_guide_interval", value = session_data$freq_guide_interval)
       })
 
       zoom_pad <- reactiveVal(0)
       observe({
         zoom_pad(input$time_pads)
       })
-
-
 
       spectro_template <- reactive({
         req(df_template())
@@ -1546,11 +1485,12 @@ launch_validation_app <- function(
           )
           temp_rec <- rec_template()
           fast_spectro(
-            rec = temp_rec, f = df_template()$sample_rate, wl = input$wl,
+            rec = temp_rec, f = temp_rec@samp.rate, wl = input$wl,
             ovlp = input$ovlp, flim = c(input$zoom_freq[1], input$zoom_freq[2]),
             dyn_range = c(input$dyn_range_templ[1], input$dyn_range_templ[2]),
-            color_scale = input$color_scale,
-            pitch_shift = input$pitch_shift
+            time_guide_interval = input$time_guide_interval,
+            freq_guide_interval = input$freq_guide_interval,
+            color_scale = input$color_scale, pitch_shift = input$pitch_shift
           ) +
             labs(title = "Template spectrogram") +
             annotate(
@@ -1683,6 +1623,8 @@ launch_validation_app <- function(
           wl = input$wl, ovlp = input$ovlp,
           flim = c(input$zoom_freq[1], input$zoom_freq[2]),
           dyn_range = c(input$dyn_range_detec[1], input$dyn_range_detec[2]),
+          time_guide_interval = input$time_guide_interval,
+          freq_guide_interval = input$freq_guide_interval,
           color_scale = input$color_scale, pitch_shift = input$pitch_shift,
           norm = FALSE
         ) +
@@ -1803,6 +1745,8 @@ launch_validation_app <- function(
             wl = input$wl, ovlp = input$ovlp,
             flim = c(input$zoom_freq[1], input$zoom_freq[2]),
             dyn_range = c(input$dyn_range_detec[1], input$dyn_range_detec[2]),
+            time_guide_interval = input$time_guide_interval,
+            freq_guide_interval = input$freq_guide_interval,
             color_scale = input$color_scale, pitch_shift = input$pitch_shift,
             norm = FALSE
           )
@@ -1914,88 +1858,105 @@ launch_validation_app <- function(
         tuneR::play(object = res)
       })
 
+      # Audio control state management
+      audio_state <- reactiveValues(
+        template_player = NULL,
+        detection_player = NULL
+      )
+
+      # Handle hotkey audio control
       observeEvent(input$hotkeys, {
-        req(
-          rec_template(), input$hotkeys == "1",
-          input$wav_player_type %in% c("R session", "External player")
-        )
-        req(df_template())
-        res <- readWave(df_template()$template_path)
-        pitch_shift <- abs(input$pitch_shift)
-        if (input$pitch_shift < 1) {
-          res@samp.rate <- res@samp.rate / pitch_shift
+        req(input$hotkeys %in% c("1", "2"))
+
+        if (input$wav_player_type == "HTML player") {
+          # Determine which player to control (1 = detection, 2 = template)
+          player_id <- if (input$hotkeys == "1") {
+            "#detection_player_selector"
+          } else {
+            "#template_player_selector"
+          }
+
+          # Control player via JavaScript
+          runjs(sprintf("
+            var player = document.querySelector('%s');
+            if (player) {
+              if (player.paused) {
+                player.play();
+              } else {
+                player.pause();
+                player.currentTime = 0;
+              }
+            }
+          ", player_id))
+        } else {
+          # Handle existing R session / External player logic
+          if (input$hotkeys == "1") {
+            # Play detection (was template)
+            req(
+              rec_detection(),
+              input$wav_player_type %in% c("R session", "External player")
+            )
+            res <- rec_detection()
+            pitch_shift <- abs(input$pitch_shift)
+            if (input$pitch_shift < 1) {
+              res@samp.rate <- res@samp.rate / pitch_shift
+            }
+            if (isTRUE(input$visible_bp)) {
+              res <- seewave::fir(
+                res,
+                f = res@samp.rate,
+                from = (input$zoom_freq[1] / pitch_shift) * 1000,
+                to = (input$zoom_freq[2] / pitch_shift) * 1000,
+                wl = input$wl, output = "Wave"
+              )
+            }
+            if (isTRUE(input$play_norm)) {
+              res <- normalize(
+                object = res, unit = as.character(res@bit), pcm = TRUE
+              )
+            }
+            tuneR::play(object = res)
+          } else if (input$hotkeys == "2") {
+            # Play template (was detection)
+            req(
+              rec_template(),
+              input$wav_player_type %in% c("R session", "External player")
+            )
+            req(df_template())
+            res <- readWave(df_template()$template_path)
+            pitch_shift <- abs(input$pitch_shift)
+            if (input$pitch_shift < 1) {
+              res@samp.rate <- res@samp.rate / pitch_shift
+            }
+            if (isTRUE(input$visible_bp)) {
+              res <- ffilter(
+                res,
+                f = res@samp.rate,
+                from = (input$zoom_freq[1] / pitch_shift) * 1000,
+                to = (input$zoom_freq[2] / pitch_shift) * 1000,
+                wl = input$wl, output = "Wave", bandpass = TRUE
+              )
+            }
+            tuneR::play(object = res)
+          }
         }
-        if (isTRUE(input$visible_bp)) { # ! Quebra quando filtra
-          res <- ffilter(
-              res,
-              f = res@samp.rate,
-              from = (input$zoom_freq[1] / pitch_shift) * 1000,
-              to = (input$zoom_freq[2] / pitch_shift) * 1000,
-              wl = input$wl, output = "Wave", bandpass = TRUE
-          )
-        }
-        tuneR::play(object = res)
       })
 
-      # Soundscape player (not HTML)
-      observeEvent(input$play_soundscape, {
-        req(
-          rec_soundscape(),
-          input$wav_player_type %in% c("R session", "External player")
-        )
-        tuneR::play(object = rec_soundscape())
-      })
-
-      # Detection player (not HTML)
-      observeEvent(input$play_detec, {
-        req(rec_detection())
-        res <- rec_detection()
-        pitch_shift <- abs(input$pitch_shift)
-        if (input$pitch_shift < 1) {
-          res@samp.rate <- res@samp.rate / pitch_shift
-        }
-        if (isTRUE(input$visible_bp)) {
-          res <- ffilter(
-            res,
-            f = res@samp.rate,
-            from = (input$zoom_freq[1] / pitch_shift) * 1000,
-            to = (input$zoom_freq[2] / pitch_shift) * 1000,
-            wl = input$wl, output = "Wave", bandpass = TRUE
+      # Update tooltips to reflect HTML player hotkeys
+      observe({
+        req(input$wav_player_type)
+        if (input$wav_player_type == "HTML player") {
+          shinyBS::addTooltip(session,
+            id = "template_player_selector",
+            title = "Hotkey = 1",
+            placement = "bottom", trigger = "hover", options = pop_up_opt
+          )
+          shinyBS::addTooltip(session,
+            id = "detection_player_selector",
+            title = "Hotkey = 2",
+            placement = "bottom", trigger = "hover", options = pop_up_opt
           )
         }
-        if (isTRUE(input$play_norm)) {
-          res <- normalize(
-            object = res, unit = as.character(res@bit), pcm = TRUE #
-          )
-        }
-        tuneR::play(object = res)
-      })
-
-      observeEvent(input$hotkeys, {
-        req(
-          rec_detection(), input$hotkeys == "2",
-          input$wav_player_type %in% c("R session", "External player")
-        )
-        res <- rec_detection()
-        pitch_shift <- abs(input$pitch_shift)
-        if (input$pitch_shift < 1) {
-          res@samp.rate <- res@samp.rate / pitch_shift
-        }
-        if (isTRUE(input$visible_bp)) {
-          res <- seewave::fir(
-            res,
-            f = res@samp.rate,
-            from = (input$zoom_freq[1] / pitch_shift) * 1000,
-            to = (input$zoom_freq[2] / pitch_shift) * 1000,
-            wl = input$wl, output = "Wave"
-          )
-        }
-        if (isTRUE(input$play_norm)) {
-          res <- normalize(
-            object = res, unit = as.character(res@bit), pcm = TRUE #
-          )
-        }
-        tuneR::play(object = res)
       })
 
       validation_input <- reactiveVal(NULL)
@@ -2400,18 +2361,6 @@ launch_validation_app <- function(
         plot_dens_react()
       })
 
-      # Open the server side for choosing the directory with the presets
-      shinyDirChoose(input, "preset_path_load", session = session, roots = volumes)
-      # Observe the interface input to update the text input
-      observeEvent(input$preset_path_load, {
-        res <- parseDirPath(
-          volumes, input$preset_path_load
-        ) %>%
-          as.character() %>%
-          gsub("//", "/", .)
-        updateTextInput(session, inputId = "preset_path", value = res)
-      })
-
       # teste_val <- reactiveVal(NULL)
       # output$checagem1 <- renderPrint({
       #   req(det_i())
@@ -2424,19 +2373,6 @@ launch_validation_app <- function(
       #   glimpse(readRDS("app_presets/validation_preset_Salobo_validation.rds"))
       # })
 
-      # Load path to export the wav file
-      shinyDirChoose(
-        input, "wav_cuts_path_load",
-        session = session,
-        roots = volumes
-      )
-      # Observe the interface input to update the text input
-      observeEvent(input$wav_cuts_path_load, {
-        res <- parseDirPath(volumes, input$wav_cuts_path_load) %>%
-          as.character() %>%
-          gsub("//", "/", .)
-        updateTextInput(session, inputId = "wav_cuts_path", value = res)
-      })
       wav_filename <- reactiveVal()
       wav_default_filename <- reactive({
         req(det_i())
@@ -2466,6 +2402,7 @@ launch_validation_app <- function(
       # Export the wav file by clicking the export button
       observeEvent(input$confirm_wav_export, {
         req(input$wav_cuts_path, wav_filename(), rec_detection())
+        # todo - validate the path and return a message if it's not valid
         writeWave(
           object = rec_detection(),
           filename = file.path(input$wav_cuts_path, wav_filename())
@@ -2482,19 +2419,6 @@ launch_validation_app <- function(
         showNotification("Detection wave file successfully exported")
       })
 
-      # Load path to export the spectrogram
-      shinyDirChoose(
-        input, "spec_path_load",
-        session = session,
-        roots = volumes
-      )
-      # Observe the interface input to update the text input
-      observeEvent(input$spec_path_load, {
-        res <- parseDirPath(volumes, input$spec_path_load) %>%
-          as.character() %>%
-          gsub("//", "/", .)
-        updateTextInput(session, inputId = "spec_path", value = res)
-      })
       spec_filename <- reactiveVal()
       spec_default_filename <- reactive({
         req(det_i())
@@ -2524,6 +2448,7 @@ launch_validation_app <- function(
       # Export the wav file by clicking the export button
       observeEvent(input$confirm_spec_export, {
         req(input$spec_path, spec_filename(), rec_detection())
+        # todo - validate the path and return a message if it's not valid
         res <- cowplot::plot_grid(spectro_template(), spectro_detection())
         ggsave(
           filename = file.path(input$spec_path, spec_filename()),
@@ -2588,281 +2513,131 @@ launch_validation_app <- function(
       observeEvent(input$confirm_exit, {
         stopApp()
       })
+      # todo - complete the tooltips of the remaining UI
+      # Define all tooltips in a structured list
+      tooltips_config <- list(
+        # User Setup Section
+        user_setup = list(
+          list(
+            id = "preset_path", title = "Presets available here will be shown in the drop-down menu below", placement = "right"
+          ),
+          list(
+            id = "validation_user", title = "Recommended format: 'Rosa G. L. M. (avoid commas)", placement = "right"
+          ),
+          list(
+            id = "templates_path", title = "Parent location that contains only template files or folders of these", placement = "right"
+          ),
+          list(
+            id = "soundscapes_path", title = "Parent location that contains only soundscape files or folders of these", placement = "right"
+          ),
+          list(
+            id = "input_path", title = "Complete path to the 'csv.' file that contains detection data", placement = "right"
+          ),
+          list(
+            id = "output_path", title = "Complete path to the 'csv.' file in which validation from this session will be stored", placement = "right"
+          )
+        ),
+
+        # Session Setup Section
+        session_setup = list(
+          list(
+            id = "confirm_session_setup", title = "<b>Part 2 of 2 required to start the session</b>.", placement = "right"),
+          list(
+            id = "template_name", title = "Select here one of the templates available in the input file", placement = "right"),
+          list(
+            id = "val_subset", title = "Select at least one options. Only those selected will be shown.", placement = "right"),
+          list(
+            id = "score_interval", title = "Only detections within this interval will be presented to the user", placement = "right"),
+          list(
+            id = "time_pads", title = "Zoom in and out in the time axis of template and detection spectrograms", placement = "right"),
+          list(
+            id = "dyn_range_templ", title = "Adjust what portion of the amplitude scale is shown in the template spectrogram", placement = "right"),
+          list(
+            id = "dyn_range_detec", title = "Adjust what portion of the amplitude scale is shown in the detection spectrogram", placement = "right"),
+          list(
+            id = "wl", title = "Tradeoff between time and frequency resolution", placement = "right"),
+          list(
+            id = "ovlp", title = "Increase if more resultion is needed. Performance may decrease for values above 80%", placement = "right"),
+          list(
+            id = "wav_player_type", title = "Select the method to play wav files", placement = "right"),
+          list(
+            id = "wav_player_path", title = "Necessary when 'External player' is selected. If the executable is not available, 'HTML player' will be automatically selected", placement = "right"),
+          list(
+            id = "get_templ_pars", title = "Set spectrogram parameters to those used to run the detections", placement = "right"),
+          list(
+            id = "default_pars", title = "Set spectrogram parameters back to the default", placement = "right")
+        ),
+
+        # Controls Section
+        controls = list(
+          list(
+            id = "play_detec", title = "Play detection. Hotkey = 1", placement = "bottom"
+          ),
+          list(
+            id = "play_template", title = "Play template. Hotkey = 2", placement = "bottom"
+          ),
+          list(
+            id = "prev_detec", title = "Navigate to the previous detection. Hotkey: A", placement = "bottom"
+          ),
+          list(
+            id = "next_detec", title = "Navigate to the next detection. Hotkey: D", placement = "bottom"
+          ),
+          list(
+            id = "button_tp", title = "Validate active detection as 'True Positive'. Hotkey: Q", placement = "bottom"
+          ),
+          list(
+            id = "button_un", title = "Validate active detection as 'Unknown'. Hotkey: W", placement = "bottom"
+          ),
+          list(
+            id = "button_fp", title = "Validate active detection as a 'False Positive'. Hotkey: E", placement = "bottom"
+          ),
+          list(
+            id = "button_save", title = "Export validations to the output '.csv' file. Hotkey: S", placement = "bottom"
+          )
+        ),
+
+        # Export Section
+        export = list(
+          list(
+            id = "wav_cuts_path", title = "Path for exporting an audio sample of the detection", placement = "bottom"
+          ),
+          list(
+            id = "wav_cut_name", title = "Name of the file with the audio sample ('.wav')", placement = "bottom"
+          ),
+          list(
+            id = "reset_wav_cut_name", title = "Reset the filename back to the default", placement = "bottom"
+          ),
+          list(
+            id = "confirm_wav_export", title = "Hotkey: R", placement = "bottom"
+          ),
+          list(
+            id = "spec_path", title = "Path for exporting the spectrogram image", placement = "bottom"
+          ),
+          list(
+            id = "spec_name", title = "Name of the spectrogram image file ('.jpeg')", placement = "bottom"
+          ),
+          list(
+            id = "reset_spec_filename", title = "Reset the filename back to the default", placement = "bottom"),
+          list(
+            id = "confirm_spec_export", title = "Hotkey: T", placement = "bottom"
+          )
+        )
+      )
 
       # General popover options
       pop_up_opt <- list(delay = list(show = 1000, hide = 0))
 
-      # Side bar menu - User setup
-      shinyBS::addTooltip(session,
-        id = "preset_path",
-        title = "Presets available here will be shown in the drop-down menu below",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "validation_user",
-        title = "Recommended format: 'Rosa G. L. M. (avoid commas)",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "templates_path",
-        title = "Parent location that contains only template files or folders of these",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "soundscapes_path",
-        title = "Parent location that contains only soundscape files or folders of these",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "input_path",
-        title = "Complete path to the 'csv.' file that contains detection data",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "output_path",
-        title = "Complete path to the 'csv.' file in which validation from this session will be stored",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-
-      # Side bar menu - Session setup
-
-      shinyBS::addTooltip(session,
-        id = "confirm_session_setup",
-        title = "<b>Part 2 of 2 required to start the session</b>.",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "template_name",
-        title = "Select here one of the templates available in the input file",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "val_subset",
-        title = "Select at least one options. Only those selected will be shown.",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "score_interval",
-        title = "Only detections within this interval will be presented to the user",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "time_pads",
-        title = "Zoom in and out in the time axis of template and detection spectrograms",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "dyn_range_templ",
-        title = "Adjust what portion of the amplitude scale is shown in the template spectrogram",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "dyn_range_detec",
-        title = "Adjust what portion of the amplitude scale is shown in the detection spectrogram",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "wl",
-        title = "Tradeoff between time and frequency resolution",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "ovlp",
-        title = "Increase if more resultion is needed. Performance may decrease for values above 80%",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      # shinyBS::addTooltip(session,
-      #   id = "color_scale",
-      #   title = "",
-      #   placement = "right", trigger = "hover", options = pop_up_opt
-      # )
-      shinyBS::addTooltip(session,
-        id = "wav_player_type",
-        title = "Select the method to play wav files",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "wav_player_path",
-        title = "Necessary when 'External plyer' is selected. If the executable is not available, 'HTML player' will be automatically selected",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "get_templ_pars",
-        title = "Set spectrogram parameters to those used to run the detections",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "default_pars",
-        title = "Set spectrogram parameters back to the default",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-
-      # Body - Spectrogram parameters
-
-      shinyBS::addTooltip(session,
-        id = "zoom_freq",
-        title = "Define the visible frequency band for all spectrograms",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-
-      # Box - Template spectrogram
-
-      shinyBS::addTooltip(session,
-        id = "play_template",
-        title = "Hotkey = 1",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-
-      # Box - Detection spectrogram
-      shinyBS::addTooltip(session,
-        id = "play_detec",
-        title = "Hotkey = 2",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "prev_detec",
-        title = "Navigate to the previous detection. Hotkey: A",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "next_detec",
-        title = "Navigate to the next detection. Hotkey: D",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-
-      # Box - Validation input
-
-      # shinyBS::addTooltip(session,
-      #   id = "soundscape_name",
-      #   title = "",
-      #   placement = "right", trigger = "hover", options = pop_up_opt
-      # )
-      shinyBS::addTooltip(session,
-        id = "detec",
-        title = "Numeric ID of the detection in the original input data",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "seed",
-        title = "Random seed for shuffling reproducibility",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "auto_next",
-        title = "Automatic navigation to the next detection after a validation",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "nav_shuffle",
-        title = "Shuffle the detection order according to the required seed (default = 123). It may require multiple sweeps to validate the full dataset.",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "overwrite",
-        title = "Overwrite existing validations",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "nav_autosave",
-        title = "Export validation to the output '.csv' file after each validation",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "button_tp",
-        title = "Validate active detection as 'True Positive'. Hotkey: Q",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "button_un",
-        title = "Validate active detection as 'Unknown'. Hotkey: W",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "button_fp",
-        title = "Validate active detection as a 'False Positive'. Hotkey: E",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "button_save",
-        title = "Export validations to the output '.csv' file. Hotkey: S",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-
-      # BoxTab - Export detection
-
-      shinyBS::addTooltip(session,
-        id = "wav_cuts_path",
-        title = "Path for exporting an audio sample of the detection",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "wav_cut_name",
-        title = "Name of the file with the audio sample ('.wav')",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "reset_wav_cut_name",
-        title = "Reset the filename back to the default",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "confirm_wav_export",
-        title = "Hotkey: R",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "spec_path",
-        title = "Path for exporting the spectrogram image",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "spec_name",
-        title = "Name of the spectrogram image file ('.jpeg')",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "reset_spec_filename",
-        title = "Reset the filename back to the default",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "confirm_spec_export",
-        title = "Hotkey: T",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-
-      # BoxTab - Diagnostics
-
-      shinyBS::addTooltip(session,
-        id = "diag_balance",
-        title = "Consider using one of the methods available here if the number of TP and FP are not similar",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "diag_method",
-        title = "Defines if the cutpoint will be automatically defined by the binomial model or manually",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "diag_cut",
-        title = "Manual input of cupoint value here",
-        placement = "right", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "diag_tab_name",
-        title = "Name of the diagnostics table file ('.csv')",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "reset_diag_tab_filename",
-        title = "Reset the filename back to the default",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
-      shinyBS::addTooltip(session,
-        id = "confirm_diag_tab_export",
-        title = "The selected cutpoint will be indicated as the only row in which 'selected = TRUE'",
-        placement = "bottom", trigger = "hover", options = pop_up_opt
-      )
+      # Apply all tooltips efficiently
+      lapply(unlist(tooltips_config, recursive = FALSE), function(tip) {
+        shinyBS::addTooltip(
+          session,
+          id = tip$id,
+          title = tip$title,
+          placement = tip$placement,
+          trigger = "hover",
+          options = pop_up_opt
+        )
+      })
     }
   )
 }

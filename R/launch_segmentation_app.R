@@ -100,7 +100,8 @@ launch_segmentation_app <- function(
     wl = 1024, ovlp = 0, color_scale = "inferno",
     wav_player_type = "HTML player", wav_player_path = "play",
     visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
-    nav_autosave = TRUE, pitch_shift = 1) {
+    nav_autosave = TRUE, pitch_shift = 1
+  ) {
   # require(shiny)
   # require(dplyr)
   # require(ggplot2)
@@ -705,14 +706,10 @@ launch_segmentation_app <- function(
             ),
             column(
               width = 11,
-              # jqui_resizable(
               plotOutput(
                 "spectrogram_plot",
-                brush = "roi_limits", height = "500px" # , width = "1400px"
+                brush = "roi_limits", height = "500px"
               )
-              #   ,
-              #   options = list(handles = "se")
-              # )
             )
           ),
           fluidRow(
@@ -1094,8 +1091,6 @@ launch_segmentation_app <- function(
             wav_duration <- duration(wav_obj)
             duration_val(wav_duration)
             rec_soundscape(wav_obj)
-
-            # Update UI elements
             updateNoUiSliderInput(
               session,
               inputId = "zoom_time",
@@ -1285,7 +1280,6 @@ launch_segmentation_app <- function(
         )
       })
 
-      # Create a reactive object with the content of the active ROI table
       # Create a reactive object with the content of the active ROI table
       roi_values <- reactiveVal(NULL)
       observeEvent(input$roi_table_name, {
@@ -1716,38 +1710,9 @@ launch_segmentation_app <- function(
         removeModal()
       })
 
-
       # Spectrogram ----------------------------------------------------------------
 
-      spectro_soundscape_raw <- reactiveVal(NULL)
-      observe({
-        req(
-          rec_soundscape(), input$wl, input$ovlp, input$color_scale
-        )
-        res <- fast_spectro(
-          rec_soundscape(),
-          f = rec_soundscape()@samp.rate,
-          ovlp = input$ovlp, wl = input$wl,
-          dyn = input$dyn_range, pitch_shift = input$pitch_shift,
-          color_scale = input$color_scale, ncolors = 124, norm = FALSE,
-          time_guide_interval = input$time_guide_interval,
-          freq_guide_interval = input$freq_guide_interval
-        )
-        spectro_soundscape_raw(res)
-      })
-
       # Helper function to extract acoustic measurements from a selection
-
-                  # res <- data.frame(
-                  #   soundscape_path = wav_path_val(),
-                  #   soundscape_file = input$soundscape_file,
-                  #   start = input$roi_limits$xmin,
-                  #   end = input$roi_limits$xmax,
-                  #   duration = input$roi_limits$xmax - input$roi_limits$xmin,
-                  #   min_freq = input$roi_limits$ymin,
-                  #   max_freq = input$roi_limits$ymax,
-                  #   bandwidth = input$roi_limits$ymax - input$roi_limits$ymin
-                  # )
       extract_acoustic_measurements <- function(rec, ruler_data, wl, ovlp) {
         if (is.null(rec) || is.null(ruler_data)) {
           return(NULL)
@@ -1779,105 +1744,165 @@ launch_segmentation_app <- function(
         )
       }
 
-      output$spectrogram_plot <- renderPlot(execOnResize = TRUE, {
-        req(
-          input$zoom_freq, input$zoom_time, roi_values(),
-          spectro_soundscape_raw(), rec_soundscape(), duration_val()
+      # Consolidated reactive object for spectrogram parameters
+      spectro_params <- reactive({
+        list(
+          rec = rec_soundscape(),
+          wl = input$wl[1],
+          ovlp = input$ovlp[1],
+          color_scale = input$color_scale[1],
+          dyn_range = input$dyn_range,
+          pitch_shift = input$pitch_shift[1],
+          time_guide_interval = input$time_guide_interval[1],
+          freq_guide_interval = input$freq_guide_interval[1],
+          zoom_freq = sort(input$zoom_freq),
+          zoom_time = input$zoom_time,
+          show_label = input$show_label,
+          label_angle = input$label_angle,
+          soundscape_file = input$soundscape_file,
+          sample_rate = if (!is.null(rec_soundscape())) rec_soundscape()@samp.rate else NULL,
+          selection_color = ifelse(
+            input$color_scale %in% c("greyscale 1", "greyscale 2"),
+            "black", "white"
+          )
         )
-        zoom_freq <- input$zoom_freq
+      })
+
+      # Generate spectrogram data only when core parameters change
+      spectro_soundscape_raw <- reactive({
+        params <- spectro_params()
+        req(
+          params$rec, params$wl, params$ovlp, params$color_scale,
+          length(params$dyn_range) == 2, length(params$pitch_shift) == 1,
+          length(params$time_guide_interval) == 1,
+          length(params$freq_guide_interval) == 1
+        )
+        fast_spectro(
+          params$rec, f = params$sample_rate, ovlp = params$ovlp,
+          wl = params$wl, dyn = params$dyn_range,
+          pitch_shift = params$pitch_shift, color_scale = params$color_scale,
+          ncolors = 124, norm = FALSE,
+          time_guide_interval = params$time_guide_interval,
+          freq_guide_interval = params$freq_guide_interval
+        )
+      })
+
+      # Render the plot with all parameters
+      output$spectrogram_plot <- renderPlot(execOnResize = TRUE, {
+        params <- spectro_params()
+        req(
+          params$zoom_freq, params$zoom_time, roi_values(),
+          spectro_soundscape_raw(), params$rec, duration_val()
+        )
+        # Ensure valid frequency range
+        zoom_freq <- params$zoom_freq
         if (zoom_freq[1] >= zoom_freq[2]) {
           zoom_freq[2] <- zoom_freq[1] + 1
         }
-        zoom_freq <- sort(zoom_freq)
-        zoom_time <- input$zoom_time
 
-        selection_color <- ifelse(
-          input$color_scale %in% c("greyscale 1", "greyscale 2"),
-          "black", "white"
-        )
-
+        # Build base plot
         spectro_plot <- spectro_soundscape_raw() +
-          coord_cartesian(
-            xlim = zoom_time, ylim = zoom_freq
-          ) +
+          coord_cartesian(xlim = params$zoom_time, ylim = zoom_freq) +
           annotate(
             "label",
             label = paste0(
-              input$soundscape_file, " (sr = ", rec_soundscape()@samp.rate,
-              "; wl = ", input$wl, "; ovlp = ", input$ovlp,
-              "; pitch_shift = ", input$pitch_shift, ")"
+              params$soundscape_file, " (sr = ", params$sample_rate,
+              "; wl = ", params$wl, "; ovlp = ", params$ovlp,
+              "; pitch_shift = ", params$pitch_shift, ")"
             ),
-            x = -Inf, y = Inf, hjust = 0, vjust = 1,
-            color = "white", fill = "black"
+            x = -Inf, y = Inf, hjust = 0, vjust = 1, color = "white",
+            fill = "black"
           ) +
           labs(x = "Time (s)", y = "Frequency (kHz)") +
           theme(legend.position = "none")
 
-        # todo - add more resolution to the axis values
-        # todo - add freqeuncy and time guides
-
-
+        # Add ROIs if available
         rois_to_plot <- roi_values() |>
           mutate(id = row_number()) |>
           fsubset(
-            roi_start < zoom_time[2] & roi_end > zoom_time[1]
+            roi_start < params$zoom_time[2] & roi_end > params$zoom_time[1]
           )
 
-        if (nrow(rois_to_plot) > 0) {
-          if (unique(rois_to_plot$soundscape_file) == input$soundscape_file) {
-            spectro_plot <- spectro_plot +
-              {
-                if (input$show_label == TRUE) {
-                  annotate(
-                    "text",
-                    alpha = 1, vjust = "inward", hjust = "inward",
-                    angle = input$label_angle, color = selection_color,
-                    x = rois_to_plot$roi_start, y = rois_to_plot$roi_max_freq,
-                    label = paste0("(", rois_to_plot$id, ") ", rois_to_plot$roi_label),
-                    na.rm = TRUE
-                  )
-                }
-              } +
-              {
-                if (!is.null(input$res_table_rows_selected)) {
-                  annotate(
-                    "rect",
-                    alpha = 0.2, linewidth = 0.5, linetype = "solid",
-                    fill = selection_color, color = selection_color,
-                    xmin = rois_to_plot$roi_start[input$res_table_rows_selected],
-                    xmax = rois_to_plot$roi_end[input$res_table_rows_selected],
-                    ymin = rois_to_plot$roi_min_freq[input$res_table_rows_selected],
-                    ymax = rois_to_plot$roi_max_freq[input$res_table_rows_selected]
-                  )
-                }
-              } +
+        # Prepare ROI elements if available
+        if (nrow(rois_to_plot) > 0 &&
+            identical(unique(rois_to_plot$soundscape_file), params$soundscape_file)) {
+
+          roi_elements <- list(
+            # Base ROI rectangles (always added first)
+            annotate(
+              "rect",
+              alpha = 0.05,
+              linewidth = 0.3,
+              linetype = "dashed",
+              fill = params$selection_color,
+              color = params$selection_color,
+              xmin = rois_to_plot$roi_start,
+              xmax = rois_to_plot$roi_end,
+              ymin = rois_to_plot$roi_min_freq,
+              ymax = rois_to_plot$roi_max_freq
+            )
+          )
+
+          # Add highlighted selections if any
+          selected_rows <- input$res_table_rows_selected
+          if (!is.null(selected_rows) && length(selected_rows) > 0) {
+            roi_elements <- c(roi_elements, list(
               annotate(
                 "rect",
-                alpha = 0.05, linewidth = 0.3, linetype = "dashed",
-                fill = selection_color, color = selection_color,
-                xmin = rois_to_plot$roi_start, xmax = rois_to_plot$roi_end,
-                ymin = rois_to_plot$roi_min_freq, ymax = rois_to_plot$roi_max_freq
+                alpha = 0.2,
+                linewidth = 0.5,
+                linetype = "solid",
+                fill = params$selection_color,
+                color = params$selection_color,
+                xmin = rois_to_plot$roi_start[selected_rows],
+                xmax = rois_to_plot$roi_end[selected_rows],
+                ymin = rois_to_plot$roi_min_freq[selected_rows],
+                ymax = rois_to_plot$roi_max_freq[selected_rows]
               )
+            ))
           }
+
+          # Add labels if enabled
+          if (isTRUE(params$show_label)) {
+            roi_elements <- c(roi_elements, list(
+              annotate(
+                "text",
+                alpha = 1,
+                vjust = "inward",
+                hjust = "inward",
+                angle = params$label_angle,
+                color = params$selection_color,
+                x = rois_to_plot$roi_start,
+                y = rois_to_plot$roi_max_freq,
+                label = paste0("(", rois_to_plot$id, ") ", rois_to_plot$roi_label),
+                na.rm = TRUE
+              )
+            ))
+          }
+
+          # Add all ROI elements in a single operation
+          spectro_plot <- spectro_plot + roi_elements
         }
 
-        # Add ruler if the content is not null
-        # todo - adicionar novas variaveis de acordo com a necessidade
-        # todo - fazer a posição mudar para evitar sobreposição com os limites do plot
+        # Add ruler and measurements if available
         if (!is.null(ruler())) {
           spectro_plot <- spectro_plot +
             geom_rect(
               data = ruler(),
-              aes(xmin = roi_start, xmax = roi_end, ymin = roi_min_freq, ymax = roi_max_freq),
+              aes(
+                xmin = roi_start, xmax = roi_end, ymin = roi_min_freq,
+              ymax = roi_max_freq
+              ),
               fill = NA, color = "yellow", linetype = "dashed"
             )
 
           tryCatch(
             {
               measurements <- extract_acoustic_measurements(
-                rec = rec_soundscape(), ruler_data = ruler(),
-                wl = input$wl, ovlp = input$ovlp
+                rec = params$rec, ruler_data = ruler(), wl = params$wl,
+                ovlp = params$ovlp
               )
+
               if (!is.null(measurements)) {
                 measurement_text <- paste0(
                   "ROI Measurements\n",
@@ -1894,13 +1919,14 @@ launch_segmentation_app <- function(
                   sprintf("%-10s %8.3f kHz\n", "F10-F90:", with(measurements$ac_stats, f90 - f10)),
                   sprintf("%-10s %8.3f kHz\n", "Dom. Freq:", measurements$dom_freq)
                 )
+
                 spectro_plot <- spectro_plot +
                   annotate(
                     "label",
-                    label = measurement_text, x = Inf, y = -Inf, hjust = 1,
-                    vjust = 0, color = "yellow", fill = "black", alpha = 0.8,
-                    label.padding = unit(0.8, "lines"), label.size = 0.5,
-                    size = 4, family = "mono"
+                    label = measurement_text, x = Inf, y = -Inf,
+                    hjust = 1, vjust = 0, color = "yellow", fill = "black",
+                    alpha = 0.8, label.padding = unit(0.8, "lines"),
+                    label.size = 0.5, size = 4, family = "mono"
                   )
               }
             },
@@ -1909,7 +1935,8 @@ launch_segmentation_app <- function(
             }
           )
         }
-        spectro_plot
+
+        return(spectro_plot)
       })
 
       output$res_table <- renderDT(
@@ -1964,8 +1991,6 @@ launch_segmentation_app <- function(
         }
       })
 
-      # todo Adicionar aqui o server side para exportar os sonogramas dos cortes
-
       shinyDirChoose(input, "preset_path_load", roots = volumes)
       preset_path_load <- reactive(input$preset_path_load)
       observeEvent(input$preset_path_load, {
@@ -1991,6 +2016,8 @@ launch_segmentation_app <- function(
         updateNoUiSliderInput(session, inputId = "zoom_freq", value = session_data$zoom_freq)
         updateCheckboxInput(session, inputId = "nav_autosave", value = session_data$nav_autosave)
         updateSliderTextInput(session, inputId = "pitch_shift", selected = session_data$pitch_shift)
+        updateSliderInput(session, inputId = "time_guide_interval", value = session_data$time_guide_interval)
+        updateSliderInput(session, inputId = "freq_guide_interval", value = session_data$freq_guide_interval)
       })
 
       session_settings <- reactiveVal(NULL)
@@ -2024,7 +2051,6 @@ launch_segmentation_app <- function(
           roi_tables_path_val(), roi_values(), session_settings(), input$roi_table_name
         )
         table_name <- file.path(roi_tables_path_val(), input$roi_table_name)
-
         if (file.exists(table_name)) {
           roi_tables <- list.files(
             roi_tables_path_val(),
@@ -2033,23 +2059,19 @@ launch_segmentation_app <- function(
             data.frame(
               roi_table_name = basename(.), roi_table_path = .
             )
-
           active_roi_table_path <- roi_tables %>%
             fsubset(roi_table_name == input$roi_table_name) %>%
             pull(roi_table_path)
-
           if (file.exists(active_roi_table_path)) {
             saved_rois <- fread(file = active_roi_table_path) %>%
               as.data.frame() %>%
               mutate(roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S"))
-
             nrow_unsaved <- nrow(
               anti_join(
                 roi_values(), saved_rois,
                 by = c("soundscape_file", "roi_user", "roi_label", "roi_input_timestamp")
               )
             )
-
             if (nrow_unsaved > 0) {
               message_rois <- paste0(
                 "There are ", nrow_unsaved, " unsaved ROIs in the current soundscape. Consider saving before leaving the session. Press ESC to get back to the session or END it in the button below."
@@ -2061,16 +2083,10 @@ launch_segmentation_app <- function(
         } else {
           message_rois <- paste0("ROIs in the current soundscape are not stored in a file. Consider exporting a new one before leaving the session. Press ESC to get back to the session or END it in the button below.")
         }
-
         showModal(
           modalDialog(
-            title = "Check out",
-            message_rois,
-            # message_settings,
-            footer = tagList(
-              # actionButton("cancel_exit", "Cancel"),
-              actionButton("confirm_exit", "End session")
-            ),
+            title = "Check out", message_rois,
+            footer = tagList(actionButton("confirm_exit", "End session")),
             easyClose = TRUE
           )
         )
