@@ -2,8 +2,8 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' Extracts metadata from all WAV files found in a directory and its
-#' subdirectories.
+#'   Extracts metadata from all WAV files found in a directory and its
+#'   subdirectories.
 #'
 #' @param path A character string specifying the directory path where all WAV
 #'   files are located.
@@ -16,7 +16,6 @@
 #' @import furrr purrr tuneR
 #' @export
 fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
-
   require(tuneR)
   require(dplyr)
   require(pbapply)

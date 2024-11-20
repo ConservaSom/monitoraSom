@@ -28,7 +28,7 @@
 #' @param dyn_range_templ Dynamic range for the template spectrogram.
 #' @param dyn_range_detec Dynamic range for the detection spectrogram.
 #' @param dyn_range_bar Adjustment of the maximum range of the dynamic range
-#'  slider.
+#'   slider.
 #' @param color_scale Color scale for the spectrogram.
 #' @param zoom_freq Frequency range to zoom in the spectrogram.
 #' @param nav_shuffle If TRUE, the files will be shuffled before navigation.
@@ -45,8 +45,8 @@
 #' @return todo
 #'
 #' @export
-#' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR
-#'   collapse DT shinyWidgets shinydashboard keys shinyjs shinyBS cutpointr
+#' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR collapse DT
+#'   shinyWidgets shinydashboard keys shinyjs shinyBS cutpointr
 #' @importFrom caret downSample upSample
 #' @importFrom ROSE ROSE
 #' @importFrom data.table fread fwrite
@@ -83,9 +83,7 @@ launch_validation_app <- function(
     color_scale = "inferno", zoom_freq = c(0, 23),
     time_guide_interval = 1, freq_guide_interval = 1,
     nav_shuffle = FALSE, subset_seed = 123, auto_next = TRUE, nav_autosave = TRUE,
-    overwrite = FALSE, pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
-    ) {
-
+    overwrite = FALSE, pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE) {
   library(dplyr, warn.conflicts = FALSE)
   options(dplyr.summarise.inform = FALSE)
 
@@ -312,7 +310,8 @@ launch_validation_app <- function(
   validate_logical_and_assign <- function(value, name) {
     if (!is.logical(value)) {
       stop(paste("Error! The value assigned to '", name,
-        "' is not logical. Set it to TRUE or FALSE.", sep = ""
+        "' is not logical. Set it to TRUE or FALSE.",
+        sep = ""
       ))
     }
     session_data[[name]] <- value
@@ -388,7 +387,6 @@ launch_validation_app <- function(
   shinyApp(
 
     # UI -----------------------------------------------------------------------
-
     ui = dashboardPage(
       header = dashboardHeader(title = "MonitoraSom", titleWidth = "400px"),
 
@@ -400,7 +398,6 @@ launch_validation_app <- function(
         sidebarMenu(
 
           # User setup ---------------------------------------------------------
-
           menuItem(
             "User setup",
             tabName = "user_setup_tab", startExpanded = TRUE,
@@ -430,10 +427,10 @@ launch_validation_app <- function(
               placeholder = "Paste or load path here",
               height = "40px", width = "395px", resize = "vertical"
             ),
-              textAreaInput("output_path", "Validated data path (output) (*)",
-                value = session_data$output_path,
-                placeholder = "Paste or load path here",
-                height = "40px", width = "395px", resize = "vertical"
+            textAreaInput("output_path", "Validated data path (output) (*)",
+              value = session_data$output_path,
+              placeholder = "Paste or load path here",
+              height = "40px", width = "395px", resize = "vertical"
             ),
             actionButton("user_setup_confirm", "Confirm Paths",
               icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
@@ -498,7 +495,7 @@ launch_validation_app <- function(
                 "Score (DESC) and Soundscape file name (ASC)",
                 "Score (DESC) and Soundscape file name (DESC)",
                 "Random"
-                ),
+              ),
               selected = "Score", width = "100%"
             ),
             numericInput(
@@ -671,12 +668,12 @@ launch_validation_app <- function(
         box(
           id = "template_box",
           width = 6, height = "550px",
-            plotOutput("TemplateSpectrogram", height = "475px"),
-            tags$div(id = "template_player"),
-            actionButton(
-              "play_template", "Play Template (2)",
-              icon = icon("play"), width = "100%", style = "height:50px"
-            )
+          plotOutput("TemplateSpectrogram", height = "475px"),
+          tags$div(id = "template_player"),
+          actionButton(
+            "play_template", "Play Template (2)",
+            icon = icon("play"), width = "100%", style = "height:50px"
+          )
         ),
 
         # Input box ------------------------------------------------------------
@@ -725,10 +722,10 @@ launch_validation_app <- function(
           column(
             width = 3,
             # disabled( # todo: enable this
-              selectizeInput(
-                "soundscape_file", "Soundscape file",
-                choices = NULL, width = "100%"
-              )
+            selectizeInput(
+              "soundscape_file", "Soundscape file",
+              choices = NULL, width = "100%"
+            )
             # )
           ),
           column(
@@ -772,15 +769,15 @@ launch_validation_app <- function(
             checkboxInput("lock_detec_note", icon("lock", lib = "font-awesome"), value = FALSE)
           ),
           column(
-              width = 11,
-              disabled(
-                selectInput("custom_reference", "Reference spectrogram", choices = NULL)
-              )
-            ),
-            column(
-              width = 1,
-              checkboxInput("lock_template", icon("lock", lib = "font-awesome"), value = TRUE)
+            width = 11,
+            disabled(
+              selectInput("custom_reference", "Reference spectrogram", choices = NULL)
             )
+          ),
+          column(
+            width = 1,
+            checkboxInput("lock_template", icon("lock", lib = "font-awesome"), value = TRUE)
+          )
         ),
 
         # Outputs --------------------------------------------------------------
@@ -802,15 +799,15 @@ launch_validation_app <- function(
                 ),
                 tableOutput("count_full_tab")
               ),
-            column(
-              width = 6,
-              h5("Current subset progress"),
-              progressBar(
-                id = "prog_bar_subset", value = 0, total = 1,
-                status = "info", display_pct = TRUE, striped = TRUE
-              ),
-              tableOutput("count_i_tab")
-            )
+              column(
+                width = 6,
+                h5("Current subset progress"),
+                progressBar(
+                  id = "prog_bar_subset", value = 0, total = 1,
+                  status = "info", display_pct = TRUE, striped = TRUE
+                ),
+                tableOutput("count_i_tab")
+              )
             )
           ),
 
@@ -905,14 +902,14 @@ launch_validation_app <- function(
               ),
             ),
             column(width = 4, selectInput(
-                "diag_method", "Cutpoint detection method",
-                choices = c("Manual", "Error = 0.05", "Error = 0.1"),
-                width = "100%"
-              )),
+              "diag_method", "Cutpoint detection method",
+              choices = c("Manual", "Error = 0.05", "Error = 0.1"),
+              width = "100%"
+            )),
             column(width = 4, sliderInput(
-                "diag_cut", "Cutpoint threshold",
-                min = 0, max = 1, step = 0.001, value = 0.2, width = "100%"
-              )),
+              "diag_cut", "Cutpoint threshold",
+              min = 0, max = 1, step = 0.001, value = 0.2, width = "100%"
+            )),
             column(width = 4, plotOutput("plot_dens", height = "340px")),
             column(width = 4, plotOutput("plot_binomial", height = "340px")),
             # column(width = 3, plotOutput("plot_roc", height = "340px")),
@@ -926,7 +923,6 @@ launch_validation_app <- function(
 
     # Server -------------------------------------------------------------------
     server = function(input, output, session) {
-
       # Create a reactive object for storing the path
       templates_path <- reactiveVal(NULL)
       # Create a reactive object for storing the path
@@ -1157,7 +1153,7 @@ launch_validation_app <- function(
           "Random" = function(res, seed = input$subset_seed) {
             set.seed(input$subset_seed)
             res[sample(nrow(res)), ]
-            },
+          },
           "Soundscape file name (ASC)" =
             function(res) res[order(res$soundscape_file), ],
           "Soundscape file name (DESC)" =
@@ -1213,7 +1209,7 @@ launch_validation_app <- function(
           } %>%
           ungroup()
 
-          res <- order_options[[input$order_by]](res)
+        res <- order_options[[input$order_by]](res)
 
         # if the filtering process result is not null, get some more information
         if (!is.null(res)) {
@@ -1309,7 +1305,7 @@ launch_validation_app <- function(
         if (
           det_i()$soundscape_file != input$soundscape_file &
             det_i()$soundscape_file %in% vec_soundscapes()
-          ) {
+        ) {
           updateSelectInput(session, "soundscape_file",
             selected = det_i()$soundscape_file
           )
@@ -1338,7 +1334,8 @@ launch_validation_app <- function(
           )
         } else {
           updateSelectInput(
-            session, "custom_reference", choices = NA
+            session, "custom_reference",
+            choices = NA
           )
           disable("custom_reference")
         }
@@ -1351,7 +1348,6 @@ launch_validation_app <- function(
         if (nrow(df_template()) == 0 | is.na(wav_path) | !file.exists(wav_path)) {
           rec_template(NULL)
         } else {
-
           template_duration <- df_template()$template_end - df_template()$template_start
           rec_start <- max(0, df_template()$template_start - zoom_pad())
           pre_silence <- max(0, -(df_template()$template_start - zoom_pad()))
@@ -1371,9 +1367,9 @@ launch_validation_app <- function(
             # Rendering the template HTML player
             if (file.exists(wav_path) & input$wav_player_type == "HTML player") {
               temp_file <- gsub("\\\\", "/", tempfile(
-                  pattern = "template_", tmpdir = session_data$temp_path,
-                  fileext = ".wav"
-                ))
+                pattern = "template_", tmpdir = session_data$temp_path,
+                fileext = ".wav"
+              ))
               if (zoom_pad() != 0) {
                 res <- cutw(
                   res,
@@ -1571,10 +1567,9 @@ launch_validation_app <- function(
         if (file.exists(det_i()$soundscape_path) & input$wav_player_type == "HTML player") {
           # file.remove("temp/detection_clip.wav")
           temp_file <- gsub("\\\\", "/", tempfile(
-              pattern = "detection_", tmpdir = session_data$temp_path,
-              fileext = ".wav"
-            )
-          )
+            pattern = "detection_", tmpdir = session_data$temp_path,
+            fileext = ".wav"
+          ))
           if (input$pitch_shift < 1) {
             res@samp.rate <- res@samp.rate / pitch_shift
           }
@@ -2052,7 +2047,7 @@ launch_validation_app <- function(
             validation_note = ifelse(
               is.na(input$detec_note),
               NA_character_, as.character(input$detec_note)
-              )
+            )
           )
 
         if (input$overwrite == TRUE) {
@@ -2285,7 +2280,7 @@ launch_validation_app <- function(
             if (
               val_res$score_cut < 1 & val_res$score_cut > 0 &
                 input$diag_method != "Manual"
-              ) {
+            ) {
               updateSliderInput(session, "diag_cut", value = val_res$score_cut)
             }
             mod_plot_react(val_res$mod_plot)
@@ -2541,31 +2536,44 @@ launch_validation_app <- function(
         # Session Setup Section
         session_setup = list(
           list(
-            id = "confirm_session_setup", title = "<b>Part 2 of 2 required to start the session</b>.", placement = "right"),
+            id = "confirm_session_setup", title = "<b>Part 2 of 2 required to start the session</b>.", placement = "right"
+          ),
           list(
-            id = "template_name", title = "Select here one of the templates available in the input file", placement = "right"),
+            id = "template_name", title = "Select here one of the templates available in the input file", placement = "right"
+          ),
           list(
-            id = "val_subset", title = "Select at least one options. Only those selected will be shown.", placement = "right"),
+            id = "val_subset", title = "Select at least one options. Only those selected will be shown.", placement = "right"
+          ),
           list(
-            id = "score_interval", title = "Only detections within this interval will be presented to the user", placement = "right"),
+            id = "score_interval", title = "Only detections within this interval will be presented to the user", placement = "right"
+          ),
           list(
-            id = "time_pads", title = "Zoom in and out in the time axis of template and detection spectrograms", placement = "right"),
+            id = "time_pads", title = "Zoom in and out in the time axis of template and detection spectrograms", placement = "right"
+          ),
           list(
-            id = "dyn_range_templ", title = "Adjust what portion of the amplitude scale is shown in the template spectrogram", placement = "right"),
+            id = "dyn_range_templ", title = "Adjust what portion of the amplitude scale is shown in the template spectrogram", placement = "right"
+          ),
           list(
-            id = "dyn_range_detec", title = "Adjust what portion of the amplitude scale is shown in the detection spectrogram", placement = "right"),
+            id = "dyn_range_detec", title = "Adjust what portion of the amplitude scale is shown in the detection spectrogram", placement = "right"
+          ),
           list(
-            id = "wl", title = "Tradeoff between time and frequency resolution", placement = "right"),
+            id = "wl", title = "Tradeoff between time and frequency resolution", placement = "right"
+          ),
           list(
-            id = "ovlp", title = "Increase if more resultion is needed. Performance may decrease for values above 80%", placement = "right"),
+            id = "ovlp", title = "Increase if more resultion is needed. Performance may decrease for values above 80%", placement = "right"
+          ),
           list(
-            id = "wav_player_type", title = "Select the method to play wav files", placement = "right"),
+            id = "wav_player_type", title = "Select the method to play wav files", placement = "right"
+          ),
           list(
-            id = "wav_player_path", title = "Necessary when 'External player' is selected. If the executable is not available, 'HTML player' will be automatically selected", placement = "right"),
+            id = "wav_player_path", title = "Necessary when 'External player' is selected. If the executable is not available, 'HTML player' will be automatically selected", placement = "right"
+          ),
           list(
-            id = "get_templ_pars", title = "Set spectrogram parameters to those used to run the detections", placement = "right"),
+            id = "get_templ_pars", title = "Set spectrogram parameters to those used to run the detections", placement = "right"
+          ),
           list(
-            id = "default_pars", title = "Set spectrogram parameters back to the default", placement = "right")
+            id = "default_pars", title = "Set spectrogram parameters back to the default", placement = "right"
+          )
         ),
 
         # Controls Section
@@ -2617,7 +2625,8 @@ launch_validation_app <- function(
             id = "spec_name", title = "Name of the spectrogram image file ('.jpeg')", placement = "bottom"
           ),
           list(
-            id = "reset_spec_filename", title = "Reset the filename back to the default", placement = "bottom"),
+            id = "reset_spec_filename", title = "Reset the filename back to the default", placement = "bottom"
+          ),
           list(
             id = "confirm_spec_export", title = "Hotkey: T", placement = "bottom"
           )

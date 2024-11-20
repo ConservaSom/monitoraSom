@@ -11,7 +11,8 @@
 #'   project will be stored. It is necessary to provide this path if the
 #'   segmentation project is being created for the first time or if the user
 #'   wants to use relative paths for other input fields.
-#' @param preset_path Path to temporary files and other acessory files used by the app.
+#' @param preset_path Path to temporary files and other acessory files used by
+#'   the app.
 #' @param user Identification of the user of the segmentation app.
 #' @param soundscapes_path Path to soundscapes files.
 #' @param roi_tables_path Path to the folder from which the ROI tables will be
@@ -35,9 +36,9 @@
 #' @param dyn_range A numeric vector of length 2 specifying the minimum and
 #'   maximum relative amplitudes (in dBFS) to be displayed on the spectrogram.
 #'   By default c(-100, 0).
-#' @param dyn_range_bar A numeric vector of length 2 specifying the limits
-#'   to be diplayed on the the bar that controls the dinamic range on the app.
-#'   By default c(-200, 10).
+#' @param dyn_range_bar A numeric vector of length 2 specifying the limits to be
+#'   diplayed on the the bar that controls the dinamic range on the app. By
+#'   default c(-200, 10).
 #' @param color_scale A character string specifying the color scale to be used
 #'   in the spectrogram. Possible values are "viridis", "magma", "inferno",
 #'   "cividis", "greyscale 1", or "greyscale 2".
@@ -56,17 +57,16 @@
 #' @param nav_autosave If TRUE, navigating between soundscapes will
 #'   automatically save the ROI table of the active soundscape.
 #' @param pitch_shift A numeric value indicating the pitch shift to be applied
-#'  to the soundscape audio. The default is 1, which means no pitch shift.
+#'   to the soundscape audio. The default is 1, which means no pitch shift.
 #' @param visible_bp If TRUE, the visible frequency band will be used as a
-#'  bandpass filter for the audio playback.
+#'   bandpass filter for the audio playback.
 #' @param play_norm If TRUE, the audio playback will be normalized.
 #'
 #' @return Todo
 #'
 #' @export
 #' @import shiny dplyr ggplot2 lubridate seewave stringr tuneR collapse DT
-#'  shinyWidgets shinydashboard shinyFiles keys shinyjs shinyBS openxlsx
-#'  readxl
+#'   shinyWidgets shinydashboard shinyFiles keys shinyjs shinyBS openxlsx readxl
 #' @importFrom data.table fread fwrite
 #' @examples
 #' \dontrun{
@@ -100,8 +100,7 @@ launch_segmentation_app <- function(
     wl = 1024, ovlp = 0, color_scale = "inferno",
     wav_player_type = "HTML player", wav_player_path = "play",
     visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
-    nav_autosave = TRUE, pitch_shift = 1
-  ) {
+    nav_autosave = TRUE, pitch_shift = 1) {
   # require(shiny)
   # require(dplyr)
   # require(ggplot2)
@@ -1370,7 +1369,8 @@ launch_segmentation_app <- function(
         )
         if (new_index != current_index) {
           updateSelectInput(
-            session, "soundscape_file", selected = vec_soundscapes[new_index]
+            session, "soundscape_file",
+            selected = vec_soundscapes[new_index]
           )
         }
       }
@@ -1445,55 +1445,55 @@ launch_segmentation_app <- function(
         req(roi_values())
         current_rois <- tibble(roi_values())
 
-         if (input$hotkeys == "e") {
-           # Create a new ROI entry
-           roi_i <- tibble(
-             soundscape_path = wav_path_val(),
-             soundscape_file = input$soundscape_file,
-             roi_user = user_val(),
-             roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-             roi_label = input$label_name,
-             roi_start = input$roi_limits$xmin,
-             roi_end = input$roi_limits$xmax,
-             roi_min_freq = input$roi_limits$ymin,
-             roi_max_freq = input$roi_limits$ymax,
-             roi_type = input$signal_type,
-             roi_label_confidence = input$label_certainty,
-             roi_is_complete = input$signal_is_complete,
-             roi_comment = input$label_comment,
-             roi_wl = input$wl,
-             roi_ovlp = input$ovlp,
-             roi_sample_rate = rec_soundscape()@samp.rate,
-             roi_pitch_shift = input$pitch_shift
-           )
+        if (input$hotkeys == "e") {
+          # Create a new ROI entry
+          roi_i <- tibble(
+            soundscape_path = wav_path_val(),
+            soundscape_file = input$soundscape_file,
+            roi_user = user_val(),
+            roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+            roi_label = input$label_name,
+            roi_start = input$roi_limits$xmin,
+            roi_end = input$roi_limits$xmax,
+            roi_min_freq = input$roi_limits$ymin,
+            roi_max_freq = input$roi_limits$ymax,
+            roi_type = input$signal_type,
+            roi_label_confidence = input$label_certainty,
+            roi_is_complete = input$signal_is_complete,
+            roi_comment = input$label_comment,
+            roi_wl = input$wl,
+            roi_ovlp = input$ovlp,
+            roi_sample_rate = rec_soundscape()@samp.rate,
+            roi_pitch_shift = input$pitch_shift
+          )
 
-           # Update roi_values based on current_rois
-           if (all(is.na(current_rois))) {
-             roi_values(roi_i)
-           } else {
-             if (fnrow(current_rois) >= 1) {
-               res <- bind_rows(current_rois, roi_i)
-               roi_values(res)
-             }
-           }
-         } else if (input$hotkeys == "q") {
-           # Remove the last ROI entry if more than one exists
-           if (fnrow(current_rois) > 1) {
-             res <- head(current_rois, -1)
-             roi_values(res)
-           } else {
-             # Create an empty ROI entry if no entries remain
-             roi_i_empty <- tibble(
-               soundscape_path = NA, soundscape_file = NA, roi_user = NA,
-               roi_input_timestamp = NA, roi_label = NA, roi_start = NA,
-               roi_end = NA, roi_min_freq = NA, roi_max_freq = NA, roi_type = NA,
-               roi_label_confidence = NA, roi_is_complete = NA, roi_comment = NA,
-               roi_wl = NA, roi_ovlp = NA, roi_sample_rate = NA,
-               roi_pitch_shift = NA
-             )
-             roi_values(roi_i_empty)
-           }
-         }
+          # Update roi_values based on current_rois
+          if (all(is.na(current_rois))) {
+            roi_values(roi_i)
+          } else {
+            if (fnrow(current_rois) >= 1) {
+              res <- bind_rows(current_rois, roi_i)
+              roi_values(res)
+            }
+          }
+        } else if (input$hotkeys == "q") {
+          # Remove the last ROI entry if more than one exists
+          if (fnrow(current_rois) > 1) {
+            res <- head(current_rois, -1)
+            roi_values(res)
+          } else {
+            # Create an empty ROI entry if no entries remain
+            roi_i_empty <- tibble(
+              soundscape_path = NA, soundscape_file = NA, roi_user = NA,
+              roi_input_timestamp = NA, roi_label = NA, roi_start = NA,
+              roi_end = NA, roi_min_freq = NA, roi_max_freq = NA, roi_type = NA,
+              roi_label_confidence = NA, roi_is_complete = NA, roi_comment = NA,
+              roi_wl = NA, roi_ovlp = NA, roi_sample_rate = NA,
+              roi_pitch_shift = NA
+            )
+            roi_values(roi_i_empty)
+          }
+        }
 
         # these should be kept dependent on hotkey pressing
         if (input$lock_label_certainty == FALSE) {
@@ -1778,7 +1778,8 @@ launch_segmentation_app <- function(
           length(params$freq_guide_interval) == 1
         )
         fast_spectro(
-          params$rec, f = params$sample_rate, ovlp = params$ovlp,
+          params$rec,
+          f = params$sample_rate, ovlp = params$ovlp,
           wl = params$wl, dyn = params$dyn_range,
           pitch_shift = params$pitch_shift, color_scale = params$color_scale,
           ncolors = 124, norm = FALSE,
@@ -1825,8 +1826,7 @@ launch_segmentation_app <- function(
 
         # Prepare ROI elements if available
         if (nrow(rois_to_plot) > 0 &&
-            identical(unique(rois_to_plot$soundscape_file), params$soundscape_file)) {
-
+          identical(unique(rois_to_plot$soundscape_file), params$soundscape_file)) {
           roi_elements <- list(
             # Base ROI rectangles (always added first)
             annotate(
@@ -1891,7 +1891,7 @@ launch_segmentation_app <- function(
               data = ruler(),
               aes(
                 xmin = roi_start, xmax = roi_end, ymin = roi_min_freq,
-              ymax = roi_max_freq
+                ymax = roi_max_freq
               ),
               fill = NA, color = "yellow", linetype = "dashed"
             )

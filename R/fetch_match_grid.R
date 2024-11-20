@@ -3,11 +3,11 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' This function takes in two data frames: soundscape_data (the output of the
-#' function 'fetch_soundscape_metadata()') and template_data (the output of the
-#' function 'fetch_template_metadata()'), checks their compatibilities, and
-#' returns a new data frame with a grid of all possible matching combinations
-#' between the two data sets.
+#'   This function takes in two data frames: soundscape_data (the output of the
+#'   function 'fetch_soundscape_metadata()') and template_data (the output of
+#'   the function 'fetch_template_metadata()'), checks their compatibilities,
+#'   and returns a new data frame with a grid of all possible matching
+#'   combinations between the two data sets.
 #'
 #' @param soundscape_data A data frame containing metadata about the soundscapes
 #'   to be matched.
@@ -24,7 +24,6 @@
 #' @import dplyr purrr
 #' @export
 fetch_match_grid <- function(soundscape_data, template_data) {
-
   require(purrr)
   require(dplyr)
   res <- cross_join(soundscape_data, template_data)

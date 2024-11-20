@@ -16,25 +16,25 @@
 #' @param ncores An integer indicating the number of cores to be used for
 #'   parallelization. Default is 1.
 #' @param output A character string indicating the output of the function. The
-#'  two options are: "detections" (default) or "scores". If "detections" is
-#'  selected, the function will return the output of the function
-#'  'fetch_score_peaks_i()'. If "scores" is selected, the function will return
-#'  the raw output of the matching algorithm.
+#'   two options are: "detections" (default) or "scores". If "detections" is
+#'   selected, the function will return the output of the function
+#'   'fetch_score_peaks_i()'. If "scores" is selected, the function will return
+#'   the raw output of the matching algorithm.
 #' @param output_file A character string indicating the path to save the results
-#'  in the format of a CSV file. Default is NULL.
-#' @param autosave_action A character string indicating the action to be taken if
-#'  the output file already exists. The available options are: "append" (default)
-#'  and "replace".
+#'   in the format of a CSV file. Default is NULL.
+#' @param autosave_action A character string indicating the action to be taken
+#'   if the output file already exists. The available options are: "append"
+#'   (default) and "replace".
 #' @param buffer_size A character string indicating the size of the buffer to be
-#'  used in the function 'fetch_score_peaks_i()'. The two options are: "template"
-#'  (default) or the number of frames of the template spectrogram to be used as
-#'  buffer.
+#'   used in the function 'fetch_score_peaks_i()'. The two options are:
+#'   "template" (default) or the number of frames of the template spectrogram to
+#'   be used as buffer.
 #' @param min_score A numeric value indicating the minimum score to be used in
-#'  the function 'fetch_score_peaks_i()'.
-#' @param min_quant A numeric value indicating the minimum quantile to be used in
-#'  the function 'fetch_score_peaks_i()'.
+#'   the function 'fetch_score_peaks_i()'.
+#' @param min_quant A numeric value indicating the minimum quantile to be used
+#'   in the function 'fetch_score_peaks_i()'.
 #' @param top_n A numeric value indicating the number of top detections to be
-#'  used in the function 'fetch_score_peaks_i()'.
+#'   used in the function 'fetch_score_peaks_i()'.
 #'
 #' @return A tibble containing input data frame with an additional column
 #'   "score_vec", which is a list of dataframes with the columns "time_vec" (the
@@ -58,7 +58,6 @@ match_n <- function(
     df_grid, score_method = "cor", ncores = 1, output = "detections",
     output_file = NULL, autosave_action = "append", buffer_size = "template",
     min_score = NULL, min_quant = NULL, top_n = NULL) {
-
   output <- match.arg(output, c("detections", "scores"))
   autosave_action <- match.arg(autosave_action, c("append", "replace"))
 
@@ -88,7 +87,9 @@ match_n <- function(
         },
         cl = ncores
       ) %>% list_rbind()
-      message("Template matching finished. Detections have been returned to the R session")
+      message(
+        "Template matching finished. Detections have been returned to the R session"
+      )
       return(res)
     } else {
       if (!dir.exists(dirname(output_file)) || !grepl("\\.csv$", output_file)) {
@@ -134,7 +135,7 @@ match_n <- function(
               template_sample_rate, buffer_size, min_score, min_quant, top_n
             )
           idx <- which(!df_grid_check$soundscape_file %in% df_check$soundscape_file)
-          df_grid <- df_grid_check[idx, ]
+          df_grid <- df_grid[idx, ]
           if (nrow(df_grid) == 0) {
             message(
               "All matches have already been processed. No new detections were computed."
@@ -158,9 +159,13 @@ match_n <- function(
         },
         cl = ncores
       )
-      message("Template matching finished. Detections have been saved to ", output_file)
+      message(
+        "Template matching finished. Detections have been saved to ",
+        output_file
+      )
     }
   } else {
+    grid_list <- group_split(rowwise(df_grid))
     res <- pbapply::pblapply(
       grid_list,
       function(x) {
@@ -177,9 +182,14 @@ match_n <- function(
         stop("The path for the RDS output file is not valid")
       }
       saveRDS(res, output_file)
-      message("Template matching finished. Raw scores have been saved to ", output_file)
+      message(
+        "Template matching finished. Raw scores have been saved to ",
+        output_file
+      )
     } else {
-      message("Template matching finished. Raw scores have been returned to the R session")
+      message(
+        "Template matching finished. Raw scores have been returned to the R session"
+      )
       return(res)
     }
   }

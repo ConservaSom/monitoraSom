@@ -4,15 +4,14 @@
 #'
 #'   This function is wrapper of 'fetch_score_peaks_i' for detection of peaks in
 #'   score vectors from matches between multiple templates and soundscapes, i.e.
-#'   the output of 'match_n'. The also allows multiple methods for filtering
-#'   suboptimal detections.
+#'   the `scores` output of 'match_n'.
 #'
-#' @param tib_match A tibble containing the output of 'match_n' or a filtered
-#'   subset of it with at least two rows that is already within the environement
-#'   of the current R session. Alternatively, a path to a folder containing the
-#'   output of 'match_n' as .rds files for importing multiple match objects from
-#'   outside the current R session.
-#' @param recursive Set file search to recursive
+#' @param tib_match A tibble containing the `scores` output of 'match_n' or a
+#'   filtered subset of it with at least two rows that is already within the
+#'   environement of the current R session. Alternatively, a path to a folder
+#'   containing the output of 'match_n' as .rds files for importing multiple
+#'   match objects from outside the current R session.
+#' @param recursive Set file search to recursive.
 #' @param buffer_size A numeric value specifying the number of frames of the
 #'   buffer within which overlap between detections is avoided. Defaults to
 #'   "template", which means that the buffer size equals the number of frames
@@ -43,43 +42,31 @@
 fetch_score_peaks_n <- function(
     tib_match, recursive = FALSE, buffer_size = "template", min_score = NULL,
     min_quant = NULL, top_n = NULL, save_res = NULL, ncores = 1) {
-
   require(dplyr)
 
-  if (is.character(tib_match) & length(tib_match) == 1) {
+  # Check if input is a character path or a tibble
+  if (is.character(tib_match)) {
     if (!dir.exists(tib_match)) {
       stop("The path provided does not exist")
-    } else {
-      rds_list <- list.files(
-        path = tib_match, pattern = ".rds",
-        full.names = TRUE
-      )
-      if (length(rds_list) == 0) {
-        stop("The path provided does not contain any .wav.rds files")
-      } else {
-        tib_match <- map_dfr(rds_list, readRDS)
-      }
     }
-  } else if (tibble::is_tibble(tib_match)) {
-    if (nrow(tib_match) < 2) {
-      stop("The tibble provided has less than two rows, use 'fetch_score_peaks_i()' instead")
+    rds_list <- list.files(path = tib_match, pattern = "\\.rds$", full.names = TRUE)
+    if (length(rds_list) == 0) {
+      stop("The path provided does not contain any .rds files")
     }
-  } else {
-    stop("The input is not a tibble or a path to a folder containing '.rds' files")
+    tib_match <- map_dfr(rds_list, readRDS)
+  } else if (!tibble::is_tibble(tib_match) || nrow(tib_match) < 2) {
+    stop("The input must be a tibble with at least two rows, or a path to a folder containing '.rds' files")
   }
 
-  if (ncores > 1 & Sys.info()["sysname"] == "Windows") {
-    if (ncores <= parallel::detectCores()) {
-      ncores <- parallel::makePSOCKcluster(getOption("cl.cores", ncores))
-    } else {
-      stop(
-        "The number of cores requested cannot be higher than the number of available cores"
-      )
-    }
+  # Setup parallel processing if applicable
+  if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
+    ncores <- min(ncores, parallel::detectCores())
+    ncores <- parallel::makePSOCKcluster(getOption("cl.cores", ncores))
   } else {
     ncores <- 1
   }
 
+  # Process each row of tib_match
   split_data <- split(tib_match, seq(nrow(tib_match)))
   result_list <- pblapply(
     split_data,
@@ -91,15 +78,18 @@ fetch_score_peaks_n <- function(
         min_quant = min_quant,
         top_n = top_n
       )
-    }, cl = ncores
+    },
+    cl = ncores
   )
   tib_detecs <- do.call(rbind, result_list)
 
+  # Save results if specified
   if (!is.null(save_res)) {
-    if (substr(save_res, nchar(save_res) - 3, nchar(save_res)) == ".rds") {
+    file_ext <- tools::file_ext(save_res)
+    if (file_ext == "rds") {
       saveRDS(tib_detecs, save_res)
-    } else if (substr(save_res, nchar(save_res) - 3, nchar(save_res)) == ".csv") {
-      write.csv(tib_detecs, save_res)
+    } else if (file_ext == "csv") {
+      write.csv(tib_detecs, save_res, row.names = FALSE)
     } else {
       stop("The file extension is not supported")
     }

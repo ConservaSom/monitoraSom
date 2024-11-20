@@ -47,30 +47,28 @@
 #' @export
 template_matching <- function(
     path_soundscapes, recursive_soundscapes = TRUE,
-    path_templates, recursive_templates = TRUE, template_type = "standalone",
-    score_method = "cor", save_res = FALSE,
-    buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
-    ncores = 1, par_strat = "future", backend_type = "async", cluster_type = "psock"
-) {
+    path_templates, recursive_templates = TRUE, score_method = "cor",
+    output_file = NULL, autosave_action = "append", buffer_size = "template",
+    min_score = NULL, min_quant = NULL, top_n = NULL, ncores = 1) {
   df_templates <- fetch_template_metadata(
-    path = path_templates, method = "standalone",
-    recursive = recursive_templates
+    path = path_templates, recursive = recursive_templates
   )
   df_soundscapes <- fetch_soundscape_metadata(
-    path = path_soundscapes, recursive = recursive_soundscapes, ncores = 6
+    path = path_soundscapes, recursive = recursive_soundscapes, ncores = 1
   )
   df_grid <- fetch_match_grid(
     template_data = df_templates, soundscape_data = df_soundscapes
   )
-  tib_match <- match_n(
-    df_grid = df_grid, score_method = score_method,
-    save_res = save_res, par_strat = par_strat, ncores = ncores,
-    backend_type = backend_type, cluster_type = cluster_type
+  df_detections <- match_n(
+    df_grid = df_grid, score_method = score_method, output = "detections",
+    output_file = output_file, autosave_action = autosave_action,
+    ncores = ncores, buffer_size = buffer_size, min_score = min_score,
+    min_quant = min_quant, top_n = top_n
   )
-  df_detections <- fetch_score_peaks_n(
-    tib_match = tib_match, recursive = FALSE, buffer_size = buffer_size,
-    min_score = min_score, min_quant = min_quant, top_n = top_n
-  )
-  message("Done")
-  return(df_detections)
+  message("Template matching finished")
+  if (!is.null(output_file)) {
+    message("Detections have been saved to ", output_file)
+  } else {
+    return(df_detections)
+  }
 }

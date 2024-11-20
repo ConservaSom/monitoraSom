@@ -49,9 +49,13 @@ format: pdf
 
 - R/match_n.R
   - Adicionada uma camada de checagem quando `autosave_action = "append"` e `output = "detections"` para evitar que as mesmas detecções sejam recalculadas e salvas repetidamente. Essa camada também permite que o usuário possa interromper a execução antes que todas as detecções sejam processadas e retomar de onde parou sem risco de perder dados.
+  - Como consequencia dessa mudança, passa a ser possivel fazer o streaming de resultados de multiplas rodadas para um mesmo arquivo CSV, que será atualizado em tempo real a medida que as detecções são processadas.
 
 - diagnostic_validations_i.R
   - Adicionada uma camada de checagem para impedir erros de execução quando houver detecções de mais de um template no data frame a ser validado.
+
+- R/template_matching.R
+  - Argumentos e processo atualizado para incluir novos recursos e alterações das demais funções que são usadas internamente.
 
 - NOVA FUNÇÃO: diagnostic_validations_n.R
   - Função para obter os diagnosticos de validação de `diagnostic_validations_i()` para tabelas de detecções feitas a partir de mais de um template ou de multiplas classes. Os resultados obtidos estão oerganizados em uma lista para cada template ou classe, com elementos internos contendo as tabelas e plots de diagnósticos.

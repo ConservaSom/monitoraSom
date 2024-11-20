@@ -2,8 +2,8 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' This function plots a spectrogram of the soundscape and the results of the
-#' match_i() and fetch_score_peaks_i() functions.
+#'   This function plots a spectrogram of the soundscape and the results of the
+#'   match_i() and fetch_score_peaks_i() functions.
 #'
 #' @param match_res_i The output of the function tpmatch::match_i
 #' @param buffer_size A numeric value specifying the number of frames of the
@@ -56,130 +56,130 @@ plot_detecs_i <- function(
     buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
     flim = c(0, 10), ovlp = NULL, wl = NULL, dyn_range = c(-60, 0),
     color_scale = "inferno", n_colors = 124, interpolate = FALSE,
-    score_lims = NULL, ...
-    ) {
+    score_lims = NULL, ...) {
+  # todo Adicionar informação de pitch_shift
 
-    # todo Adicionar informação de pitch_shift
+  require(patchwork)
 
-    require(patchwork)
+  detecs <- fetch_score_peaks_i(
+    match_res_i,
+    buffer_size = buffer_size, min_score = min_score,
+    min_quant = min_quant, top_n = top_n
+  )
 
-    detecs <- fetch_score_peaks_i(
-      match_res_i, buffer_size = buffer_size, min_score = min_score,
-      min_quant = min_quant, top_n = top_n
-    )
+  rec <- readWave(filename = match_res_i$soundscape_path)
 
-    rec <- readWave(filename = match_res_i$soundscape_path)
+  if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
+    colormap <- viridis::viridis(n_colors, option = color_scale)
+  } else if (color_scale == "greyscale 1") {
+    colormap <- seewave::reverse.gray.colors.1(n_colors)
+  } else if (color_scale == "greyscale 2") {
+    colormap <- seewave::reverse.gray.colors.2(n_colors)
+  }
+  selection_color <- ifelse(
+    color_scale %in% c("greyscale 1", "greyscale 2"),
+    "black", "white"
+  )
 
-    if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
-      colormap <- viridis::viridis(n_colors, option = color_scale)
-    } else if (color_scale == "greyscale 1") {
-      colormap <- seewave::reverse.gray.colors.1(n_colors)
-    } else if (color_scale == "greyscale 2") {
-      colormap <- seewave::reverse.gray.colors.2(n_colors)
-    }
-    selection_color <- ifelse(
-      color_scale %in% c("greyscale 1", "greyscale 2"),
-      "black", "white"
-    )
+  if (is.null(ovlp)) {
+    ovlp <- match_res_i$template_ovlp
+  }
+  if (is.null(wl)) {
+    wl <- match_res_i$template_wl
+  }
+  if (is.null(flim)) {
+    flim <- c(0, 10)
+  }
+  if (is.null(dyn_range)) {
+    dyn_range <- c(-60, 0)
+  }
+  if (is.null(score_lims)) {
+    score_lims <- range(match_res_i$score_vec[[1]]$score_vec)
+  }
+  if (buffer_size == "template") {
+    buffer_size <- match_res_i$score_sliding_window
+  } else if (!is.numeric(buffer_size)) {
+    stop("buffer_size must be either 'template' or a numeric value")
+  }
 
-    if (is.null(ovlp)) {
-      ovlp <- match_res_i$template_ovlp
-    }
-    if (is.null(wl)) {
-      wl <- match_res_i$template_wl
-    }
-    if (is.null(flim)) {
-      flim <- c(0, 10)
-    }
-    if (is.null(dyn_range)) {
-      dyn_range <- c(-60, 0)
-    }
-    if (is.null(score_lims)) {
-      score_lims <- range(match_res_i$score_vec[[1]]$score_vec)
-    }
-    if (buffer_size == "template") {
-      buffer_size <- match_res_i$score_sliding_window
-    } else if (!is.numeric(buffer_size)) {
-      stop("buffer_size must be either 'template' or a numeric value")
-    }
+  filter_caption <- paste0(
+    "buffer_size = ", buffer_size, "; ",
+    "min_score = ", ifelse(is.null(min_score), "NULL", min_score), "; ",
+    "min_quant = ", ifelse(is.null(min_quant), "NULL", min_quant), "; ",
+    "top_n = ", ifelse(is.null(top_n), "NULL", top_n)
+  )
 
-    filter_caption <- paste0(
-      "buffer_size = ", buffer_size, "; ",
-      "min_score = ", ifelse(is.null(min_score), "NULL", min_score), "; ",
-      "min_quant = ", ifelse(is.null(min_quant), "NULL", min_quant), "; ",
-      "top_n = ", ifelse(is.null(top_n), "NULL", top_n)
-    )
-
-    soundscape_spectro <- fast_spectro(
-      rec,
-      f = rec@samp.rate, flim = flim, ovlp = ovlp, wl = wl,
-      dyn_range = dyn_range, color_scale = color_scale, n_colors = 124,
-      interpolate = interpolate, ...
+  soundscape_spectro <- fast_spectro(
+    rec,
+    f = rec@samp.rate, flim = flim, ovlp = ovlp, wl = wl,
+    dyn_range = dyn_range, color_scale = color_scale, n_colors = 124,
+    interpolate = interpolate, ...
+  ) +
+    annotate(
+      "rect",
+      alpha = 0, linewidth = 0.2, linetype = "solid",
+      color = selection_color,
+      xmin = detecs$detection_start,
+      xmax = detecs$detection_end,
+      ymin = detecs$template_min_freq,
+      ymax = detecs$template_max_freq
     ) +
-      annotate(
-        "rect",
-        alpha = 0, linewidth = 0.2, linetype = "solid",
-        color = selection_color,
-        xmin = detecs$detection_start,
-        xmax = detecs$detection_end,
-        ymin = detecs$template_min_freq,
-        ymax = detecs$template_max_freq
-      ) +
-      annotate(
-        "label",
-        label = paste0(
-          match_res_i$soundscape_file,
-          " (sr = ", match_res_i$soundscape_sample_rate, ")"
-        ),
-        x = -Inf, y = Inf, hjust = 0, vjust = 1,
-        color = "white", fill = "black", size = 3
-      ) +
-      theme(
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank()
-      )
+    annotate(
+      "label",
+      label = paste0(
+        match_res_i$soundscape_file,
+        " (sr = ", match_res_i$soundscape_sample_rate, ")"
+      ),
+      x = -Inf, y = Inf, hjust = 0, vjust = 1,
+      color = "white", fill = "black", size = 3
+    ) +
+    theme(
+      axis.title.x = element_blank(),
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank()
+    )
 
-    plot_score <- match_res_i$score_vec[[1]] %>%
-      ggplot(aes(x = time_vec, y = score_vec)) +
-      annotate(
-        "point",
-        x = match_res_i$score_vec[[1]]$time_vec[detecs$peak_index],
-        y = match_res_i$score_vec[[1]]$score_vec[detecs$peak_index],
-        pch = 21, color = "black", fill = "#ff6262", size = 4
-      ) +
-      annotate(
-        "rect",
-        alpha = 0.2, linewidth = 0.5, linetype = "solid",
-        fill = "red",
-        xmin = detecs$detection_start,
-        xmax = detecs$detection_end,
-        ymin = -Inf, ymax = Inf
-      ) +
-      geom_line() +
-      scale_x_continuous(expand = c(0, 0)) +
-      scale_y_continuous(limits = c(score_lims[1], score_lims[2] + 0.1)) +
-      annotate(
-        "label",
-        label = paste0(
-          match_res_i$template_file,
-          " (sr = ", match_res_i$template_sample_rate, ")"
-        ),
-        x = -Inf, y = Inf, hjust = 0, vjust = 1,
-        color = "#000000", fill = "#ffffff", size = 3
-      ) + {
-        if (!is.null(min_score)) {
-          geom_hline(yintercept = min_score, linetype = "dashed")
-        }
-      } +
-      labs(
-        x = "seconds", y = "matching score", caption = filter_caption
-        ) +
-      theme_bw()
+  plot_score <- match_res_i$score_vec[[1]] %>%
+    ggplot(aes(x = time_vec, y = score_vec)) +
+    annotate(
+      "point",
+      x = match_res_i$score_vec[[1]]$time_vec[detecs$peak_index],
+      y = match_res_i$score_vec[[1]]$score_vec[detecs$peak_index],
+      pch = 21, color = "black", fill = "#ff6262", size = 4
+    ) +
+    annotate(
+      "rect",
+      alpha = 0.2, linewidth = 0.5, linetype = "solid",
+      fill = "red",
+      xmin = detecs$detection_start,
+      xmax = detecs$detection_end,
+      ymin = -Inf, ymax = Inf
+    ) +
+    geom_line() +
+    scale_x_continuous(expand = c(0, 0)) +
+    scale_y_continuous(limits = c(score_lims[1], score_lims[2] + 0.1)) +
+    annotate(
+      "label",
+      label = paste0(
+        match_res_i$template_file,
+        " (sr = ", match_res_i$template_sample_rate, ")"
+      ),
+      x = -Inf, y = Inf, hjust = 0, vjust = 1,
+      color = "#000000", fill = "#ffffff", size = 3
+    ) +
+    {
+      if (!is.null(min_score)) {
+        geom_hline(yintercept = min_score, linetype = "dashed")
+      }
+    } +
+    labs(
+      x = "seconds", y = "matching score", caption = filter_caption
+    ) +
+    theme_bw()
 
-    res <- soundscape_spectro +
-      plot_score +
-      plot_layout(nrow = 2, byrow = FALSE)
+  res <- soundscape_spectro +
+    plot_score +
+    plot_layout(nrow = 2, byrow = FALSE)
 
-    return(res)
+  return(res)
 }

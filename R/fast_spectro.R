@@ -2,17 +2,18 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' This function creates a spectrogram plot using ggplot2 nearly ten times
-#' faster by introducing the spectrogram layer with 'annotation_raster' instead
-#' of 'geom_raster' or 'geom_tile'. Credits to Sergio Oller in
-#' <https://github.com/tidyverse/ggplot2/issues/4989>
+#'   This function creates a spectrogram plot using ggplot2 nearly ten times
+#'   faster by introducing the spectrogram layer with 'annotation_raster'
+#'   instead of 'geom_raster' or 'geom_tile'. Credits to Sergio Oller in
+#'   <https://github.com/tidyverse/ggplot2/issues/4989>
 #'
 #' @param rec An object of class "Wave" as implemented in the tuneR package
 #' @param f The sampling frequency of the recording, in Hz
 #' @param flim A numeric vector of length 2 giving the minimum and maximum
 #'   frequency limits to be displayed in the spectrogram, in kHz.
 #' @param tlim A numeric vector of length 2 giving the minimum and maximum.
-#' @param ovlp A numeric value specifying the percentage overlap of windows for computing the spectrogram.
+#' @param ovlp A numeric value specifying the percentage overlap of windows for
+#'   computing the spectrogram.
 #' @param wl An integer specifying the length of the FFT window used to
 #'   calculate the spectrogram.
 #' @param dyn_range A numeric vector of length 2 giving the minimum and maximum
@@ -26,7 +27,7 @@
 #' @param interpolate A logical value indicating whether the raster should be
 #'   interpolated or not.
 #' @param pitch_shift A numeric value indicating the pitch shift to be applied
-#'  to the recording. The value must be among the expected alternatives: -8,
+#'   to the recording. The value must be among the expected alternatives: -8,
 #' -6, -4, -2, or 1.
 #' @param theme_mode A character string indicating the theme mode to be used in
 #'   the spectrogram. Possible values are "dark" or "light".
@@ -35,9 +36,9 @@
 #' @param freq_guide_interval A numeric value indicating the interval between
 #'   frequency guides in kHz.
 #' @param norm A logical value indicating whether the amplitude values should be
-#'  normalized or not.
-#' @param ... Additional arguments to be passed internally to the 'seeave::spectro'
-#'   function.
+#'   normalized or not.
+#' @param ... Additional arguments to be passed internally to the
+#'   'seeave::spectro' function.
 #'
 #' @import dplyr viridis farver ggplot2
 #' @importFrom seewave spectro
@@ -49,9 +50,7 @@ fast_spectro <- function(
     ovlp = 50, wl = 1024, norm = FALSE, dyn_range = c(-80, 0),
     color_scale = "inferno", n_colors = 124, interpolate = FALSE,
     pitch_shift = 1, theme_mode = "light",
-    time_guide_interval = 3, freq_guide_interval = 1, ...
-  ) {
-
+    time_guide_interval = 3, freq_guide_interval = 1, ...) {
   validate_inputs <- function() {
     if (!inherits(rec, "Wave")) {
       stop("rec must be a 'Wave' object")
@@ -119,7 +118,8 @@ fast_spectro <- function(
   flim <- adjusted$flim
 
   spec_raw <- seewave::spectro(
-    rec, f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim, tlim = tlim,
+    rec,
+    f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim, tlim = tlim,
     norm = norm, fftw = TRUE, plot = FALSE, interpolate = FALSE, dB = NULL, ...
   )
 
@@ -155,7 +155,8 @@ fast_spectro <- function(
   mat <- cols_to_ints[mat]
   nr <- matrix(mat, nrow = xdim[1], ncol = xdim[2], byrow = FALSE)
   nr <- structure(
-    nr, dim = c(xdim[2], xdim[1]), class = "nativeRaster", channels = 4L
+    nr,
+    dim = c(xdim[2], xdim[1]), class = "nativeRaster", channels = 4L
   )
 
   plot_limits <- list(
@@ -192,7 +193,7 @@ fast_spectro <- function(
 
   calculate_nice_breaks <- function(min_val, max_val) {
     if (is.null(min_val) || is.null(max_val) ||
-        is.na(min_val) || is.na(max_val)) {
+      is.na(min_val) || is.na(max_val)) {
       return(NULL)
     }
     range <- abs(max_val - min_val)
@@ -236,26 +237,26 @@ fast_spectro <- function(
       ) +
       # Major frequency guides (always present, alpha controlled)
       geom_segment(
-        data = if(length(freq_major) > 0) {
+        data = if (length(freq_major) > 0) {
           data.frame(y = freq_major, xmin = plot_limits$xmin, xmax = plot_limits$xmax)
         } else {
           data.frame(y = numeric(0), xmin = numeric(0), xmax = numeric(0))
         },
         aes(x = xmin, xend = xmax, y = y, yend = y),
         color = theme_colors$guides,
-        alpha = if(length(freq_major) > 0) 0.4 else 0,
+        alpha = if (length(freq_major) > 0) 0.4 else 0,
         size = 0.3
       ) +
       # Major time guides
       geom_segment(
-        data = if(length(time_major) > 0) {
+        data = if (length(time_major) > 0) {
           data.frame(x = time_major, ymin = plot_limits$ymin, ymax = plot_limits$ymax)
         } else {
           data.frame(x = numeric(0), ymin = numeric(0), ymax = numeric(0))
         },
         aes(x = x, xend = x, y = ymin, yend = ymax),
         color = theme_colors$guides,
-        alpha = if(length(time_major) > 0) 0.4 else 0, size = 0.3
+        alpha = if (length(time_major) > 0) 0.4 else 0, size = 0.3
       ) +
       scale_fill_gradientn(
         colors = colormap, limits = dyn_range, na.value = "#00000000"
@@ -270,7 +271,9 @@ fast_spectro <- function(
           calculate_nice_breaks(limits[1], limits[2])
         },
         labels = function(x) {
-          if (length(x) == 0) return(NULL)
+          if (length(x) == 0) {
+            return(NULL)
+          }
           range <- diff(range(x))
           decimals <- if (range <= 0.1) {
             3
@@ -290,7 +293,9 @@ fast_spectro <- function(
           calculate_nice_breaks(limits[1], limits[2])
         },
         labels = function(x) {
-          if (length(x) == 0) return(NULL)
+          if (length(x) == 0) {
+            return(NULL)
+          }
           range <- diff(range(x))
           decimals <- if (range <= 0.1) {
             3
