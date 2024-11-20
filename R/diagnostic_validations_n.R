@@ -20,10 +20,9 @@
 #'   selected, the user must provide the cutpoint to be used in the diagnostic
 #'   validations.
 #' @param pos_prob A numeric value indicating the probability of a positive test
-#' @return
+#' @return A list of results from the diagnostic validations, or NULL if all validations failed.
 #' @export
 #'
-#' @examples
 diagnostic_validations_n <- function(
     val_n, diag_method = "Auto", pos_prob = 0.95) {
   require(dplyr)

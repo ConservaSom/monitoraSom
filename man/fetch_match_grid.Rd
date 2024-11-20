@@ -25,9 +25,9 @@ A data frame with a grid of all possible matching combinations
 \description{
 `r lifecycle::badge("experimental")`
 
-This function takes in two data frames: soundscape_data (the output of the
-function 'fetch_soundscape_metadata()') and template_data (the output of the
-function 'fetch_template_metadata()'), checks their compatibilities, and
-returns a new data frame with a grid of all possible matching combinations
-between the two data sets.
+  This function takes in two data frames: soundscape_data (the output of the
+  function 'fetch_soundscape_metadata()') and template_data (the output of
+  the function 'fetch_template_metadata()'), checks their compatibilities,
+  and returns a new data frame with a grid of all possible matching
+  combinations between the two data sets.
 }

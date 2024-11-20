@@ -21,8 +21,8 @@ A data frame with the validated detections.
 \description{
 `r lifecycle::badge("experimental")`
 
-This function takes in two data frames, one containing Regions of Interest
-(ROIs) and another containing detections. It then validates the detections by
-checking for overlaps with the ROIs. The function returns a data frame with
-the validated detections.
+  This function takes in two data frames, one containing Regions of Interest
+  (ROIs) and another containing detections. It then validates the detections
+  by checking for overlaps with the ROIs. The function returns a data frame
+  with the validated detections.
 }

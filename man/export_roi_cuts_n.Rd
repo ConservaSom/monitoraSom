@@ -4,7 +4,7 @@
 \alias{export_roi_cuts_n}
 \title{Export ROI cuts}
 \usage{
-export_roi_cuts_n(rois_n, path)
+export_roi_cuts_n(rois_n, path, overwrite = FALSE)
 }
 \arguments{
 \item{rois_n}{A tibble containing the ROIs to be cut}

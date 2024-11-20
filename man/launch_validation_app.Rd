@@ -25,6 +25,8 @@ launch_validation_app(
   dyn_range_detec = c(-84, 0),
   color_scale = "inferno",
   zoom_freq = c(0, 23),
+  time_guide_interval = 1,
+  freq_guide_interval = 1,
   nav_shuffle = FALSE,
   subset_seed = 123,
   auto_next = TRUE,

@@ -15,6 +15,8 @@ launch_segmentation_app(
   sp_list = "CBRO-2021 (Birds - Brazil)",
   label_angle = 90,
   show_label = TRUE,
+  time_guide_interval = 3,
+  freq_guide_interval = 2,
   dyn_range = c(-60, 0),
   dyn_range_bar = c(-144, 0),
   wl = 1024,
@@ -36,7 +38,8 @@ project will be stored. It is necessary to provide this path if the
 segmentation project is being created for the first time or if the user
 wants to use relative paths for other input fields.}
 
-\item{preset_path}{Path to temporary files and other acessory files used by the app.}
+\item{preset_path}{Path to temporary files and other acessory files used by
+the app.}
 
 \item{user}{Identification of the user of the segmentation app.}
 
@@ -66,9 +69,9 @@ selections in the sepctrogram.}
 maximum relative amplitudes (in dBFS) to be displayed on the spectrogram.
 By default c(-100, 0).}
 
-\item{dyn_range_bar}{A numeric vector of length 2 specifying the limits
-to be diplayed on the the bar that controls the dinamic range on the app.
-By default c(-200, 10).}
+\item{dyn_range_bar}{A numeric vector of length 2 specifying the limits to be
+diplayed on the the bar that controls the dinamic range on the app. By
+default c(-200, 10).}
 
 \item{wl}{An integer specifying the length of the FFT window used to
 calculate the spectrogram.}

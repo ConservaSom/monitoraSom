@@ -22,6 +22,6 @@ A data frame with the following columns:
 \description{
 `r lifecycle::badge("experimental")`
 
-Extracts metadata from all WAV files found in a directory and its
-subdirectories.
+  Extracts metadata from all WAV files found in a directory and its
+  subdirectories.
 }

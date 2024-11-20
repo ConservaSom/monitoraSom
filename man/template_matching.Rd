@@ -9,17 +9,14 @@ template_matching(
   recursive_soundscapes = TRUE,
   path_templates,
   recursive_templates = TRUE,
-  template_type = "standalone",
   score_method = "cor",
-  save_res = FALSE,
+  output_file = NULL,
+  autosave_action = "append",
   buffer_size = "template",
   min_score = NULL,
   min_quant = NULL,
   top_n = NULL,
-  ncores = 1,
-  par_strat = "future",
-  backend_type = "async",
-  cluster_type = "psock"
+  ncores = 1
 )
 }
 \arguments{
@@ -33,13 +30,8 @@ for matching.}
 
 \item{recursive_templates}{Todo}
 
-\item{template_type}{The type of templates, either "standalone" or "library".}
-
 \item{score_method}{The method used for template matching, either "cor" or
 "dtw".}
-
-\item{save_res}{Default to FALSE or provide a path to an rds file where the
-raw template matching results will be stored.}
 
 \item{buffer_size}{The size of the buffer used to calculate the scores for
 the template matches, either "template" or "event".}
@@ -61,6 +53,11 @@ whole matching grid.}
 
 \item{ncores}{An integer indicating the number of cores to be used for
 parallelization. Default is 1.}
+
+\item{template_type}{The type of templates, either "standalone" or "library".}
+
+\item{save_res}{Default to FALSE or provide a path to an rds file where the
+raw template matching results will be stored.}
 
 \item{par_strat}{A character string indicating the parallelization strategy
 to be used. The available options are: "foreach" (default), "future" and

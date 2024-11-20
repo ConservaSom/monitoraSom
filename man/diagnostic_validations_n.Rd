@@ -19,6 +19,9 @@ validations.}
 
 \item{pos_prob}{A numeric value indicating the probability of a positive test}
 }
+\value{
+A list of results from the diagnostic validations, or NULL if all validations failed.
+}
 \description{
 #' @description `r lifecycle::badge("experimental")`
 }

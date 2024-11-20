@@ -36,20 +36,20 @@ the raw output of the matching algorithm.}
 \item{output_file}{A character string indicating the path to save the results
 in the format of a CSV file. Default is NULL.}
 
-\item{autosave_action}{A character string indicating the action to be taken if
-the output file already exists. The available options are: "append" (default)
-and "replace".}
+\item{autosave_action}{A character string indicating the action to be taken
+if the output file already exists. The available options are: "append"
+(default) and "replace".}
 
 \item{buffer_size}{A character string indicating the size of the buffer to be
-used in the function 'fetch_score_peaks_i()'. The two options are: "template"
-(default) or the number of frames of the template spectrogram to be used as
-buffer.}
+used in the function 'fetch_score_peaks_i()'. The two options are:
+"template" (default) or the number of frames of the template spectrogram to
+be used as buffer.}
 
 \item{min_score}{A numeric value indicating the minimum score to be used in
 the function 'fetch_score_peaks_i()'.}
 
-\item{min_quant}{A numeric value indicating the minimum quantile to be used in
-the function 'fetch_score_peaks_i()'.}
+\item{min_quant}{A numeric value indicating the minimum quantile to be used
+in the function 'fetch_score_peaks_i()'.}
 
 \item{top_n}{A numeric value indicating the number of top detections to be
 used in the function 'fetch_score_peaks_i()'.}

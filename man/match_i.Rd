@@ -23,47 +23,25 @@ matching. The two methods available are: "cor" (Pearson correlation
 coefficient) or "dtw" (dynamic time warping). Defaults to "cor".}
 
 \item{output}{A character string indicating the output of the function. The
- two options are: "detections" (default) or "scores". If "detections" is
- selected, the function will return the output of the function
-'fetch_score_peaks_i()'. If "scores" is selected, the function will return
-the raw output of the matching algorithm.}
+two options are: "detections" (default) or "scores".}
 
-\item{buffer_size}{A character string indicating the size of the buffer to
-be used in the function 'fetch_score_peaks_i()'. The two options are:
-"template" (default) or the number of frames of the template spectrogram to
-be used as buffer.}
+\item{buffer_size}{A character string indicating the size of the buffer.}
 
-\item{min_score}{A numeric value indicating the minimum score to be used in
-the function 'fetch_score_peaks_i()'.}
+\item{min_score}{Minimum score threshold (numeric between 0 and 1).}
 
-\item{min_quant}{A numeric value indicating the minimum quantile to be used
-in the function 'fetch_score_peaks_i()'.}
+\item{min_quant}{Minimum quantile threshold (numeric between 0 and 1).}
 
-\item{top_n}{A numeric value indicating the number of top detections to be
-used in the function 'fetch_score_peaks_i()'.}
+\item{top_n}{Number of top detections to return (positive integer).}
 }
 \value{
-A tibble row containing the input data frame with an additional
-  column "score_vec", which is a list of length one containing a data frame
-  with the columns "time_vec" (the time value of each spectrogram frame) and
-  "score_vec" (the matching score obtained when the template and the
-  soundscape spectrogram of samew dimensions are alligned at that frame). The
-  length of the "score_vec" is equal to the number of frames of the
-  soundscape spectrogram minus the number of frames of the template
-  spectrogram (i.e. the number of possible allignments between the two
-  spectrograms. The score is not available for the first and last frames of
-  the soundscape spectrogram because score cannot be calculated between
-  spectrograms of different dimensions. To produce a score vector with the
-  same number of frames of the soundscape spectrogram, pads with length quals
-  half the number of frames from the template are added to the beginning and
-  end of the score vector.
+A tibble containing either detection results or raw scores.
 }
 \description{
 `r lifecycle::badge("experimental")`
 
-This function takes uses the metadata contained in one row of the output of
-the function 'fetch_match_grid()' to calculate the matching score of the
-template spectrogram and a portion of the soundscape spectrogram of same
-dimensions. The available matching algorithms are the Pearson correlation
-coefficient ("cor") or dynamic time warping ("dtw").
+  This function takes uses the metadata contained in one row of the output of
+  the function 'fetch_match_grid()' to calculate the matching score of the
+  template spectrogram and a portion of the soundscape spectrogram of same
+  dimensions. The available matching algorithms are the Pearson correlation
+  coefficient ("cor") or dynamic time warping ("dtw").
 }

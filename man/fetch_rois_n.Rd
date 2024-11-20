@@ -2,20 +2,18 @@
 % Please edit documentation in R/fetch_rois_n.R
 \name{fetch_rois_n}
 \alias{fetch_rois_n}
-\title{Gather ROI tables from a directory}
+\title{ather ROI tables from a directory}
 \usage{
-fetch_rois_n(path, recursive = FALSE, roi_filter = FALSE)
+fetch_rois_n(path, recursive = FALSE)
 }
 \arguments{
 \item{path}{Path to directory containing ROI tables}
 
 \item{recursive}{Search recursively for roi tables, default is FALSE}
-
-\item{roi_filter}{Filter ROI tables by comment, default is FALSE}
 }
 \value{
 A data frame with ROI tables
 }
 \description{
-Gather ROI tables from a directory
+ather ROI tables from a directory
 }

@@ -17,6 +17,9 @@ fast_spectro(
   n_colors = 124,
   interpolate = FALSE,
   pitch_shift = 1,
+  theme_mode = "light",
+  time_guide_interval = 3,
+  freq_guide_interval = 1,
   ...
 )
 }
@@ -30,7 +33,8 @@ frequency limits to be displayed in the spectrogram, in kHz.}
 
 \item{tlim}{A numeric vector of length 2 giving the minimum and maximum.}
 
-\item{ovlp}{A numeric value specifying the percentage overlap of windows for computing the spectrogram.}
+\item{ovlp}{A numeric value specifying the percentage overlap of windows for
+computing the spectrogram.}
 
 \item{wl}{An integer specifying the length of the FFT window used to
 calculate the spectrogram.}
@@ -53,11 +57,20 @@ but will also result in faster rendering times.}
 interpolated or not.}
 
 \item{pitch_shift}{A numeric value indicating the pitch shift to be applied
- to the recording. The value must be among the expected alternatives: -8,
+  to the recording. The value must be among the expected alternatives: -8,
 -6, -4, -2, or 1.}
 
-\item{...}{Additional arguments to be passed internally to the 'seeave::spectro'
-function.}
+\item{theme_mode}{A character string indicating the theme mode to be used in
+the spectrogram. Possible values are "dark" or "light".}
+
+\item{time_guide_interval}{A numeric value indicating the interval between
+time guides in seconds.}
+
+\item{freq_guide_interval}{A numeric value indicating the interval between
+frequency guides in kHz.}
+
+\item{...}{Additional arguments to be passed internally to the
+'seeave::spectro' function.}
 }
 \value{
 This function returns a ggplot2 object.
@@ -65,8 +78,8 @@ This function returns a ggplot2 object.
 \description{
 `r lifecycle::badge("experimental")`
 
-This function creates a spectrogram plot using ggplot2 nearly ten times
-faster by introducing the spectrogram layer with 'annotation_raster' instead
-of 'geom_raster' or 'geom_tile'. Credits to Sergio Oller in
-<https://github.com/tidyverse/ggplot2/issues/4989>
+  This function creates a spectrogram plot using ggplot2 nearly ten times
+  faster by introducing the spectrogram layer with 'annotation_raster'
+  instead of 'geom_raster' or 'geom_tile'. Credits to Sergio Oller in
+  <https://github.com/tidyverse/ggplot2/issues/4989>
 }

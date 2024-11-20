@@ -81,6 +81,6 @@ Todo
 \description{
 `r lifecycle::badge("experimental")`
 
-This function plots a spectrogram of the soundscape and the results of the
-match_i() and fetch_score_peaks_i() functions.
+  This function plots a spectrogram of the soundscape and the results of the
+  match_i() and fetch_score_peaks_i() functions.
 }
