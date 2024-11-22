@@ -64,9 +64,8 @@
 #' @return Todo
 #'
 #' @export
-#' @import shiny dplyr ggplot2 lubridate seewave stringr tuneR collapse DT
-#'  shinyWidgets shinydashboard shinyFiles keys shinyjs shinyBS openxlsx
-#'  readxl
+#' @import shiny dplyr ggplot2 lubridate seewave stringr tuneR DT
+#'  shinyWidgets shinydashboard keys shinyjs shinyBS openxlsx readxl
 #' @importFrom data.table fread fwrite
 #' @examples
 #' \dontrun{

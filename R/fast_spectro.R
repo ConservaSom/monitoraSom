@@ -95,11 +95,11 @@ fast_spectro <- function(
     if (!is.character(theme_mode) || !theme_mode %in% c("dark", "light")) {
       stop("theme_mode must be 'dark' or 'light'")
     }
-    if (!is.numeric(time_guide_interval) || time_guide_interval <= 0) {
-      stop("time_guide_interval must be a positive numeric value")
+    if (!is.numeric(time_guide_interval) || time_guide_interval < 0) {
+      stop("time_guide_interval must be a non-negative numeric value")
     }
-    if (!is.numeric(freq_guide_interval) || freq_guide_interval <= 0) {
-      stop("freq_guide_interval must be a positive numeric value")
+    if (!is.numeric(freq_guide_interval) || freq_guide_interval < 0) {
+      stop("freq_guide_interval must be a non-negative numeric value")
     }
   }
 
@@ -174,11 +174,8 @@ fast_spectro <- function(
     list(text = "black", background = "white", guides = guide_color)
   }
   generate_guide_data <- function(limit_min, limit_max, guide_interval) {
-    if (
-      !is.numeric(guide_interval) || length(guide_interval) != 1 ||
-        guide_interval <= 0
-    ) {
-      return(numeric(0))
+    if (guide_interval == 0) {
+        return(numeric(0))  # Return an empty numeric vector if interval is 0
     }
     major <- seq(
       floor(limit_min / guide_interval) * guide_interval,
@@ -188,8 +185,22 @@ fast_spectro <- function(
     major[major >= limit_min & major <= limit_max]
   }
 
-  freq_major <- generate_guide_data(plot_limits$ymin, plot_limits$ymax, freq_guide_interval)
-  time_major <- generate_guide_data(plot_limits$xmin, plot_limits$xmax, time_guide_interval)
+  # Set default intervals for when guides are disabled
+  default_time_interval <- 3
+  default_freq_interval <- 1
+
+  # Generate guide data with default intervals when user sets them to 0
+  freq_major <- generate_guide_data(
+    plot_limits$ymin,
+    plot_limits$ymax,
+    if (freq_guide_interval == 0) default_freq_interval else freq_guide_interval
+  )
+
+  time_major <- generate_guide_data(
+    plot_limits$xmin,
+    plot_limits$xmax,
+    if (time_guide_interval == 0) default_time_interval else time_guide_interval
+  )
 
   calculate_nice_breaks <- function(min_val, max_val) {
     if (is.null(min_val) || is.null(max_val) ||
@@ -237,26 +248,19 @@ fast_spectro <- function(
       ) +
       # Major frequency guides (always present, alpha controlled)
       geom_segment(
-        data = if (length(freq_major) > 0) {
-          data.frame(y = freq_major, xmin = plot_limits$xmin, xmax = plot_limits$xmax)
-        } else {
-          data.frame(y = numeric(0), xmin = numeric(0), xmax = numeric(0))
-        },
+        data = data.frame(y = freq_major, xmin = plot_limits$xmin, xmax = plot_limits$xmax),
         aes(x = xmin, xend = xmax, y = y, yend = y),
         color = theme_colors$guides,
-        alpha = if (length(freq_major) > 0) 0.4 else 0,
+        alpha = if (freq_guide_interval == 0) 0 else 0.4,
         size = 0.3
       ) +
       # Major time guides
       geom_segment(
-        data = if (length(time_major) > 0) {
-          data.frame(x = time_major, ymin = plot_limits$ymin, ymax = plot_limits$ymax)
-        } else {
-          data.frame(x = numeric(0), ymin = numeric(0), ymax = numeric(0))
-        },
+        data = data.frame(x = time_major, ymin = plot_limits$ymin, ymax = plot_limits$ymax),
         aes(x = x, xend = x, y = ymin, yend = ymax),
         color = theme_colors$guides,
-        alpha = if (length(time_major) > 0) 0.4 else 0, size = 0.3
+        alpha = if (time_guide_interval == 0) 0 else 0.4,
+        size = 0.3
       ) +
       scale_fill_gradientn(
         colors = colormap, limits = dyn_range, na.value = "#00000000"

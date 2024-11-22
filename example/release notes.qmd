@@ -4,7 +4,12 @@ author: "GLMRosa"
 format: pdf
 ---
 
-# increment version number to 0.1.1.9007
+# increment version number to 0.1.1.9009
+- R/fast_spectro.R
+  - BUG - Corrigido o bug que impedia que as linhas de guias de frequência fossem omitidas quando o intervalo entre elas era 0 e que impedia a exibição dos valores dos eixos quando as guidas de frequência e de tempo eram omitidas simultaneamente.
+  - BUG - (solução parcial) - Adicionadas camada de checagem para evitar erros causados pelo deposito de rois da soundscapes anterior na soundscape atual devido à navegação ocorrer antes de salvar a tabela de ROIs. O problema foi resolvido somente no ponto de importação dos dados, mas ainda não consegui implementar uma forma de corrigir esse comportamento durante eventos do tipo diretamente na administração dos valores depositados na tabela de rois ativa.
+
+# increment version number to 0.1.1.9008
 - R/launch_segmentation_app.R
   - Adicionado um pop-up de confirmação para ação de marcar "No signals of interest" e evitar que o usuário seja surpreendido com a remoção de todas as ROIs.
   - Removidos os botões para navegação entre diretórios na aba de setup. Agora os caminhos devem ser informados diretamente nos argumentos `soundscapes_path`, `roi_tables_path` e `cuts_path` antes da execução do app pelo usuário

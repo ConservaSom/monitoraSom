@@ -25,6 +25,11 @@
 #' @export
 diagnostic_validations_i <- function(
     val_i, diag_method = "Auto", pos_prob = 0.95, diag_cut = NULL) {
+
+  require(dplyr)
+  require(ggplot2)
+  require(cutpointr)
+
   # check if there is only one template name in the data
   if (length(unique(val_i$template_name)) > 1) {
     stop(

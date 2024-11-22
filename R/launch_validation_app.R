@@ -45,7 +45,7 @@
 #' @return todo
 #'
 #' @export
-#' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR collapse DT
+#' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR DT
 #'   shinyWidgets shinydashboard keys shinyjs shinyBS cutpointr
 #' @importFrom caret downSample upSample
 #' @importFrom ROSE ROSE
@@ -94,7 +94,6 @@ launch_validation_app <- function(
   # require(stringr)
   # require(tuneR)
   # require(purrr)
-  # require(collapse)
   # require(DT)
   # require(data.table)
   # require(cutpointr)

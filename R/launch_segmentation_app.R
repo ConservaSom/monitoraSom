@@ -65,8 +65,8 @@
 #' @return Todo
 #'
 #' @export
-#' @import shiny dplyr ggplot2 lubridate seewave stringr tuneR collapse DT
-#'   shinyWidgets shinydashboard shinyFiles keys shinyjs shinyBS openxlsx readxl
+#' @import shiny dplyr ggplot2 lubridate seewave stringr tuneR DT
+#'   shinyWidgets shinydashboard keys shinyjs shinyBS openxlsx readxl
 #' @importFrom data.table fread fwrite
 #' @examples
 #' \dontrun{
@@ -108,14 +108,12 @@ launch_segmentation_app <- function(
   # require(seewave)
   # require(stringr)
   # require(tuneR)
-  # require(collapse)
   # require(knitr)
   # require(rmarkdown)
   # require(DT)
   # require(data.table)
   # require(shinyWidgets)
   # require(shinydashboard)
-  # require(shinyFiles)
   # require(shiny)
   # require(keys)
   # require(shinyjs)
@@ -1255,7 +1253,7 @@ launch_segmentation_app <- function(
         name_pattern <- paste0(roi_prefix, ".*\\.csv$")
         if (any(grepl(name_pattern, roi_tables_data()$roi_table_name))) {
           roi_table_alts <- roi_tables_data() %>%
-            fsubset(grepl(name_pattern, roi_table_name))
+            filter(grepl(name_pattern, roi_table_name))
         } else {
           roi_table_alts <- data.frame(
             roi_table_name = gsub(
@@ -1284,7 +1282,7 @@ launch_segmentation_app <- function(
       observeEvent(input$roi_table_name, {
         req(alt_roitabs_meta(), input$roi_table_name, user_val())
         active_roi_table_path <- alt_roitabs_meta() %>%
-          fsubset(roi_table_name == input$roi_table_name) %>%
+          filter(roi_table_name == input$roi_table_name) %>%
           pull(roi_table_path)
         var_names <- c(
           "soundscape_path", "soundscape_file", "roi_user", "roi_input_timestamp",
@@ -1335,22 +1333,35 @@ launch_segmentation_app <- function(
       # Define shared save function for buttons and hotkeys
       save_roi_table <- function() {
         req(roi_values(), input$roi_table_name, alt_roitabs_meta())
-        if (all(is.na(roi_values())) || fnrow(roi_values()) == 0) {
+        if (is.null(roi_values()) || !is.data.frame(roi_values()) || nrow(roi_values()) == 0) {
+          showNotification("No ROIs to save", type = "warning")
           return()
         }
-        filename <- file.path(roi_tables_path_val(), input$roi_table_name)
-        fwrite(roi_values(), filename, row.names = FALSE)
-        current_index <- which(
-          soundscape_data()$soundscape_file == input$soundscape_file
-        )
+        current_rois <- roi_values()[roi_values()$soundscape_file == input$soundscape_file, ]
+        if (nrow(current_rois) == 0) {
+          showNotification("Error: No valid ROIs for current soundscape", type = "error")
+          return()
+        }
+        complete_rows <- complete.cases(current_rois[, c("roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq")])
+        if (!any(complete_rows)) {
+          showNotification("Error: No complete ROIs found", type = "error")
+          return()
+        }
+        current_rois <- current_rois[complete_rows, ]
+        if (nrow(current_rois) < nrow(roi_values())) {
+          roi_values(current_rois)
+          showNotification(sprintf(
+            "Removed %d mismatched or incomplete ROI(s)",
+            nrow(roi_values()) - nrow(current_rois)
+          ), type = "warning")
+        }
+        fwrite(current_rois, file.path(roi_tables_path_val(), input$roi_table_name))
+        current_index <- which(soundscape_data()$soundscape_file == input$soundscape_file)
         progress_tracker$df$has_table[current_index] <- TRUE
         n_done <- sum(progress_tracker$df$has_table)
-        n_total <- nrow(progress_tracker$df)
-        updateProgressBar(
-          session = session, id = "progress_bar", value = n_done, total = n_total
-        )
+        updateProgressBar(session, "progress_bar", value = n_done, total = nrow(progress_tracker$df))
         showNotification("ROI table successfully exported", type = "message")
-        if (n_done == n_total) {
+        if (n_done == nrow(progress_tracker$df)) {
           showNotification("All recordings were segmented!", type = "message")
         }
       }
@@ -1601,6 +1612,7 @@ launch_segmentation_app <- function(
           updateNoUiSliderInput(session, inputId = "zoom_time", value = new_zoom)
         }
 
+        # todo - add delay to avoid saving rois and rendering spectrograms mid navigation
         if (input$hotkeys == "z") {
           navigate_soundscape("prev")
         } else if (input$hotkeys == "c") {
@@ -1820,7 +1832,7 @@ launch_segmentation_app <- function(
         # Add ROIs if available
         rois_to_plot <- roi_values() |>
           mutate(id = row_number()) |>
-          fsubset(
+          filter(
             roi_start < params$zoom_time[2] & roi_end > params$zoom_time[1]
           )
 
@@ -2060,7 +2072,7 @@ launch_segmentation_app <- function(
               roi_table_name = basename(.), roi_table_path = .
             )
           active_roi_table_path <- roi_tables %>%
-            fsubset(roi_table_name == input$roi_table_name) %>%
+            filter(roi_table_name == input$roi_table_name) %>%
             pull(roi_table_path)
           if (file.exists(active_roi_table_path)) {
             saved_rois <- fread(file = active_roi_table_path) %>%

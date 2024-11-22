@@ -44,8 +44,8 @@
 #'
 #' @export
 #' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR
-#'   collapse DT shinyWidgets shinydashboard shinyFiles shinyalert
-#'   keys shinyjs shinyBS cutpointr
+#'   DT shinyWidgets shinydashboard shinyFiles shinyalert keys shinyjs shinyBS
+#'   cutpointr
 #' @importFrom caret downSample upSample
 #' @importFrom ROSE ROSE
 #' @importFrom data.table fread fwrite
@@ -75,7 +75,6 @@ launch_validation_app <- function(
   # require(stringr)
   # require(tuneR)
   # require(purrr)
-  # require(collapse)
   # require(DT)
   # require(data.table)
   # require(cutpointr)
