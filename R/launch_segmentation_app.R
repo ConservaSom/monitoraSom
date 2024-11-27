@@ -608,19 +608,11 @@ launch_segmentation_app <- function(
               "play_norm", "Normalize playable audio",
               value = session_data$play_norm, width = "400px"
             ),
-            splitLayout(
-              cellWidths = c("75%", "25%"),
-              textAreaInput("wav_player_path",
-                value = session_data$wav_player_path,
-                label = "Path to player executable (default = 'play')",
-                height = "40px", resize = "vertical"
-              ),
-              shinyDirButton(
-                id = "wav_player_path_load", label = "Load", title = "Teste",
-                icon = icon(lib = "glyphicon", "glyphicon glyphicon-export")
-              ),
-              tags$style(type = "text/css", "#wav_player_path_load { margin-top: 40px;}")
-            ),
+            textAreaInput("wav_player_path",
+              value = session_data$wav_player_path,
+              label = "Path to player executable (default = 'play')",
+              height = "40px", resize = "vertical"
+            )
             actionButton(
               inputId = "default_pars",
               label = "Reset to default parameters", icon = icon("gear"),
@@ -2003,7 +1995,6 @@ launch_segmentation_app <- function(
         }
       })
 
-      shinyDirChoose(input, "preset_path_load", roots = volumes)
       preset_path_load <- reactive(input$preset_path_load)
       observeEvent(input$preset_path_load, {
         updateTextInput(
