@@ -1362,7 +1362,7 @@ launch_segmentation_app <- function(
         req(soundscape_data())
         vec_soundscapes <- soundscape_data()$soundscape_file
         current_index <- which(vec_soundscapes == input$soundscape_file)
-        if (input$nav_autosave && !all(is.na(roi_values())) && fnrow(roi_values()) > 0) {
+        if (input$nav_autosave && !all(is.na(roi_values())) && nrow(roi_values()) > 0) {
           save_roi_table()
         }
         new_index <- switch(direction,
@@ -1389,7 +1389,7 @@ launch_segmentation_app <- function(
         current_index <- which(unsegmented_files == input$soundscape_file)
 
         # Handle autosave if enabled
-        if (input$nav_autosave && !all(is.na(roi_values())) && fnrow(roi_values()) > 0) {
+        if (input$nav_autosave && !all(is.na(roi_values())) && nrow(roi_values()) > 0) {
           save_roi_table()
         }
 
@@ -1473,14 +1473,14 @@ launch_segmentation_app <- function(
           if (all(is.na(current_rois))) {
             roi_values(roi_i)
           } else {
-            if (fnrow(current_rois) >= 1) {
+            if (nrow(current_rois) >= 1) {
               res <- bind_rows(current_rois, roi_i)
               roi_values(res)
             }
           }
         } else if (input$hotkeys == "q") {
           # Remove the last ROI entry if more than one exists
-          if (fnrow(current_rois) > 1) {
+          if (nrow(current_rois) > 1) {
             res <- head(current_rois, -1)
             roi_values(res)
           } else {
@@ -1633,7 +1633,7 @@ launch_segmentation_app <- function(
 
       observeEvent(input$export_new_roi_table, {
         req(roi_values())
-        if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
+        if (!all(is.na(roi_values())) & nrow(roi_values()) > 0) {
           filename <- file.path(
             roi_tables_path_val(),
             str_replace(
@@ -1984,7 +1984,7 @@ launch_segmentation_app <- function(
 
       observeEvent(input$export_selected_cut, {
         req(roi_values(), cuts_path_val())
-        if (!all(is.na(roi_values())) & fnrow(roi_values()) > 0) {
+        if (!all(is.na(roi_values())) & nrow(roi_values()) > 0) {
           df <- roi_values()
           if (!is.null(input$res_table_rows_selected)) {
             df <- df[input$res_table_rows_selected, ]
