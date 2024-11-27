@@ -612,7 +612,7 @@ launch_segmentation_app <- function(
               value = session_data$wav_player_path,
               label = "Path to player executable (default = 'play')",
               height = "40px", resize = "vertical"
-            )
+            ),
             actionButton(
               inputId = "default_pars",
               label = "Reset to default parameters", icon = icon("gear"),
