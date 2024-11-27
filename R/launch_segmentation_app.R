@@ -943,7 +943,6 @@ launch_segmentation_app <- function(
       skin = "black"
     ),
     server = function(input, output, session) {
-      volumes <- getVolumes()()
 
       user_val <- reactiveVal(NULL)
       soundscape_data <- reactiveVal(NULL)
@@ -1996,15 +1995,6 @@ launch_segmentation_app <- function(
       })
 
       preset_path_load <- reactive(input$preset_path_load)
-      observeEvent(input$preset_path_load, {
-        updateTextInput(
-          session,
-          inputId = "preset_path",
-          value = str_replace(
-            parseDirPath(volumes, preset_path_load()), "//", "/"
-          )
-        )
-      })
 
       # todo update here
       observeEvent(input$default_pars, {
