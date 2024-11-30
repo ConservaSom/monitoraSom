@@ -1857,6 +1857,11 @@ launch_segmentation_app <- function(
         # Prepare ROI elements if available
         if (nrow(rois_to_plot) > 0 &&
           identical(unique(rois_to_plot$soundscape_file), input$soundscape_file)) {
+
+          selection_color <- ifelse(
+            input$color_scale %in% c("greyscale 1", "greyscale 2"),
+            "black", "white"
+          )
           roi_elements <- list(
             # Base ROI rectangles (always added first)
             annotate(
@@ -1864,8 +1869,8 @@ launch_segmentation_app <- function(
               alpha = 0.05,
               linewidth = 0.3,
               linetype = "dashed",
-              fill = input$selection_color,
-              color = input$selection_color,
+              fill = selection_color,
+              color = selection_color,
               xmin = rois_to_plot$roi_start,
               xmax = rois_to_plot$roi_end,
               ymin = rois_to_plot$roi_min_freq,
@@ -1882,8 +1887,8 @@ launch_segmentation_app <- function(
                 alpha = 0.2,
                 linewidth = 0.5,
                 linetype = "solid",
-                fill = input$selection_color,
-                color = input$selection_color,
+                fill = selection_color,
+                color = selection_color,
                 xmin = rois_to_plot$roi_start[selected_rows],
                 xmax = rois_to_plot$roi_end[selected_rows],
                 ymin = rois_to_plot$roi_min_freq[selected_rows],
@@ -1901,7 +1906,7 @@ launch_segmentation_app <- function(
                 vjust = "inward",
                 hjust = "inward",
                 angle = input$label_angle,
-                color = input$selection_color,
+                color = selection_color,
                 x = rois_to_plot$roi_start,
                 y = rois_to_plot$roi_max_freq,
                 label = paste0("(", rois_to_plot$id, ") ", rois_to_plot$roi_label),
@@ -1956,7 +1961,7 @@ launch_segmentation_app <- function(
                     label = measurement_text, x = Inf, y = -Inf,
                     hjust = 1, vjust = 0, color = "yellow", fill = "black",
                     alpha = 0.8, label.padding = unit(0.8, "lines"),
-                    label.size = 0.5, size = 4, family = "mono"
+                    label.size = 0.6, size = 5, family = "mono"
                   )
               }
             },
