@@ -1077,8 +1077,6 @@ launch_segmentation_app <- function(
           {
             wav_obj <- readWave(wav_path)
             wav_duration <- duration(wav_obj)
-            duration_val(wav_duration)
-            rec_soundscape(wav_obj)
             updateNoUiSliderInput(
               session,
               inputId = "zoom_time",
@@ -1094,6 +1092,8 @@ launch_segmentation_app <- function(
               inputId = "zoom_freq",
               range = c(0, (wav_obj@samp.rate / 2000) - 1)
             )
+            duration_val(wav_duration)
+            rec_soundscape(wav_obj)
           },
           error = function(e) {
             showNotification(
@@ -1117,47 +1117,74 @@ launch_segmentation_app <- function(
               tempfile(tmpdir = session_data$temp_path, fileext = ".wav")
             )
             pitch_shift <- abs(input$pitch_shift)
-            res_cut <- cutw(
-              rec_soundscape(),
-              from = input$zoom_time[1],
-              to = ifelse(
-                input$zoom_time[2] > duration_val(),
-                duration_val(), input$zoom_time[2]
-              ),
-              output = "Wave"
-            )
-            if (input$pitch_shift < 1) {
-              res_cut@samp.rate <- res_cut@samp.rate / pitch_shift
-            }
-            if (isTRUE(input$visible_bp)) {
-              res_cut <- ffilter(
-                res_cut,
-                f = res_cut@samp.rate,
-                from = (input$zoom_freq[1] / pitch_shift) * 1000,
-                to = (input$zoom_freq[2] / pitch_shift) * 1000,
-                wl = input$wl, output = "Wave", bandpass = TRUE
+            if (input$zoom_time[1] < input$zoom_time[2]) {
+              tryCatch(
+                {
+                  start_time <- max(0, input$zoom_time[1])
+                  end_time <- min(duration_val(), input$zoom_time[2])
+                  if (start_time >= end_time) {
+                    showNotification("Invalid time range", type = "error")
+                    return()
+                  }
+                  res_cut <- cutw(
+                    rec_soundscape(), from = start_time, to = end_time, output = "Wave"
+                  )
+                  if (input$pitch_shift < 1) {
+                    res_cut@samp.rate <- res_cut@samp.rate / pitch_shift
+                  }
+                  if (isTRUE(input$visible_bp)) {
+                    tryCatch(
+                      {
+                        res_cut <- ffilter(
+                          res_cut, f = res_cut@samp.rate,
+                          from = (input$zoom_freq[1] / pitch_shift) * 1000,
+                          to = (input$zoom_freq[2] / pitch_shift) * 1000,
+                          wl = input$wl, output = "Wave", bandpass = TRUE
+                        )
+                      },
+                      error = function(e) {
+                        showNotification("Error applying frequency filter", type = "error")
+                        return()
+                      }
+                    )
+                  }
+                  if (isTRUE(input$play_norm)) {
+                    tryCatch(
+                      {
+                        res_cut <- normalize(
+                          object = res_cut, unit = as.character(res_cut@bit),
+                          pcm = TRUE
+                        )
+                      },
+                      error = function(e) {
+                        showNotification("Error normalizing audio", type = "error")
+                        return()
+                      }
+                    )
+                  }
+                  savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
+                  removeUI(selector = "#visible_soundscape_clip_selector")
+                  insertUI(
+                    selector = "#visible_soundscape_clip", where = "afterEnd",
+                    ui = tags$audio(
+                      id = "visible_soundscape_clip_selector",
+                      src = paste0("audio/", basename(temp_file)),
+                      type = "audio/wav", autostart = FALSE, controls = TRUE
+                    )
+                  )
+                  unlink("*.wav")
+                  to_remove <- list.files(session_data$temp_path, pattern = ".wav", full.names = TRUE)
+                  file.remove(to_remove[to_remove != temp_file])
+                },
+                error = function(e) {
+                  showNotification(
+                    "Error processing audio segment. Please try again.",
+                    type = "error"
+                  )
+                  return()
+                }
               )
             }
-            if (isTRUE(input$play_norm)) {
-              res_cut <- normalize(
-                object = res_cut,
-                unit = as.character(res_cut@bit),
-                pcm <- TRUE
-              )
-            }
-            savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
-            removeUI(selector = "#visible_soundscape_clip_selector")
-            insertUI(
-              selector = "#visible_soundscape_clip", where = "afterEnd",
-              ui = tags$audio(
-                id = "visible_soundscape_clip_selector",
-                src = paste0("audio/", basename(temp_file)),
-                type = "audio/wav", autostart = FALSE, controls = TRUE # , style = "display: none;"
-              )
-            )
-            unlink("*.wav")
-            to_remove <- list.files(session_data$temp_path, pattern = ".wav", full.names = TRUE)
-            file.remove(to_remove[to_remove != temp_file])
           } else {
             removeUI(selector = "#visible_soundscape_clip_selector")
           }
@@ -1747,72 +1774,72 @@ launch_segmentation_app <- function(
         )
       }
 
-      # Consolidated reactive object for spectrogram parameters
-      spectro_params <- reactive({
-        list(
-          rec = rec_soundscape(),
-          wl = input$wl[1],
-          ovlp = input$ovlp[1],
-          color_scale = input$color_scale[1],
-          dyn_range = input$dyn_range,
-          pitch_shift = input$pitch_shift[1],
-          time_guide_interval = input$time_guide_interval[1],
-          freq_guide_interval = input$freq_guide_interval[1],
-          zoom_freq = sort(input$zoom_freq),
-          zoom_time = input$zoom_time,
-          show_label = input$show_label,
-          label_angle = input$label_angle,
-          soundscape_file = input$soundscape_file,
-          sample_rate = if (!is.null(rec_soundscape())) rec_soundscape()@samp.rate else NULL,
-          selection_color = ifelse(
-            input$color_scale %in% c("greyscale 1", "greyscale 2"),
-            "black", "white"
-          )
-        )
-      })
+      # # Consolidated reactive object for spectrogram parameters
+      # spectro_params <- reactive({
+      #   list(
+      #     rec = rec_soundscape(),
+      #     wl = input$wl[1],
+      #     ovlp = input$ovlp[1],
+      #     color_scale = input$color_scale[1],
+      #     dyn_range = input$dyn_range,
+      #     pitch_shift = input$pitch_shift[1],
+      #     time_guide_interval = input$time_guide_interval[1],
+      #     freq_guide_interval = input$freq_guide_interval[1],
+      #     zoom_freq = sort(input$zoom_freq),
+      #     zoom_time = input$zoom_time,
+      #     show_label = input$show_label,
+      #     label_angle = input$label_angle,
+      #     soundscape_file = input$soundscape_file,
+      #     sample_rate = if (!is.null(rec_soundscape())) rec_soundscape()@samp.rate else NULL,
+      #     selection_color = ifelse(
+      #       input$color_scale %in% c("greyscale 1", "greyscale 2"),
+      #       "black", "white"
+      #     )
+      #   )
+      # })
 
       # Generate spectrogram data only when core parameters change
       spectro_soundscape_raw <- reactive({
-        params <- spectro_params()
+        # params <- spectro_params()
         req(
-          params$rec, params$wl, params$ovlp, params$color_scale,
-          length(params$dyn_range) == 2, length(params$pitch_shift) == 1,
-          length(params$time_guide_interval) == 1,
-          length(params$freq_guide_interval) == 1
+          rec_soundscape(), input$wl, input$ovlp, input$color_scale,
+          length(input$dyn_range) == 2, length(input$pitch_shift) == 1,
+          length(input$time_guide_interval) == 1,
+          length(input$freq_guide_interval) == 1
         )
         fast_spectro(
-          params$rec,
-          f = params$sample_rate, ovlp = params$ovlp,
-          wl = params$wl, dyn = params$dyn_range,
-          pitch_shift = params$pitch_shift, color_scale = params$color_scale,
+          rec_soundscape(),
+          f = rec_soundscape()@samp.rate,
+          ovlp = input$ovlp, wl = input$wl, dyn = input$dyn_range,
+          pitch_shift = input$pitch_shift, color_scale = input$color_scale,
           ncolors = 124, norm = FALSE,
-          time_guide_interval = params$time_guide_interval,
-          freq_guide_interval = params$freq_guide_interval
+          time_guide_interval = input$time_guide_interval,
+          freq_guide_interval = input$freq_guide_interval
         )
       })
 
       # Render the plot with all parameters
       output$spectrogram_plot <- renderPlot(execOnResize = TRUE, {
-        params <- spectro_params()
+        # params <- spectro_params()
         req(
-          params$zoom_freq, params$zoom_time, roi_values(),
-          spectro_soundscape_raw(), params$rec, duration_val()
+          input$zoom_freq, input$zoom_time, roi_values(),
+          spectro_soundscape_raw(), rec_soundscape(), duration_val()
         )
         # Ensure valid frequency range
-        zoom_freq <- params$zoom_freq
+        zoom_freq <- input$zoom_freq
         if (zoom_freq[1] >= zoom_freq[2]) {
           zoom_freq[2] <- zoom_freq[1] + 1
         }
 
         # Build base plot
         spectro_plot <- spectro_soundscape_raw() +
-          coord_cartesian(xlim = params$zoom_time, ylim = zoom_freq) +
+          coord_cartesian(xlim = input$zoom_time, ylim = zoom_freq) +
           annotate(
             "label",
             label = paste0(
-              params$soundscape_file, " (sr = ", params$sample_rate,
-              "; wl = ", params$wl, "; ovlp = ", params$ovlp,
-              "; pitch_shift = ", params$pitch_shift, ")"
+              input$soundscape_file, " (sr = ", input$sample_rate,
+              "; wl = ", input$wl, "; ovlp = ", input$ovlp,
+              "; pitch_shift = ", input$pitch_shift, ")"
             ),
             x = -Inf, y = Inf, hjust = 0, vjust = 1, color = "white",
             fill = "black"
@@ -1824,12 +1851,12 @@ launch_segmentation_app <- function(
         rois_to_plot <- roi_values() |>
           mutate(id = row_number()) |>
           filter(
-            roi_start < params$zoom_time[2] & roi_end > params$zoom_time[1]
+            roi_start < input$zoom_time[2] & roi_end > input$zoom_time[1]
           )
 
         # Prepare ROI elements if available
         if (nrow(rois_to_plot) > 0 &&
-          identical(unique(rois_to_plot$soundscape_file), params$soundscape_file)) {
+          identical(unique(rois_to_plot$soundscape_file), input$soundscape_file)) {
           roi_elements <- list(
             # Base ROI rectangles (always added first)
             annotate(
@@ -1837,8 +1864,8 @@ launch_segmentation_app <- function(
               alpha = 0.05,
               linewidth = 0.3,
               linetype = "dashed",
-              fill = params$selection_color,
-              color = params$selection_color,
+              fill = input$selection_color,
+              color = input$selection_color,
               xmin = rois_to_plot$roi_start,
               xmax = rois_to_plot$roi_end,
               ymin = rois_to_plot$roi_min_freq,
@@ -1855,8 +1882,8 @@ launch_segmentation_app <- function(
                 alpha = 0.2,
                 linewidth = 0.5,
                 linetype = "solid",
-                fill = params$selection_color,
-                color = params$selection_color,
+                fill = input$selection_color,
+                color = input$selection_color,
                 xmin = rois_to_plot$roi_start[selected_rows],
                 xmax = rois_to_plot$roi_end[selected_rows],
                 ymin = rois_to_plot$roi_min_freq[selected_rows],
@@ -1866,15 +1893,15 @@ launch_segmentation_app <- function(
           }
 
           # Add labels if enabled
-          if (isTRUE(params$show_label)) {
+          if (isTRUE(input$show_label)) {
             roi_elements <- c(roi_elements, list(
               annotate(
                 "text",
                 alpha = 1,
                 vjust = "inward",
                 hjust = "inward",
-                angle = params$label_angle,
-                color = params$selection_color,
+                angle = input$label_angle,
+                color = input$selection_color,
                 x = rois_to_plot$roi_start,
                 y = rois_to_plot$roi_max_freq,
                 label = paste0("(", rois_to_plot$id, ") ", rois_to_plot$roi_label),
@@ -1902,8 +1929,8 @@ launch_segmentation_app <- function(
           tryCatch(
             {
               measurements <- extract_acoustic_measurements(
-                rec = params$rec, ruler_data = ruler(), wl = params$wl,
-                ovlp = params$ovlp
+                rec = rec_soundscape(), ruler_data = ruler(), wl = input$wl,
+                ovlp = input$ovlp
               )
 
               if (!is.null(measurements)) {
