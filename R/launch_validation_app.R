@@ -41,6 +41,10 @@
 #' @param pitch_shift Pitch shift for the audio cuts.
 #' @param visible_bp If TRUE, the bandpass filter is visible in the spectrogram.
 #' @param play_norm If TRUE, the played audio is normalized.
+#' @param time_guide_interval A numeric value indicating the interval in seconds
+#'   between time guides in the spectrogram.
+#' @param freq_guide_interval A numeric value indicating the interval in kHz
+#'   between frequency guides in the spectrogram.
 #'
 #' @return todo
 #'
@@ -50,19 +54,22 @@
 #' @importFrom caret downSample upSample
 #' @importFrom ROSE ROSE
 #' @importFrom data.table fread fwrite
-#' @importFrom farver encode_native
-#' @importFrom tuneR play setWavPlayer readWave
+#' @importFrom cowplot plot_grid
+#' @importFrom tuneR readWave normalize setWavPlayer play
+#' @importFrom seewave ffilter cutw duration addsilw ffilter fir
 #' @examples
 #' \dontrun{
 #' library(monitoraSom)
 #' library(usethis)
 #'
-#' # set the path to the diorectory where soundscapes are located (it is not recursive)
+#' # set the path to the diorectory where soundscapes are located (it is not
+#' # recursive)
 #' soundscapes_path <- "path/to/soundscapes"
 #' # set the path to the project folder
 #' project_path <- "path/to/project"
 #'
-#' # in case the current working directory is not an active project, set it with the following command. it may be necessary to restart the R session after that.
+#' # in case the current working directory is not an active project, set it with
+#' # the following command. it may be necessary to restart the R session after that.
 #' create_project(path = paste0(project_path, "/MyProject", open = TRUE, rstudio = TRUE)
 #'
 #' # launch the segmentation app
@@ -87,27 +94,27 @@ launch_validation_app <- function(
   library(dplyr, warn.conflicts = FALSE)
   options(dplyr.summarise.inform = FALSE)
 
-  # require(tidyr)
-  # require(ggplot2)
-  # require(lubridate)
-  # require(seewave)
-  # require(stringr)
-  # require(tuneR)
-  # require(purrr)
-  # require(DT)
-  # require(data.table)
-  # require(cutpointr)
-  # require(caret)
-  # require(ROSE)
-  # require(viridis)
-  # require(farver)
-  # require(shiny)
-  # require(shinyWidgets)
-  # require(shinyjs)
-  # require(kableExtra)
-  # require(keys)
-  # require(shinydashboard)
-  # require(shinyBS)
+  # requireNamespace("tidyr")
+  # requireNamespace("dplyr")
+  # requireNamespace("ggplot2")
+  # requireNamespace("lubridate")
+  # requireNamespace("seewave")
+  # requireNamespace("stringr")
+  # requireNamespace("tuneR")
+  # requireNamespace("purrr")
+  # requireNamespace("DT")
+  # requireNamespace("data.table")
+  # requireNamespace("cutpointr")
+  # requireNamespace("caret")
+  # requireNamespace("ROSE")
+  # requireNamespace("viridis")
+  # requireNamespace("farver")
+  # requireNamespace("shiny")
+  # requireNamespace("shinyWidgets")
+  # requireNamespace("shinyjs")
+  # requireNamespace("keys")
+  # requireNamespace("shinydashboard")
+  # requireNamespace("shinyBS")
 
   # input validation -----------------------------------------------------------
 
@@ -222,25 +229,44 @@ launch_validation_app <- function(
   }
 
   if (!is.numeric(time_pads) || time_pads < 0 || time_pads > 16) {
-    stop("Error! The value assigned to 'time_pads' must be a numeric value between 0 and 16.")
+    stop(
+      "Error! The value assigned to 'time_pads' must be a numeric value between 0 and 16."
+    )
   }
   session_data$time_pads <- time_pads
 
   # Function to validate dynamic range vectors
   validate_dyn_range <- function(dyn_range, name) {
     if (length(dyn_range) != 2 || !all(is.numeric(dyn_range))) {
-      stop(paste("Error! '", name, "' must be a numeric vector of length 2 with all values numeric.", sep = ""))
+      stop(
+        paste(
+          "Error! '", name,
+          "' must be a numeric vector of length 2 with all values numeric.",
+          sep = ""
+        )
+      )
     }
     if (dyn_range[1] >= dyn_range[2]) {
-      warning(paste("Warning! The first value of '", name, "' must be smaller than the second. Sorting to match the expected order.", sep = ""))
+      warning(
+        paste("Warning! The first value of '", name,
+          "' must be smaller than the second. Sorting to match the expected order.",
+          sep = ""
+        )
+      )
       return(sort(dyn_range))
     }
     return(dyn_range)
   }
   # Validate and set dynamic ranges
-  session_data$dyn_range_templ <- validate_dyn_range(dyn_range_templ, "dyn_range_templ")
-  session_data$dyn_range_detec <- validate_dyn_range(dyn_range_detec, "dyn_range_detec")
-  session_data$dyn_range_bar <- validate_dyn_range(dyn_range_bar, "dyn_range_bar")
+  session_data$dyn_range_templ <- validate_dyn_range(
+    dyn_range_templ, "dyn_range_templ"
+  )
+  session_data$dyn_range_detec <- validate_dyn_range(
+    dyn_range_detec, "dyn_range_detec"
+  )
+  session_data$dyn_range_bar <- validate_dyn_range(
+    dyn_range_bar, "dyn_range_bar"
+  )
 
   valid_wl_values <- c(128, 256, 512, 1024, 2048, 4096, 8192, 16384)
   if (!is.numeric(wl) || !wl %in% valid_wl_values) {
@@ -253,12 +279,16 @@ launch_validation_app <- function(
   session_data$wl <- wl
   # Validate 'ovlp': must be numeric, between 0 and 80, and a multiple of 10
   if (!is.numeric(ovlp) || ovlp < 0 || ovlp > 80 || ovlp %% 10 != 0) {
-    stop("Error! The value assigned to 'ovlp' must be a numeric value between 0 and 80, in steps of 10.")
+    stop(
+      "Error! The value assigned to 'ovlp' must be a numeric value between 0 and 80, in steps of 10."
+    )
   }
   session_data$ovlp <- ovlp
 
   # Validate 'color_scale' against expected values
-  valid_color_scales <- c("viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2")
+  valid_color_scales <- c(
+    "viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2"
+  )
   if (!is.character(color_scale) || !(color_scale %in% valid_color_scales)) {
     stop(sprintf(
       "Error! The value assigned to 'color_scale' must be one of the following: %s.",
@@ -288,7 +318,9 @@ launch_validation_app <- function(
 
   if (zoom_freq[1] >= zoom_freq[2]) {
     session_data$zoom_freq <- sort(zoom_freq)
-    warning("Warning! The first value of 'zoom_freq' must be smaller than the second. Sorting to match the expected order.")
+    warning(
+      "Warning! The first value of 'zoom_freq' must be smaller than the second. Sorting to match the expected order."
+    )
   } else {
     # Round to 0.1 intervals
     session_data$zoom_freq <- round(zoom_freq * 10) / 10
@@ -308,9 +340,11 @@ launch_validation_app <- function(
   # Function to validate logical values and assign them to session_data
   validate_logical_and_assign <- function(value, name) {
     if (!is.logical(value)) {
-      stop(paste("Error! The value assigned to '", name,
-        "' is not logical. Set it to TRUE or FALSE.",
-        sep = ""
+      stop(
+        paste(
+          "Error! The value assigned to '", name,
+          "' is not logical. Set it to TRUE or FALSE.",
+          sep = ""
       ))
     }
     session_data[[name]] <- value
@@ -326,25 +360,40 @@ launch_validation_app <- function(
   validate_and_set_path <- function(path, default_path, session_key) {
     if (is.null(path)) {
       if (dir.exists(default_path)) {
-        warning(paste("Warning! The informed '", session_key, "' was not found locally. Using the default path '", default_path, "'.", sep = ""))
+        warning(paste("Warning! The informed '", session_key,
+          "' was not found locally. Using the default path '", default_path, "'.",
+          sep = ""
+        ))
       } else {
         dir.create(default_path, recursive = TRUE)
-        warning(paste("Warning! The informed '", session_key, "' was not found locally. Using the default path '", default_path, "'.", sep = ""))
+        warning(paste("Warning! The informed '", session_key,
+          "' was not found locally. Using the default path '", default_path, "'.",
+          sep = ""
+        ))
       }
       return(default_path)
     } else {
       if (dir.exists(path)) {
         return(path)
       } else {
-        stop(paste("Error! The provided path to store ", session_key, " was not found locally.", sep = ""))
+        stop(paste("Error! The provided path to store ", session_key,
+          " was not found locally.",
+          sep = ""
+        ))
       }
     }
   }
-  session_data$wav_cuts_path <- validate_and_set_path(wav_cuts_path, "detection_cuts/", "wav_cuts_path")
-  session_data$spec_path <- validate_and_set_path(spec_path, "detection_spectrograms/", "spec_path")
+  session_data$wav_cuts_path <- validate_and_set_path(
+    wav_cuts_path, "detection_cuts/", "wav_cuts_path"
+  )
+  session_data$spec_path <- validate_and_set_path(
+    spec_path, "detection_spectrograms/", "spec_path"
+  )
 
   if (!is.numeric(pitch_shift) || !(pitch_shift %in% c(-8, -6, -4, -2, 1))) {
-    stop("Error! The value assigned to 'pitch_shift' is not numeric or not among the expected alternatives: -8, -6, -4, -2, or 1.")
+    stop(
+      "Error! The value assigned to 'pitch_shift' is not numeric or not among the expected alternatives: -8, -6, -4, -2, or 1."
+    )
   } else {
     session_data$pitch_shift <- pitch_shift
   }
@@ -1046,7 +1095,7 @@ launch_validation_app <- function(
                 ignore.case = TRUE
               )
             ) %>%
-              mutate(soundscape_file = basename(soundscape_path))
+              dplyr::mutate(soundscape_file = basename(soundscape_path))
 
             df_templates <- data.frame(
               template_path = list.files(
@@ -1055,16 +1104,16 @@ launch_validation_app <- function(
                 ignore.case = TRUE
               )
             ) %>%
-              mutate(template_file = basename(template_path))
+              dplyr::mutate(template_file = basename(template_path))
             df_ref_templates(df_templates)
 
-            res <- fread(input$input_path, data.table = FALSE, header = TRUE) %>%
-              mutate(
+            res <- data.table::fread(input$input_path, data.table = FALSE, header = TRUE) %>%
+              dplyr::mutate(
                 soundscape_path = as.character(NA),
                 template_path = as.character(NA)
               ) %>%
-              rows_update(df_templates, by = "template_file", unmatched = "ignore") %>%
-              rows_update(df_soundscapes, by = "soundscape_file", unmatched = "ignore")
+              dplyr::rows_update(df_templates, by = "template_file", unmatched = "ignore") %>%
+              dplyr::rows_update(df_soundscapes, by = "soundscape_file", unmatched = "ignore")
 
             var_names <- c(
               "detection_id", "validation_user", "validation_time", "validation",
@@ -1074,7 +1123,7 @@ launch_validation_app <- function(
             # Add variables for review inputs if needed
             if (!all(var_names %in% colnames(res))) {
               res <- res %>%
-                mutate(
+                dplyr::mutate(
                   detection_id = 1:nrow(.),
                   validation_user = NA_character_,
                   validation_time = NA_character_,
@@ -1083,7 +1132,7 @@ launch_validation_app <- function(
                 )
             } else if ("validation_time" %in% colnames(res)) {
               res <- res %>%
-                mutate(
+                dplyr::mutate(
                   validation_time = as.character(validation_time),
                   validation_note = as.character(validation_note)
                 )
@@ -1182,31 +1231,27 @@ launch_validation_app <- function(
 
         # Gather the metadata to validate the active template
         res <- df_full$data %>%
-          # filter by template name
-          filter(template_name == input$template_name) %>%
-          # filter by correlation threshold
-          filter(
+          dplyr::filter(template_name == input$template_name) %>%
+          dplyr::filter(
             peak_score >= input$score_interval[1] &
               peak_score <= input$score_interval[2]
           ) %>%
-          # filter by validation outcome
-          filter(validation %in% val_subset) %>%
-          # filter by top n detections
+          dplyr::filter(validation %in% val_subset) %>%
           {
             if (input$top_by_file == TRUE) {
-              group_by(., soundscape_file)
+              dplyr::group_by(., soundscape_file)
             } else {
               .
             }
           } %>%
           {
             if (top_n_detecs_val > 0) {
-              top_n(., top_n_detecs_val, wt = peak_score)
+              dplyr::top_n(., top_n_detecs_val, wt = peak_score)
             } else {
               .
             }
           } %>%
-          ungroup()
+          dplyr::ungroup()
 
         res <- order_options[[input$order_by]](res)
 
@@ -1240,8 +1285,8 @@ launch_validation_app <- function(
         # Reactive object to update info about the active template
         df_template({
           df_cut() %>%
-            filter(template_name == input$template_name) %>%
-            slice_head()
+            dplyr::filter(template_name == input$template_name) %>%
+            dplyr::slice_head()
         })
 
         showNotification("Validation session updated")
@@ -1354,12 +1399,12 @@ launch_validation_app <- function(
           pos_silence <- max(0, (df_template()$template_end + zoom_pad()) - template_duration)
 
           if (length(wav_path) == 1) {
-            res <- readWave(
+            res <- tuneR::readWave(
               wav_path,
               from = rec_start, to = rec_end, units = "seconds"
             ) %>%
-              addsilw(., at = "start", d = pre_silence, output = "Wave") %>%
-              addsilw(., at = "end", d = pos_silence, output = "Wave")
+              seewave::addsilw(., at = "start", d = pre_silence, output = "Wave") %>%
+              seewave::addsilw(., at = "end", d = pos_silence, output = "Wave")
 
             rec_template(res)
 
@@ -1370,7 +1415,7 @@ launch_validation_app <- function(
                 fileext = ".wav"
               ))
               if (zoom_pad() != 0) {
-                res <- cutw(
+                res <- seewave::cutw(
                   res,
                   from = zoom_pad(), to = duration(res) - zoom_pad(),
                   output = "Wave"
@@ -1415,27 +1460,22 @@ launch_validation_app <- function(
       # detection metadata
       observeEvent(input$get_templ_pars, {
         req(df_template(), df_cut())
-        # update spectrogram overlap
         updateSliderInput(
           session,
           inputId = "ovlp", label = "Overlap (%):",
           value = df_template()$detection_ovlp, step = 10
         )
-        # update spectroram window length
         updateSliderTextInput(
           session,
           inputId = "wl", label = "Window length:",
           selected <- df_template()$detection_wl
         )
-        # update spectrogram minimum frequency
         min_freq <- (df_template()$template_min_freq - 1) %>%
           round(0) %>%
           ifelse(. < 0, 0, .)
-        # update spectrogram maximum frequency
         max_freq <- (df_template()$template_max_freq + 1) %>%
           round(0) %>%
           ifelse(. > 23, 23, .)
-        # update the frequency band
         updateNoUiSliderInput(
           session, "zoom_freq", "Frequency band (kHz):",
           range = c(0, (min(df_cut()$detection_sample_rate) / 2000) - 1),
@@ -1498,8 +1538,8 @@ launch_validation_app <- function(
               "rect",
               xmin = ifelse(zoom_pad() == 0, 0, zoom_pad()),
               xmax = ifelse(
-                zoom_pad() == 0, duration(rec_template()),
-                duration(rec_template()) - zoom_pad()
+                zoom_pad() == 0, seewave::duration(rec_template()),
+                seewave::duration(rec_template()) - zoom_pad()
               ),
               ymin = df_template()$template_min_freq,
               ymax = df_template()$template_max_freq,
@@ -1520,7 +1560,7 @@ launch_validation_app <- function(
       df_detections <- reactive({
         req(df_cut())
         df_cut() %>%
-          filter(
+          dplyr::filter(
             template_name == input$template_name
             # ,
             # soundscape_file == # input$soundscape_file # todo Confirmar se está certo
@@ -1548,7 +1588,7 @@ launch_validation_app <- function(
         }
 
         if (length(wav_path) == 1) {
-          res <- readWave(
+          res <- tuneR::readWave(
             filename = det_i()$soundscape_path,
             from = pad_start, to = pad_end, units = "seconds"
           )
@@ -1582,7 +1622,9 @@ launch_validation_app <- function(
             )
           }
           if (input$play_norm == TRUE) {
-            res <- normalize(object = res, unit = as.character(res@bit), pcm = TRUE)
+            res <- tuneR::normalize(
+              object = res, unit = as.character(res@bit), pcm = TRUE
+            )
           }
           seewave::savewav(res, f = res@samp.rate, filename = temp_file)
           removeUI(selector = "#detection_player_selector")
@@ -1693,16 +1735,18 @@ launch_validation_app <- function(
         if (input$show_soundscape == TRUE) {
           wav_path <- df_soundscape()$soundscape_path
           if (length(wav_path) == 1) {
-            res <- readWave(wav_path)
+            res <- tuneR::readWave(wav_path)
             rec_soundscape(res)
             # Rendering the template HTML player
             if (file.exists(wav_path)) {
               if (input$wav_player_type == "HTML player") {
                 # file.remove("temp/soundscape_clip.wav")
-                temp_file <- tempfile(
-                  pattern = "soundscape_", tmpdir = session_data$temp_path, fileext = ".wav"
-                ) %>%
-                  gsub("\\\\", "/", .)
+                temp_file <- gsub(
+                  "\\\\", "/", tempfile(
+                    pattern = "soundscape_", tmpdir = session_data$temp_path,
+                    fileext = ".wav"
+                  )
+                )
                 seewave::savewav(res, f = res@samp.rate, filename = temp_file)
                 removeUI(selector = "#soundscape_player_selector")
                 insertUI(
@@ -1753,7 +1797,7 @@ launch_validation_app <- function(
         req(spectro_soundscape(), df_detections(), det_i())
         if (input$show_soundscape == TRUE) {
           inactive_detecs <- df_detections() %>%
-            filter(detection_id != det_i()$detection_id)
+            dplyr::filter(detection_id != det_i()$detection_id)
 
           spectro_soundscape() +
             annotate(
@@ -1838,7 +1882,7 @@ launch_validation_app <- function(
         }
         if (isTRUE(input$visible_bp)) { # ! Quebra quando filtra
           # templates are normalized by default
-          res <- normalize(
+          res <- tuneR::normalize(
             object = seewave::fir(
               res,
               f = res@samp.rate,
@@ -1905,7 +1949,7 @@ launch_validation_app <- function(
               )
             }
             if (isTRUE(input$play_norm)) {
-              res <- normalize(
+              res <- tuneR::normalize(
                 object = res, unit = as.character(res@bit), pcm = TRUE
               )
             }
@@ -1923,7 +1967,7 @@ launch_validation_app <- function(
               res@samp.rate <- res@samp.rate / pitch_shift
             }
             if (isTRUE(input$visible_bp)) {
-              res <- ffilter(
+              res <- seewave::ffilter(
                 res,
                 f = res@samp.rate,
                 from = (input$zoom_freq[1] / pitch_shift) * 1000,
@@ -2021,12 +2065,12 @@ launch_validation_app <- function(
       df_diag_input_raw <- reactiveVal(NULL)
       diag_input_procFUN <- function(x) {
         res <- x %>%
-          select(template_name, peak_score, validation) %>%
-          filter(
+          dplyr::select(template_name, peak_score, validation) %>%
+          dplyr::filter(
             template_name == input$template_name &
               validation %in% c("TP", "FP")
           ) %>%
-          mutate(
+          dplyr::mutate(
             validation_bin = case_when(
               validation == "TP" ~ 1, validation == "FP" ~ 0
             )
@@ -2039,7 +2083,7 @@ launch_validation_app <- function(
         req(input$validation_user, det_i(), df_cut(), df_output())
 
         res_A <- det_i() %>%
-          mutate(
+          dplyr::mutate(
             validation = validation_input(),
             validation_time = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
             validation_user = input$validation_user,
@@ -2070,13 +2114,13 @@ launch_validation_app <- function(
         } else if (input$overwrite == FALSE) {
           det_i(res_A)
           df_cut(
-            rows_patch(
+            dplyr::rows_patch(
               df_cut(), res_A,
               by = "detection_id", unmatched = "ignore"
             )
           )
           df_output(
-            rows_patch(
+            dplyr::rows_patch(
               df_output(), res_A,
               by = "detection_id", unmatched = "ignore"
             )
@@ -2162,13 +2206,13 @@ launch_validation_app <- function(
         {
           req(df_cut())
           df_cut() %>%
-            select(
+            dplyr::select(
               template_name, soundscape_file, detection_id,
               detection_start, detection_end, template_min_freq, template_max_freq,
               peak_score, validation_user, validation_time, validation,
               validation_note
             ) %>%
-            datatable(
+            DT::datatable(
               editable = FALSE, style = "bootstrap4",
               selection = "single", filter = "none", # escape = FALSE,
               colnames = c(
@@ -2177,8 +2221,8 @@ launch_validation_app <- function(
                 "Time Stamp", "Validation", "Note"
               )
             ) %>%
-            formatRound(c("detection_start", "detection_end", "peak_score"), 3) %>%
-            formatRound(c("template_min_freq", "template_max_freq"), 1)
+            DT::formatRound(c("detection_start", "detection_end", "peak_score"), 3) %>%
+            DT::formatRound(c("template_min_freq", "template_max_freq"), 1)
         },
         server = TRUE,
         options = list(lengthChange = FALSE)
@@ -2196,11 +2240,11 @@ launch_validation_app <- function(
         {
           req(df_output(), df_cut())
           df_output() %>%
-            group_by(template_name, validation) %>%
-            summarise(n = n()) %>%
-            ungroup() %>%
-            pivot_wider(names_from = "validation", values_from = "n") %>%
-            rename(Template = template_name)
+            dplyr::group_by(template_name, validation) %>%
+            dplyr::summarise(n = n()) %>%
+            dplyr::ungroup() %>%
+            tidyr::pivot_wider(names_from = "validation", values_from = "n") %>%
+            dplyr::rename(Template = template_name)
         },
         width = "100%"
       )
@@ -2209,11 +2253,11 @@ launch_validation_app <- function(
           req(df_output(), df_cut())
           df_cut() %>%
             # filter(template_name == input$template_name) %>%
-            group_by(template_name, validation) %>%
-            summarise(n = n()) %>%
-            ungroup() %>%
-            pivot_wider(names_from = "validation", values_from = "n") %>%
-            rename(Template = template_name)
+            dplyr::group_by(template_name, validation) %>%
+            dplyr::summarise(n = n()) %>%
+            dplyr::ungroup() %>%
+            tidyr::pivot_wider(names_from = "validation", values_from = "n") %>%
+            dplyr::rename(Template = template_name)
         },
         width = "100%"
       )
@@ -2225,22 +2269,22 @@ launch_validation_app <- function(
             df_diag_input_raw()
           } else if (input$diag_balance == "Downsample larger class") {
             df_diag_input_raw() %>%
-              mutate(validation = as.factor(validation)) %>%
+              dplyr::mutate(validation = as.factor(validation)) %>%
               caret::downSample(x = ., y = .$validation, yname = "temp") %>%
               select(-temp)
           } else if (input$diag_balance == "Upsample smaller  class") {
             df_diag_input_raw() %>%
-              mutate(validation = as.factor(validation)) %>%
+              dplyr::mutate(validation = as.factor(validation)) %>%
               caret::upSample(x = ., y = .$validation, yname = "temp") %>%
-              select(-temp)
+              dplyr::select(-temp)
           } else if (input$diag_balance == "ROSE") {
             df_diag_input_raw() %>%
-              select(-template_name) %>%
-              mutate(validation = as.factor(validation)) %>%
+              dplyr::select(-template_name) %>%
+              dplyr::mutate(validation = as.factor(validation)) %>%
               {
                 ROSE::ROSE(validation ~ ., data = .)$data
               } %>%
-              mutate(
+              dplyr::mutate(
                 template_name = unique(df_diag_input_raw()$template_name),
                 .before = "peak_score"
               )
@@ -2326,8 +2370,8 @@ launch_validation_app <- function(
         {
           req(cut_i_tab())
           cut_i_tab() %>%
-            mutate(tp = as.integer(tp), fp = as.integer(fp)) %>%
-            select(-tn, -fn, -tnr, -fnr, -selected) %>%
+            dplyr::mutate(tp = as.integer(tp), fp = as.integer(fp)) %>%
+            dplyr::select(-tn, -fn, -tnr, -fnr, -selected) %>%
             setNames(
               c(
                 "Template", "Threshold", "TP (n)", "FP (n)",
@@ -2371,11 +2415,11 @@ launch_validation_app <- function(
       wav_default_filename <- reactive({
         req(det_i())
         res <- paste0(
-          str_remove(basename(det_i()$soundscape_file), ".WAV|.wav"), "_",
-          str_pad(round(det_i()$detection_start, 3), 7, "left", "0"), "-",
-          str_pad(round(det_i()$detection_end, 3), 7, "left", "0"), "s_",
-          str_pad(round(det_i()$template_min_freq, 3), 6, "left", "0"), "-",
-          str_pad(round(det_i()$template_max_freq, 3), 6, "left", "0"), "kHz.wav"
+          stringr::str_remove(basename(det_i()$soundscape_file), ".WAV|.wav"), "_",
+          stringr::str_pad(round(det_i()$detection_start, 3), 7, "left", "0"), "-",
+          stringr::str_pad(round(det_i()$detection_end, 3), 7, "left", "0"), "s_",
+          stringr::str_pad(round(det_i()$template_min_freq, 3), 6, "left", "0"), "-",
+          stringr::str_pad(round(det_i()$template_max_freq, 3), 6, "left", "0"), "kHz.wav"
           # todo add species name in the last field of this cut
         )
       })
@@ -2397,7 +2441,7 @@ launch_validation_app <- function(
       observeEvent(input$confirm_wav_export, {
         req(input$wav_cuts_path, wav_filename(), rec_detection())
         # todo - validate the path and return a message if it's not valid
-        writeWave(
+        tuneR::writeWave(
           object = rec_detection(),
           filename = file.path(input$wav_cuts_path, wav_filename())
         )
@@ -2406,7 +2450,7 @@ launch_validation_app <- function(
       # Export the wav file by using the hotkey
       observeEvent(input$hotkeys, {
         req(input$hotkeys == "r", input$wav_cuts_path, wav_filename(), rec_detection())
-        writeWave(
+        tuneR::writeWave(
           object = rec_detection(),
           filename = file.path(input$wav_cuts_path, wav_filename())
         )
@@ -2417,11 +2461,11 @@ launch_validation_app <- function(
       spec_default_filename <- reactive({
         req(det_i())
         res <- paste0(
-          str_remove(basename(det_i()$soundscape_file), ".WAV|.wav"), "_",
-          str_pad(round(det_i()$detection_start, 3), 7, "left", "0"), "-",
-          str_pad(round(det_i()$detection_end, 3), 7, "left", "0"), "s_",
-          str_pad(round(det_i()$template_min_freq, 3), 6, "left", "0"), "-",
-          str_pad(round(det_i()$template_max_freq, 3), 6, "left", "0"), "kHz.jpeg"
+          stringr::str_remove(basename(det_i()$soundscape_file), ".WAV|.wav"), "_",
+          stringr::str_pad(round(det_i()$detection_start, 3), 7, "left", "0"), "-",
+          stringr::str_pad(round(det_i()$detection_end, 3), 7, "left", "0"), "s_",
+          stringr::str_pad(round(det_i()$template_min_freq, 3), 6, "left", "0"), "-",
+          stringr::str_pad(round(det_i()$template_max_freq, 3), 6, "left", "0"), "kHz.jpeg"
           # todo add species name in the last field of this cut
         )
       })
@@ -2444,7 +2488,7 @@ launch_validation_app <- function(
         req(input$spec_path, spec_filename(), rec_detection())
         # todo - validate the path and return a message if it's not valid
         res <- cowplot::plot_grid(spectro_template(), spectro_detection())
-        ggsave(
+        ggplot2::ggsave(
           filename = file.path(input$spec_path, spec_filename()),
           plot = res, width = 12, height = 6, units = "in", dpi = 72
         )
@@ -2454,7 +2498,7 @@ launch_validation_app <- function(
       observeEvent(input$hotkeys, {
         req(input$hotkeys == "t", input$spec_path, spec_filename(), rec_detection())
         res <- cowplot::plot_grid(spectro_template(), spectro_detection())
-        ggsave(
+        ggplot2::ggsave(
           filename = file.path(input$spec_path, spec_filename()),
           plot = res, width = 12, height = 6, units = "in", dpi = 72
         )
@@ -2476,7 +2520,7 @@ launch_validation_app <- function(
             dplyr::filter(template_name == input$template_name) %>%
             dplyr::select(detection_id, dplyr::contains("validation"))
           nrow_unsaved <- nrow(
-            anti_join(
+            dplyr::anti_join(
               dfa, dfb,
               by = c("validation_user", "validation_time", "validation")
             )

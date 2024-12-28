@@ -40,8 +40,10 @@
 #' @param ... Additional arguments to be passed internally to the
 #'   'seeave::spectro' function.
 #'
-#' @import dplyr viridis farver ggplot2
-#' @importFrom seewave spectro
+#' @import dplyr ggplot2
+#' @importFrom viridis viridis magma inferno cividis
+#' @importFrom farver encode_native
+#' @importFrom seewave spectro reverse.gray.colors.1 reverse.gray.colors.2
 #' @return This function returns a ggplot2 object.
 #'
 #' @export
@@ -51,6 +53,7 @@ fast_spectro <- function(
     color_scale = "inferno", n_colors = 124, interpolate = FALSE,
     pitch_shift = 1, theme_mode = "light",
     time_guide_interval = 3, freq_guide_interval = 1, ...) {
+
   validate_inputs <- function() {
     if (!inherits(rec, "Wave")) {
       stop("rec must be a 'Wave' object")
@@ -231,7 +234,7 @@ fast_spectro <- function(
     )
     breaks[breaks >= min_val & breaks <= max_val]
   }
-
+  
   suppressMessages(
     ggplot() +
       geom_rect(

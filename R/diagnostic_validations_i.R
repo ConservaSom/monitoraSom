@@ -20,15 +20,12 @@
 #' @param diag_cut A numeric value indicating the cutpoint to be used in the
 #'   diagnostic
 #'
-#' @import dplyr ggplot2 cutpointr
+#' @import dplyr ggplot2
+#' @importFrom cutpointr cutpointr
 #' @return A list containing the diagnostic results
 #' @export
 diagnostic_validations_i <- function(
     val_i, diag_method = "Auto", pos_prob = 0.95, diag_cut = NULL) {
-
-  require(dplyr)
-  require(ggplot2)
-  require(cutpointr)
 
   # check if there is only one template name in the data
   if (length(unique(val_i$template_name)) > 1) {
@@ -74,7 +71,7 @@ diagnostic_validations_i <- function(
   }
 
   if (n_fp >= 4 & n_tp >= 4) {
-    cutpointr_raw <- cutpointr(
+    cutpointr_raw <- cutpointr::cutpointr(
       df_diag_input, peak_score, validation,
       cutpoint = score_cut, silent = TRUE, pos_class = "TP",
       neg_class = "FP", direction = ">=", method = oc_manual,
@@ -82,10 +79,10 @@ diagnostic_validations_i <- function(
     )
 
     diag_out <- cutpointr_raw$roc_curve[[1]][-1, ] %>%
-      rename(peak_score = x.sorted) %>%
-      mutate(fn = fn + n_fn) %>%
-      select(peak_score, tp, fp, tn, fn) %>%
-      mutate(
+      dplyr::rename(peak_score = x.sorted) %>%
+      dplyr::mutate(fn = fn + n_fn) %>%
+      dplyr::select(peak_score, tp, fp, tn, fn) %>%
+      dplyr::mutate(
         template_name = unique(df_diag_input$template_name),
         precision = tp / (tp + fp),
         recall = tp / (tp + fn),
@@ -94,14 +91,14 @@ diagnostic_validations_i <- function(
         F1_score = 2 * (precision * recall) / (precision + recall),
         selected = FALSE
       ) %>%
-      relocate(contains("template"), everything()) %>%
+      dplyr::relocate(contains("template"), everything()) %>%
       as.data.frame()
   } else {
     thresholds <- seq(0, 1, 0.01)
     thresholds <- thresholds[thresholds < max(val_i$peak_score)]
     diag_list <- lapply(thresholds, function(threshold) {
       val_i %>%
-        mutate(
+        dplyr::mutate(
           new_validation = case_when(
             is_tp & peak_score >= threshold ~ "TP",
             is_tp & peak_score < threshold ~ "FN",
@@ -109,7 +106,7 @@ diagnostic_validations_i <- function(
             is_fp & peak_score < threshold ~ "TN"
           )
         ) %>%
-        summarise(
+        dplyr::summarise(
           template_name = unique(df_diag_input$template_name),
           peak_score = threshold,
           tp = sum(new_validation == "TP", na.rm = TRUE),
@@ -120,7 +117,7 @@ diagnostic_validations_i <- function(
     })
 
     diag_out <- bind_rows(diag_list) %>%
-      mutate(
+      dplyr::mutate(
         precision = tp / (tp + fp),
         recall = tp / (tp + fn),
         sensitivity = recall,
@@ -128,25 +125,25 @@ diagnostic_validations_i <- function(
         F1_score = 2 * (precision * recall) / (precision + recall),
         selected = FALSE
       ) %>%
-      mutate(
+      dplyr::mutate(
         across(
           c(precision, recall, sensitivity, specificity),
           ~ ifelse(is.nan(.), max(., na.rm = TRUE), .)
         )
       ) %>%
-      distinct()
+      dplyr::distinct()
   }
 
   diag_out$selected[max(which(diag_out$peak_score >= score_cut))] <- TRUE
 
   if (length(which(diag_out$peak_score >= score_cut)) >= 1) {
     sel_i <- diag_out %>%
-      mutate(ID = 1:nrow(.)) %>%
-      filter(
+      dplyr::mutate(ID = 1:nrow(.)) %>%
+      dplyr::filter(
         precision >= diag_out$precision[which(diag_out$selected == TRUE)]
       ) %>%
-      slice_max(recall) %>%
-      pull(ID)
+      dplyr::slice_max(recall) %>%
+      dplyr::pull(ID)
     diag_out$selected <- FALSE
     diag_out$selected[sel_i] <- TRUE
   } else {

@@ -14,32 +14,38 @@
 #' @param validation_user A character string specifying the user name.
 #'
 #' @return A data frame with the validated detections.
+#' @import dplyr tidyr
+#' @importFrom purrr map_chr map2
 #' @export
 validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
+
+  requireNamespace("dplyr")
+  requireNamespace("purrr")
+
   validation_time <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
 
   # Prepare ROIs for validation
   tib_rois <- df_rois %>%
-    mutate(
+    dplyr::mutate(
       soundscape_path = paste0("soundscapes//", soundscape_file),
       roi_id = 1:nrow(df_rois), species = roi_label
     ) %>%
-    group_split(species) %>%
-    tibble(
-      species = map_chr(., ~ unique(.x$species)), rois = .
+    dplyr::group_split(species) %>%
+    tibble::tibble(
+      species = purrr::map_chr(., ~ unique(.x$species)), rois = .
     )
 
   # Prepare detections for validation
   tib_detecs <- df_detecs %>%
-    mutate(
+    dplyr::mutate(
       soundscape_path = paste0("soundscapes//", soundscape_file),
       species = gsub(".*_", "", gsub("\\.wav|.WAV", "", template_name)),
       detection_id = 1:nrow(df_detecs)
     ) %>%
-    group_split(species, template_file) %>%
-    tibble(
-      species = map_chr(., ~ unique(.x$species)),
-      template_file = map_chr(., ~ unique(.x$template_file)),
+    dplyr::group_split(species, template_file) %>%
+    tibble::tibble(
+      species = purrr::map_chr(., ~ unique(.x$species)),
+      template_file = purrr::map_chr(., ~ unique(.x$template_file)),
       detections = .
     )
 
@@ -61,8 +67,8 @@ validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
   }
 
   # Join detections with ROIs based on species and soundscape file
-  ls_validation <- left_join(tib_detecs, tib_rois, by = "species") %>%
-    filter(!is.na(rois))
+  ls_validation <- dplyr::left_join(tib_detecs, tib_rois, by = "species") %>%
+    dplyr::filter(!is.na(rois))
 
   # Validate detections by checking for overlaps with ROIs
   val_res_raw <- map2(
@@ -77,14 +83,14 @@ validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
         # overlaps that happen within the same soundscape are relevant. Non
         # overlapping elements of both dataframes are discarded here and will be added
         # later.
-        df_detec_inner_raw <- inner_join(
+        df_detec_inner_raw <- dplyr::inner_join(
           x, y, by = c("soundscape_file", "species"), suffix = c("", "_y"),
           relationship = "many-to-many"
         )
         if (nrow(df_detec_inner_raw) == 0) {
           # if there are no detections, all detections are considered false positives
           res_i <- x %>%
-            mutate(
+            dplyr::mutate(
               validation_user = validation_user,
               validation_time = validation_time,
               validation = "FP",
@@ -93,12 +99,12 @@ validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
         } else {
           # if there are detections, check for overlaps
           df_detec_inner <- df_detec_inner_raw %>%
-            select(-soundscape_path_y) %>%
-            group_by(soundscape_file) %>%
-            group_split() %>%
-            map_dfr(
+            dplyr::select(-soundscape_path_y) %>%
+            dplyr::group_by(soundscape_file) %>%
+            dplyr::group_split() %>%
+            purrr::map_dfr(
               ~ .x %>%
-                mutate(
+                dplyr::mutate(
                   validation = ifelse(
                     between(detection_start, roi_start, roi_end) |
                       between(detection_end, roi_start, roi_end) |
@@ -110,36 +116,36 @@ validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
 
           # Get the TP
           dfTP <- df_detec_inner %>%
-            filter(validation == "TP") %>%
-            mutate(validation_note = "instersection with a ROI")
+            dplyr::filter(validation == "TP") %>%
+            dplyr::mutate(validation_note = "instersection with a ROI")
 
           # FP are all detections that have not overlapped a roi within soundscapes
           dfFP_a <- df_detec_inner %>%
-            filter(validation == "FP", !(detection_id %in% dfTP$detection_id)) %>%
-            select(-starts_with("roi_")) %>%
-            mutate(validation_note = "no intersection with a ROI") %>%
-            distinct()
+            dplyr::filter(validation == "FP", !(detection_id %in% dfTP$detection_id)) %>%
+            dplyr::select(-starts_with("roi_")) %>%
+            dplyr::mutate(validation_note = "no intersection with a ROI") %>%
+            dplyr::distinct()
 
           # ... or when there are no ROIs to intersect with
           dfFP_b <- x %>%
-            filter(
+            dplyr::filter(
               !(
                 detection_id %in%
                   unique(c(dfTP$detection_id, dfFP_a$detection_id)))
             ) %>%
             dplyr::distinct() %>%
-            mutate(
+            dplyr::mutate(
               validation = "FP", validation_note = "no ROIs to intersect with"
             )
 
           # Combine TP, FP_a and FP_b
           res_raw <- dfTP %>%
-            full_join(dfFP_a, by = colnames(dfFP_a)) %>%
-            full_join(dfFP_b, by = colnames(dfFP_b))
+            dplyr::full_join(dfFP_a, by = colnames(dfFP_a)) %>%
+            dplyr::full_join(dfFP_b, by = colnames(dfFP_b))
 
           # False negatives are all ROIs that have no detections within them
           dfFN <- y[which(!(y$roi_id %in% res_raw$roi_id)), ] %>%
-            mutate(
+            dplyr::mutate(
               template_path = unique(x$template_path),
               template_file = unique(x$template_file),
               template_name = unique(x$template_name),
@@ -154,11 +160,11 @@ validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
           # Combine TP, FP and FN
           res_i <- res_raw %>%
             # remove for retrieval of multiple overlaps
-            arrange(desc(detection_id), peak_score) %>%
-            filter(!duplicated(detection_id)) %>%
-            full_join(dfFN, by = colnames(dfFN)) %>%
-            arrange(soundscape_file, detection_start) %>%
-            mutate(
+            dplyr::arrange(desc(detection_id), peak_score) %>%
+            dplyr::filter(!duplicated(detection_id)) %>%
+            dplyr::full_join(dfFN, by = colnames(dfFN)) %>%
+            dplyr::arrange(soundscape_file, detection_start) %>%
+            dplyr::mutate(
               validation_user = validation_user,
               validation_time = validation_time,
               .before = "validation"
@@ -169,6 +175,6 @@ validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
       }
     }
   )
-  res <- bind_rows(val_res_raw)
+  res <- dplyr::bind_rows(val_res_raw)
   return(res)
 }

@@ -23,9 +23,9 @@
 #' @return A list of results from the diagnostic validations, or NULL if all validations failed.
 #' @export
 #'
+#' @import dplyr
 diagnostic_validations_n <- function(
     val_n, diag_method = "Auto", pos_prob = 0.95) {
-  require(dplyr)
 
   split_validations <- val_n %>%
     group_by(template_name) %>%

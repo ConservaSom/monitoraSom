@@ -21,12 +21,11 @@
 #'   documentation of the functions 'fetch_soundscape_metadata()' and
 #'   'fetch_template_metadata()' for more details).
 #'
-#' @import dplyr purrr
+#' @import dplyr
 #' @export
 fetch_match_grid <- function(soundscape_data, template_data) {
-  require(purrr)
-  require(dplyr)
-  res <- cross_join(soundscape_data, template_data)
+
+  res <- dplyr::cross_join(soundscape_data, template_data)
   warnings <- character()
   missing_soundscapes <- !file.exists(res$soundscape_path)
 

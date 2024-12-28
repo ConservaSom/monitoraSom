@@ -48,18 +48,25 @@
 #' @return Todo
 #'
 #' @export
-#' @import ggplot2 patchwork viridis
+#' @import ggplot2 patchwork
 #' @importFrom tuneR readWave
 #' @importFrom seewave spectro reverse.gray.colors.1 reverse.gray.colors.2
+#' @importFrom viridis viridis
 plot_detecs_i <- function(
     match_res_i,
     buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
     flim = c(0, 10), ovlp = NULL, wl = NULL, dyn_range = c(-60, 0),
     color_scale = "inferno", n_colors = 124, interpolate = FALSE,
     score_lims = NULL, ...) {
-  # todo Adicionar informação de pitch_shift
 
-  require(patchwork)
+  requireNamespace("patchwork")
+  requireNamespace("viridis")
+  requireNamespace("seewave")
+  requireNamespace("tuneR")
+  requireNamespace("ggplot2")
+  requireNamespace("dplyr")
+
+  # todo Adicionar informação de pitch_shift
 
   detecs <- fetch_score_peaks_i(
     match_res_i,
@@ -67,7 +74,7 @@ plot_detecs_i <- function(
     min_quant = min_quant, top_n = top_n
   )
 
-  rec <- readWave(filename = match_res_i$soundscape_path)
+  rec <- tuneR::readWave(filename = match_res_i$soundscape_path)
 
   if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
     colormap <- viridis::viridis(n_colors, option = color_scale)
@@ -179,7 +186,7 @@ plot_detecs_i <- function(
 
   res <- soundscape_spectro +
     plot_score +
-    plot_layout(nrow = 2, byrow = FALSE)
+    patchwork::plot_layout(nrow = 2, byrow = FALSE)
 
   return(res)
 }

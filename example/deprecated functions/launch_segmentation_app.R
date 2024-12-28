@@ -61,9 +61,12 @@
 #' @return Todo
 #'
 #' @export
-#' @import shiny dplyr ggplot2 lubridate seewave stringr tuneR collapse DT
+#' @import shiny dplyr ggplot2 lubridate tuneR collapse DT
 #'  shinyWidgets shinydashboard shinyFiles shinyalert keys shinyjs shinyBS
 #' @importFrom data.table fread fwrite
+#' @importFrom patchwork plot_layout
+#' @importFrom seewave normalize ffilter cutw fir duration
+#' @importFrom stringr str_replace str_remove str_pad
 launch_segmentation_app <- function(
   project_path = NULL, preset_id = NULL, user = NULL, preset_path = NULL,
   soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
@@ -74,27 +77,24 @@ launch_segmentation_app <- function(
   pitch_shift = 1
   ) {
 
-  # require(shiny)
-  # require(dplyr)
-  # require(ggplot2)
-  # require(lubridate)
-  # require(seewave)
-  # require(stringr)
-  # require(tuneR)
-  # require(collapse)
-  # require(knitr)
-  # require(rmarkdown)
-  # require(beepr)
-  # require(DT)
-  # require(data.table)
-  # require(shinyWidgets)
-  # require(shinydashboard)
-  # require(shinyFiles)
-  # require(shinyalert)
-  # require(shiny)
-  # require(keys)
-  # require(shinyjs)
-  # require(shinyBS)
+  requireNamespace("shiny")
+  requireNamespace("dplyr")
+  requireNamespace("ggplot2")
+  requireNamespace("lubridate")
+  requireNamespace("seewave")
+  requireNamespace("stringr")
+  requireNamespace("tuneR")
+  requireNamespace("collapse")
+  requireNamespace("DT")
+  requireNamespace("data.table")
+  requireNamespace("shinyWidgets")
+  requireNamespace("shinydashboard")
+  requireNamespace("shinyFiles")
+  requireNamespace("shinyalert")
+  requireNamespace("shiny")
+  requireNamespace("keys")
+  requireNamespace("shinyjs")
+  requireNamespace("shinyBS")
 
   session_data <- list()
 
@@ -1233,7 +1233,7 @@ launch_segmentation_app <- function(
               )
             }
             seewave::savewav(
-              wav = normalize(
+              wav = tuneR::normalize(
                 object = res_cut,
                 unit = as.character(res_cut@bit),
                 pcm = TRUE
@@ -1542,7 +1542,7 @@ launch_segmentation_app <- function(
           )
         }
         tuneR::play(
-          normalize(
+          tuneR::normalize(
             object = rec_to_play,
             unit = as.character(rec_to_play@bit),
             pcm = TRUE

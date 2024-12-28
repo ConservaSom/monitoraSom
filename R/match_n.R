@@ -50,14 +50,17 @@
 #'   soundscape spectrogram, pads with length quals half the number of frames
 #'   from the template are added to the beginning and end of the
 #'
-#' @import dplyr future pbapply furrr purrr
-#' @importFrom furrr future_map
+#' @import dplyr future
 #' @importFrom purrr list_rbind
+#' @importFrom parallel makePSOCKcluster detectCores
+#' @importFrom pbapply pblapply
+
 #' @export
 match_n <- function(
     df_grid, score_method = "cor", ncores = 1, output = "detections",
     output_file = NULL, autosave_action = "append", buffer_size = "template",
     min_score = NULL, min_quant = NULL, top_n = NULL) {
+
   output <- match.arg(output, c("detections", "scores"))
   autosave_action <- match.arg(autosave_action, c("append", "replace"))
 
@@ -114,7 +117,7 @@ match_n <- function(
         df_check <- data.table::fread(output_file)
         if (nrow(df_check) > 0) {
           df_check <- df_check %>%
-            transmute(
+            dplyr::transmute(
               soundscape_file = soundscape_file,
               template_file = template_file,
               template_wl = detection_wl,
@@ -126,11 +129,11 @@ match_n <- function(
               top_n = detection_top_n
             )
           df_grid_check <- df_grid %>%
-            mutate(
+            dplyr::mutate(
               buffer_size = buffer_size, min_score = min_score,
               min_quant = min_quant, top_n = top_n
             ) %>%
-            select(
+            dplyr::select(
               soundscape_file, template_file, template_wl, template_ovlp,
               template_sample_rate, buffer_size, min_score, min_quant, top_n
             )

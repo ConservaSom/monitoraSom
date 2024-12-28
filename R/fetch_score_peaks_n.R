@@ -37,12 +37,16 @@
 #'
 #' @return A Tibble containing the detections of all audio scores.
 #'
-#' @import tibble dplyr purrr parallel pbapply
+#' @import dplyr
+#' @importFrom pbapply pblapply
+#' @importFrom parallel makePSOCKcluster detectCores
+#' @importFrom tibble is_tibble
+#' @importFrom tools file_ext
 #' @export
 fetch_score_peaks_n <- function(
     tib_match, recursive = FALSE, buffer_size = "template", min_score = NULL,
     min_quant = NULL, top_n = NULL, save_res = NULL, ncores = 1) {
-  require(dplyr)
+
 
   # Check if input is a character path or a tibble
   if (is.character(tib_match)) {
@@ -68,7 +72,7 @@ fetch_score_peaks_n <- function(
 
   # Process each row of tib_match
   split_data <- split(tib_match, seq(nrow(tib_match)))
-  result_list <- pblapply(
+  result_list <- pbapply::pblapply(
     split_data,
     function(subset) {
       fetch_score_peaks_i(
@@ -85,7 +89,7 @@ fetch_score_peaks_n <- function(
 
   # Save results if specified
   if (!is.null(save_res)) {
-    file_ext <- tools::file_ext(save_res)
+    file_ext <- file_ext(save_res)
     if (file_ext == "rds") {
       saveRDS(tib_detecs, save_res)
     } else if (file_ext == "csv") {

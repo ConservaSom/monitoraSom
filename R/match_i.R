@@ -23,15 +23,17 @@
 #' @return A tibble containing either detection results or raw scores.
 #'
 #' @export
-#' @import purrr dplyr
+#' @import dplyr
 #' @importFrom tuneR readWave
 #' @importFrom seewave spectro
-#' @importFrom dtwclust dtw_basic
 #' @importFrom slider slide
+#' @importFrom tibble as_tibble
+#' @importFrom tidyr replace_na
 match_i <- function(
     df_grid_i, score_method = "cor", output = "detections",
     buffer_size = "template", min_score = NULL, min_quant = NULL,
     top_n = NULL) {
+
   score_method <- match.arg(score_method, c("cor", "dtw"))
   output <- match.arg(output, c("detections", "scores"))
 
@@ -46,22 +48,20 @@ match_i <- function(
   }
 
   spec_params <- list(
-    wl = df_grid_i$template_wl,
-    ovlp = df_grid_i$template_ovlp,
+    wl = df_grid_i$template_wl, ovlp = df_grid_i$template_ovlp,
     flim = c(df_grid_i$template_min_freq, df_grid_i$template_max_freq),
-    plot = FALSE,
-    norm = TRUE
+    plot = FALSE, norm = TRUE
   )
 
   tryCatch(
     {
-      soundscape_spectro <- readWave(df_grid_i$soundscape_path)
+      soundscape_spectro <- tuneR::readWave(df_grid_i$soundscape_path)
       soundscape_spectro <- do.call(
-        spectro, c(list(soundscape_spectro), spec_params)
+        seewave::spectro, c(list(soundscape_spectro), spec_params)
       )
-      spectro_template <- readWave(df_grid_i$template_path)
+      spectro_template <- tuneR::readWave(df_grid_i$template_path)
       spectro_template <- do.call(
-        spectro,
+        seewave::spectro,
         c(
           list(spectro_template), spec_params,
           list(
@@ -95,11 +95,14 @@ match_i <- function(
           method = "pearson", use = "complete.obs"
         )
       }
-    ) |>
+    ) %>%
       unlist() %>%
       c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1)) %>%
       tidyr::replace_na(min(., na.rm = TRUE))
   } else if (score_method == "dtw") {
+    if (!requireNamespace("dtw", quietly = TRUE)) {
+      stop("Package 'dtw' is required for 'dtw' method. Please install it.")
+    }
     stretch <- 0.2
     norm <- "L1"
     step.pattern <- dtw::symmetric1
@@ -118,7 +121,7 @@ match_i <- function(
     ) %>%
       unlist() %>%
       {
-        1 - (. / max(.))
+        1 - (. / max(.)) # 1 - dtw score to match the format of the cor score
       } %>%
       c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1)) %>%
       tidyr::replace_na(min(., na.rm = TRUE))

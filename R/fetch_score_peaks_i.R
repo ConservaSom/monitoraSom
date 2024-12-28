@@ -32,11 +32,12 @@
 #' @return A data frame in which each row is a detection and has the follwing
 #'  attributes:
 #'
-#' @import dplyr purrr
+#' @import dplyr
 #' @export
 fetch_score_peaks_i <- function(
     match_res_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
     top_n = NULL) {
+
   if (
     !is.list(match_res_i) || is.null(match_res_i$score_vec) ||
       is.null(match_res_i$score_vec[[1]]$score_vec) ||

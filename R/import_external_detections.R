@@ -17,6 +17,7 @@
 #' @export
 import_external_detections <- function(
     input_path, names_vec = NA, output_path = NA) {
+
   if (!file.exists(input_path)) {
     stop("File not found")
   }

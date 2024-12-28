@@ -45,12 +45,13 @@
 #' @export
 #' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR
 #'   DT shinyWidgets shinydashboard shinyFiles shinyalert keys shinyjs shinyBS
-#'   cutpointr
+#'   cutpointr cowplot
 #' @importFrom caret downSample upSample
 #' @importFrom ROSE ROSE
 #' @importFrom data.table fread fwrite
 #' @importFrom farver encode_native
 #' @importFrom tuneR play setWavPlayer readWave
+#' @importFrom cowplot plot_grid
 launch_validation_app <- function(
     preset_path = NULL, preset_id = NULL,
     validation_user, templates_path, soundscapes_path,
@@ -65,32 +66,30 @@ launch_validation_app <- function(
 
     ) {
 
-      # todo Adicionar informações de pitch_shift
-
-  library(dplyr, warn.conflicts = FALSE)
-  # require(tidyr)
-  # require(ggplot2)
-  # require(lubridate)
-  # require(seewave)
-  # require(stringr)
-  # require(tuneR)
-  # require(purrr)
-  # require(DT)
-  # require(data.table)
-  # require(cutpointr)
-  # require(caret)
-  # require(ROSE)
-  # require(viridis)
-  # require(farver)
-  # require(shiny)
-  # require(shinyWidgets)
-  # require(shinyjs)
-  # require(kableExtra)
-  # require(keys)
-  # require(shinyFiles)
-  # require(shinydashboard)
-  # require(shinyalert)
-  # require(shinyBS)
+  # todo Adicionar informações de pitch_shift
+  requireNamespace("dplyr")
+  requireNamespace("tidyr")
+  requireNamespace("ggplot2")
+  requireNamespace("lubridate")
+  requireNamespace("seewave")
+  requireNamespace("stringr")
+  requireNamespace("tuneR")
+  requireNamespace("purrr")
+  requireNamespace("DT")
+  requireNamespace("data.table")
+  requireNamespace("cutpointr")
+  requireNamespace("caret")
+  requireNamespace("ROSE")
+  requireNamespace("viridis")
+  requireNamespace("farver")
+  requireNamespace("shiny")
+  requireNamespace("shinyWidgets")
+  requireNamespace("shinyjs")
+  requireNamespace("keys")
+  requireNamespace("shinyFiles")
+  requireNamespace("shinydashboard")
+  requireNamespace("shinyalert")
+  requireNamespace("shinyBS")
 
   options(dplyr.summarise.inform = FALSE)
 
@@ -2145,7 +2144,7 @@ launch_validation_app <- function(
             mod_plot_react(mod_plot)
 
             # todo ROC curve data in 'seq(0, 1, 0.001)' and not 'seq(0, 1, 0.01)'
-            cutpointr_raw <- cutpointr(
+            cutpointr_raw <- cutpointr::cutpointr(
               df_diag_input(), peak_score, validation,
               cutpoint = input$diag_cut, silent = TRUE,
               pos_class = "TP", neg_class = "FP", direction = ">=",

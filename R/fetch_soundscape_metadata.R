@@ -13,12 +13,12 @@
 #'   parallelization. Default is 1.
 #'
 #' @return A data frame with the following columns:
-#' @import furrr purrr tuneR
+#' @import dplyr
+#' @importFrom pbapply pblapply
+#' @importFrom parallel makePSOCKcluster detectCores
+#' @importFrom tuneR readWave
 #' @export
 fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
-  require(tuneR)
-  require(dplyr)
-  require(pbapply)
 
   soundscape_list <- list.files(
     path,
@@ -41,7 +41,7 @@ fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
   read_wav_fun <- function(x) {
     res <- tryCatch(
       {
-        data <- readWave(x, header = TRUE)
+        data <- tuneR::readWave(x, header = TRUE)
         data$path <- x
         data
       },
@@ -53,15 +53,15 @@ fetch_soundscape_metadata <- function(path, recursive = TRUE, ncores = 1) {
     return(res)
   }
 
-  res <- pblapply(soundscape_list, read_wav_fun, cl = ncores) %>%
-    bind_rows() %>%
-    transmute(
+  res <- pbapply::pblapply(soundscape_list, read_wav_fun, cl = ncores) %>%
+    dplyr::bind_rows() %>%
+    dplyr::transmute(
       soundscape_path = path,
       soundscape_file = basename(path),
       soundscape_duration = samples / sample.rate,
       soundscape_sample_rate = sample.rate,
       soundscape_bitrate = bits,
-      soundscape_layout = case_when(
+      soundscape_layout = dplyr::case_when(
         channels == 1 ~ "mono",
         channels == 2 ~ "stereo",
         TRUE ~ "other"

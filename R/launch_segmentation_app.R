@@ -24,7 +24,7 @@
 #'   available lists are stored as columns, identified in the app menu by their
 #'   titles.
 #' @param sp_list A character string with the available labels to be used in the
-#'   cuirrent session. The default is "CBRO-2021 (Brazil)".
+#'   current session. The default is "CBRO-2021 (Birds - Brazil)".
 #' @param label_angle Angle between 0 and 180 to draw the ROI labels in the
 #'   spectrogram plot.
 #' @param show_label If TRUE, ROI labels will be displayed alongside ROI
@@ -49,6 +49,9 @@
 #'   executable is provided in the 'wav_player_path' argument.
 #' @param wav_player_path Path to the wav player executable (only for
 #'   wav_player_type = "External player")
+#' @param visible_bp If TRUE, the visible frequency band will be used as a
+#'   bandpass filter for the audio playback.
+#' @param play_norm If TRUE, the audio playback will be normalized.
 #' @param session_notes A single character string with related to the current
 #'   segmentation session.
 #' @param zoom_freq Vector with two numeric values between 0 and the Nyquist
@@ -61,35 +64,42 @@
 #' @param visible_bp If TRUE, the visible frequency band will be used as a
 #'   bandpass filter for the audio playback.
 #' @param play_norm If TRUE, the audio playback will be normalized.
+#' @param time_guide_interval A numeric value indicating the interval in seconds
+#'   between time guides in the spectrogram.
+#' @param freq_guide_interval A numeric value indicating the interval in kHz
+#'   between frequency guides in the spectrogram.
 #'
 #' @return Todo
-#'
 #' @export
-#' @import shiny dplyr ggplot2 lubridate seewave stringr tuneR DT
-#'   shinyWidgets shinydashboard keys shinyjs shinyBS openxlsx readxl
+#' @import shiny dplyr ggplot2 DT shinyWidgets shinydashboard keys
+#'  shinyjs shinyBS
 #' @importFrom data.table fread fwrite
-#' @examples
-#' \dontrun{
-#' library(monitoraSom)
+#' @importFrom lubridate ymd_hms
+#' @importFrom tuneR readWave normalize setWavPlayer play
+#' @importFrom readxl read_excel
+#' @importFrom openxlsx write.xlsx
+#' @importFrom patchwork plot_layout
+#' @importFrom seewave ffilter
+#' @importFrom stringr str_replace str_remove str_pad
+#' @examples \dontrun{ library(monitoraSom)
 #' library(usethis)
 #'
 #' # set the path to the project folder
 #' # project_path <- "path/to/project"
-#' # in case the current working directory is not an active project, set it with the following command. it may be necessary to restart the R session after that.
+#' # in case the current working directory is not an active project, set it
+#' # with the following command. it may be necessary to restart the R session
+#' # after that.
 #' create_project(path = project_path, open = TRUE, rstudio = TRUE)
 #' # check if the currently active working directory matches the project
 #' getwd()
 #'
-#' # set the path to the diorectory where soundscapes are located (it is not recursive)
+#' # set the path to the diorectory where soundscapes are located (it is not
+#' # recursive)
 #' soundscapes_path <- "soundscapes/"
 #'
 #' # launch the segmentation app
-#' launch_segmentation_app(
-#'   project_path = ".",
-#'   user = "Identify the user here",
-#'   soundscapes_path = soundscapes_path
-#' )
-#' }
+#' launch_segmentation_app( project_path = ".", user = "Identify the user here",
+#'   soundscapes_path = soundscapes_path ) }
 launch_segmentation_app <- function(
     project_path = NULL, preset_path = NULL, user = NULL,
     soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
@@ -101,23 +111,7 @@ launch_segmentation_app <- function(
     wav_player_type = "HTML player", wav_player_path = "play",
     visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
     nav_autosave = TRUE, pitch_shift = 1) {
-  # require(shiny)
-  # require(dplyr)
-  # require(ggplot2)
-  # require(lubridate)
-  # require(seewave)
-  # require(stringr)
-  # require(tuneR)
-  # require(knitr)
-  # require(rmarkdown)
-  # require(DT)
-  # require(data.table)
-  # require(shinyWidgets)
-  # require(shinydashboard)
-  # require(shiny)
-  # require(keys)
-  # require(shinyjs)
-  # require(shinyBS)
+
   session_data <- list()
 
   if (!is.null(project_path)) {
@@ -456,7 +450,9 @@ launch_segmentation_app <- function(
         }
 
         if (isTRUE(play_norm)) {
-          rec <- normalize(object = rec, unit = as.character(rec@bit), pcm = TRUE)
+          rec <- tuneR::normalize(
+            object = rec, unit = as.character(rec@bit), pcm = TRUE
+          )
         }
 
         play(rec, player = "play")
@@ -550,9 +546,8 @@ launch_segmentation_app <- function(
             splitLayout(
               cellWidths = c("75%", "25%"),
               sliderInput(
-                "label_angle", "Adjust label angle (º)",
-                min = 0, max = 90, step = 10, value = session_data$label_angle,
-                post = "º"
+                "label_angle", "Adjust label angle (degrees)",
+                min = 0, max = 90, step = 10, value = session_data$label_angle
               ),
               checkboxInput("show_label", "Show label", value = session_data$show_label)
             ),
@@ -1075,8 +1070,8 @@ launch_segmentation_app <- function(
         }
         tryCatch(
           {
-            wav_obj <- readWave(wav_path)
-            wav_duration <- duration(wav_obj)
+            wav_obj <- tuneR::readWave(wav_path)
+            wav_duration <- seewave::duration(wav_obj)
             updateNoUiSliderInput(
               session,
               inputId = "zoom_time",
@@ -1135,7 +1130,7 @@ launch_segmentation_app <- function(
                   if (isTRUE(input$visible_bp)) {
                     tryCatch(
                       {
-                        res_cut <- ffilter(
+                        res_cut <- seewave::ffilter(
                           res_cut, f = res_cut@samp.rate,
                           from = (input$zoom_freq[1] / pitch_shift) * 1000,
                           to = (input$zoom_freq[2] / pitch_shift) * 1000,
@@ -1151,7 +1146,7 @@ launch_segmentation_app <- function(
                   if (isTRUE(input$play_norm)) {
                     tryCatch(
                       {
-                        res_cut <- normalize(
+                        res_cut <- tuneR::normalize(
                           object = res_cut, unit = as.character(res_cut@bit),
                           pcm = TRUE
                         )
@@ -1162,7 +1157,7 @@ launch_segmentation_app <- function(
                       }
                     )
                   }
-                  savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
+                  seewave::savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
                   removeUI(selector = "#visible_soundscape_clip_selector")
                   insertUI(
                     selector = "#visible_soundscape_clip", where = "afterEnd",
@@ -1196,7 +1191,7 @@ launch_segmentation_app <- function(
         if (x == "R session") {
           updateTextInput(session, "wav_player_path", value = "play")
           setWavPlayer("play")
-          # todo Adicionar aqui uma opçao para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
+          # todo Adicionar aqui uma opcao para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
           showElement("play_soundscape")
         } else if (x == "External player" & !is.null(input$wav_player_path)) {
           if (file.exists(input$wav_player_path)) {
@@ -1214,7 +1209,8 @@ launch_segmentation_app <- function(
       # Add this at the beginning of the server function (around line 921)
       audio_playing <- reactiveVal(FALSE)
 
-      # Add this in the server section, near other observeEvent handlers (around line 1525)
+      # Add this in the server section, near other observeEvent handlers (around
+      # line 1525)
       observeEvent(input$toggle_play, {
         req(
           rec_soundscape(),
@@ -1241,9 +1237,7 @@ launch_segmentation_app <- function(
         } else {
           # Stop playback
           audio_playing(FALSE)
-          if (input$wav_player_type == "R session") {
-            try(tuneR::stopAudio(), silent = TRUE)
-          } else {
+          if (input$wav_player_type != "R session") {
             system("killall play", ignore.stderr = TRUE) # For Linux/Mac
             system("taskkill /IM play.exe /F", ignore.stderr = TRUE) # For Windows
           }
@@ -1271,7 +1265,7 @@ launch_segmentation_app <- function(
         name_pattern <- paste0(roi_prefix, ".*\\.csv$")
         if (any(grepl(name_pattern, roi_tables_data()$roi_table_name))) {
           roi_table_alts <- roi_tables_data() %>%
-            filter(grepl(name_pattern, roi_table_name))
+            dplyr::filter(grepl(name_pattern, roi_table_name))
         } else {
           roi_table_alts <- data.frame(
             roi_table_name = gsub(
@@ -1300,8 +1294,8 @@ launch_segmentation_app <- function(
       observeEvent(input$roi_table_name, {
         req(alt_roitabs_meta(), input$roi_table_name, user_val())
         active_roi_table_path <- alt_roitabs_meta() %>%
-          filter(roi_table_name == input$roi_table_name) %>%
-          pull(roi_table_path)
+          dplyr::filter(roi_table_name == input$roi_table_name) %>%
+          dplyr::pull(roi_table_path)
         var_names <- c(
           "soundscape_path", "soundscape_file", "roi_user", "roi_input_timestamp",
           "roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
@@ -1312,22 +1306,23 @@ launch_segmentation_app <- function(
           data.frame(matrix(NA, nrow = 0, ncol = length(var_names), dimnames = list(NULL, var_names)))
         }
         if (file.exists(active_roi_table_path)) {
-          res_raw <- fread(file = active_roi_table_path) %>%
-            as.data.frame()
+          res_raw <- as.data.frame(
+            data.table::fread(file = active_roi_table_path)
+          )
           res_raw <- lapply(var_names, function(var) {
             if (!var %in% names(res_raw)) {
               res_raw[[var]] <- NA
             }
             return(res_raw)
           })[[1]]
-          res <- res_raw %>%
-            transmute(
-              soundscape_path = soundscape_path,
-              soundscape_file = soundscape_file,
-              roi_user = roi_user,
-              roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S"),
-              roi_label = roi_label,
-              roi_start = roi_start,
+          res <- dplyr::transmute(
+            res_raw,
+            soundscape_path = soundscape_path,
+            soundscape_file = soundscape_file,
+            roi_user = roi_user,
+            roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S"),
+            roi_label = roi_label,
+            roi_start = roi_start,
               roi_end = roi_end,
               roi_min_freq = roi_min_freq,
               roi_max_freq = roi_max_freq,
@@ -1339,7 +1334,7 @@ launch_segmentation_app <- function(
               roi_ovlp = roi_ovlp,
               roi_sample_rate = roi_sample_rate,
               roi_pitch_shift = roi_pitch_shift
-            )
+              )
         } else {
           res <- create_empty_roi_df()
         }
@@ -1410,7 +1405,7 @@ launch_segmentation_app <- function(
 
         # Get unsegmented soundscapes and current position
         unsegmented_data <- progress_tracker$df %>%
-          filter(has_table == FALSE | soundscape_file == input$soundscape_file)
+          dplyr::filter(has_table == FALSE | soundscape_file == input$soundscape_file)
 
         unsegmented_files <- unsegmented_data$soundscape_file
         current_index <- which(unsegmented_files == input$soundscape_file)
@@ -1512,7 +1507,7 @@ launch_segmentation_app <- function(
             roi_values(res)
           } else {
             # Create an empty ROI entry if no entries remain
-            roi_i_empty <- tibble(
+            roi_i_empty <- tibble::tibble(
               soundscape_path = NA, soundscape_file = NA, roi_user = NA,
               roi_input_timestamp = NA, roi_label = NA, roi_start = NA,
               roi_end = NA, roi_min_freq = NA, roi_max_freq = NA, roi_type = NA,
@@ -1670,7 +1665,7 @@ launch_segmentation_app <- function(
               )
             )
           )
-          fwrite(roi_values(), filename, row.names = FALSE)
+          data.table::fwrite(roi_values(), filename, row.names = FALSE)
           progress_tracker$df$has_table[
             which(soundscape_data()$soundscape_file == input$soundscape_file)
           ] <- TRUE
@@ -1711,7 +1706,7 @@ launch_segmentation_app <- function(
           wav_path_val(), user_val(), rec_soundscape(),
           soundscape_data()
         )
-        roi_i <- tibble(
+        roi_i <- tibble::tibble(
           soundscape_path = wav_path_val(),
           soundscape_file = input$soundscape_file,
           roi_user = user_val(),
@@ -1747,20 +1742,20 @@ launch_segmentation_app <- function(
         if (is.null(rec) || is.null(ruler_data)) {
           return(NULL)
         }
-        snd_selection <- cutw(
+        snd_selection <- seewave::cutw(
           rec,
           f = rec@samp.rate, from = ruler_data$roi_start, to = ruler_data$roi_end,
           units = "seconds", output = "Wave"
         )
         dom_freq <- mean(
-          dfreq(
+          seewave::dfreq(
             snd_selection,
             f = snd_selection@samp.rate, wl = wl, ovlp = ovlp,
             bandpass = c(ruler_data$roi_min_freq, ruler_data$roi_max_freq) * 1000,
             plot = FALSE
           )[, 2]
         )
-        ac_stats <- acoustat(
+        ac_stats <- seewave::acoustat(
           snd_selection,
           f = snd_selection@samp.rate, wl = wl, ovlp = ovlp, fraction = 80,
           flim = c(ruler_data$roi_min_freq, ruler_data$roi_max_freq),
@@ -1800,7 +1795,6 @@ launch_segmentation_app <- function(
 
       # Generate spectrogram data only when core parameters change
       spectro_soundscape_raw <- reactive({
-        # params <- spectro_params()
         req(
           rec_soundscape(), input$wl, input$ovlp, input$color_scale,
           length(input$dyn_range) == 2, length(input$pitch_shift) == 1,
@@ -1810,7 +1804,7 @@ launch_segmentation_app <- function(
         fast_spectro(
           rec_soundscape(),
           f = rec_soundscape()@samp.rate,
-          ovlp = input$ovlp, wl = input$wl, dyn = input$dyn_range,
+          ovlp = input$ovlp, wl = input$wl, dyn_range = input$dyn_range,
           pitch_shift = input$pitch_shift, color_scale = input$color_scale,
           ncolors = 124, norm = FALSE,
           time_guide_interval = input$time_guide_interval,
@@ -1820,12 +1814,10 @@ launch_segmentation_app <- function(
 
       # Render the plot with all parameters
       output$spectrogram_plot <- renderPlot(execOnResize = TRUE, {
-        # params <- spectro_params()
         req(
           input$zoom_freq, input$zoom_time, roi_values(),
           spectro_soundscape_raw(), rec_soundscape(), duration_val()
         )
-        # Ensure valid frequency range
         zoom_freq <- input$zoom_freq
         if (zoom_freq[1] >= zoom_freq[2]) {
           zoom_freq[2] <- zoom_freq[1] + 1
@@ -1849,8 +1841,8 @@ launch_segmentation_app <- function(
 
         # Add ROIs if available
         rois_to_plot <- roi_values() |>
-          mutate(id = row_number()) |>
-          filter(
+          dplyr::mutate(id = row_number()) |>
+          dplyr::filter(
             roi_start < input$zoom_time[2] & roi_end > input$zoom_time[1]
           )
 
@@ -1941,7 +1933,6 @@ launch_segmentation_app <- function(
               if (!is.null(measurements)) {
                 measurement_text <- paste0(
                   "ROI Measurements\n",
-                  "═══════════════\n",
                   "Time Parameters\n",
                   sprintf("%-12s %8.3f s\n", "Start:", ruler()$roi_start),
                   sprintf("%-12s %8.3f s\n", "End:", ruler()$roi_end),
@@ -1987,20 +1978,47 @@ launch_segmentation_app <- function(
           )]
         },
         server = TRUE,
-        options = list(lengthChange = FALSE, pageLength = 20, scrollX = TRUE)
+        editable = TRUE,  # Enable cell editing
+        options = list(
+          lengthChange = FALSE,
+          pageLength = 20,
+          scrollX = TRUE
+        )
       )
 
       observeEvent(input$res_table_cell_edit, {
         req(roi_values(), roi_tables_path_val(), input$roi_table_name)
-        df <- roi_values()
-        df[input$res_table_cell_edit$row, input$res_table_cell_edit$col] <-
-          input$res_table_cell_edit$value
-        roi_values(df)
-        if (input$nav_autosave == TRUE) {
-          fwrite(
-            roi_values(), file.path(roi_tables_path_val(), input$roi_table_name),
-            row.names = FALSE
-          )
+        info <- input$res_table_cell_edit
+        df <- isolate(roi_values())  # Isolate to prevent reactive chain
+
+        # Ensure we have valid edit information
+        if (!is.null(info$row) && !is.null(info$col) && !is.null(info$value)) {
+          # Get column name instead of index
+          cols <- c("roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq",
+                   "roi_type", "roi_label_confidence", "roi_is_complete", "roi_comment")
+          col_name <- cols[info$col]
+
+          # Update the specific cell with proper type conversion
+          df[[col_name]][info$row] <- info$value
+
+          # Update the reactive value
+          roi_values(df)
+
+          # Handle autosave if enabled
+          if (isTRUE(input$nav_autosave)) {
+            tryCatch({
+              data.table::fwrite(
+                df,
+                file.path(roi_tables_path_val(), input$roi_table_name),
+                row.names = FALSE
+              )
+            }, error = function(e) {
+              showNotification(
+                paste("Error saving table:", e$message),
+                type = "error"
+              )
+            })
+          }
         }
       })
 
@@ -2085,14 +2103,16 @@ launch_segmentation_app <- function(
               roi_table_name = basename(.), roi_table_path = .
             )
           active_roi_table_path <- roi_tables %>%
-            filter(roi_table_name == input$roi_table_name) %>%
-            pull(roi_table_path)
+            dplyr::filter(roi_table_name == input$roi_table_name) %>%
+            dplyr::pull(roi_table_path)
           if (file.exists(active_roi_table_path)) {
-            saved_rois <- fread(file = active_roi_table_path) %>%
+            saved_rois <- data.table::fread(file = active_roi_table_path) %>%
               as.data.frame() %>%
-              mutate(roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S"))
+              dplyr::mutate(
+                roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S")
+              )
             nrow_unsaved <- nrow(
-              anti_join(
+              dplyr::anti_join(
                 roi_values(), saved_rois,
                 by = c("soundscape_file", "roi_user", "roi_label", "roi_input_timestamp")
               )
@@ -2170,7 +2190,7 @@ launch_segmentation_app <- function(
         user_setup_confirm = "Confirm settings to begin",
 
         # Session Setup
-        label_angle = "Label rotation angle (90° recommended)",
+        label_angle = "Label rotation angle (90 degrees recommended)",
         wl = "FFT window length (affects time/frequency resolution)",
         ovlp = "Window overlap % (higher = better resolution)",
         pitch_shift = "Adjust playback pitch for ultrasound",

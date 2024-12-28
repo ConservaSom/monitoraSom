@@ -33,6 +33,11 @@ for matching.}
 \item{score_method}{The method used for template matching, either "cor" or
 "dtw".}
 
+\item{output_file}{Path to the file where the results will be saved.}
+
+\item{autosave_action}{Action to be taken when the user navigates to another
+file. Possible values are "append" (default) and "overwrite".}
+
 \item{buffer_size}{The size of the buffer used to calculate the scores for
 the template matches, either "template" or "event".}
 
@@ -53,23 +58,6 @@ whole matching grid.}
 
 \item{ncores}{An integer indicating the number of cores to be used for
 parallelization. Default is 1.}
-
-\item{template_type}{The type of templates, either "standalone" or "library".}
-
-\item{save_res}{Default to FALSE or provide a path to an rds file where the
-raw template matching results will be stored.}
-
-\item{par_strat}{A character string indicating the parallelization strategy
-to be used. The available options are: "foreach" (default), "future" and
-"pbapply". The 'future' and 'pbapply' strategies do not work on Windows,
-but are more efficient in linux (especially when running and R session
-outside of Rstudio). The 'foreach' strategy works on all platforms, but is
-less efficient than the other two. See the documentation of the 'future'
-and 'pbapply' packages for more details.}
-
-\item{backend_type}{For usage when par_strat = "parabar"}
-
-\item{cluster_type}{For usage when par_strat = "parabar"}
 }
 \value{
 A dataframe with the detected events.

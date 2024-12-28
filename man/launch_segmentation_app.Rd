@@ -57,13 +57,19 @@ available lists are stored as columns, identified in the app menu by their
 titles.}
 
 \item{sp_list}{A character string with the available labels to be used in the
-cuirrent session. The default is "CBRO-2021 (Brazil)".}
+current session. The default is "CBRO-2021 (Birds - Brazil)".}
 
 \item{label_angle}{Angle between 0 and 180 to draw the ROI labels in the
 spectrogram plot.}
 
 \item{show_label}{If TRUE, ROI labels will be displayed alongside ROI
 selections in the sepctrogram.}
+
+\item{time_guide_interval}{A numeric value indicating the interval in seconds
+between time guides in the spectrogram.}
+
+\item{freq_guide_interval}{A numeric value indicating the interval in kHz
+between frequency guides in the spectrogram.}
 
 \item{dyn_range}{A numeric vector of length 2 specifying the minimum and
 maximum relative amplitudes (in dBFS) to be displayed on the spectrogram.
@@ -122,25 +128,23 @@ Todo
   be imported from presets or set manually.
 }
 \examples{
-\dontrun{
-library(monitoraSom)
+\dontrun{ library(monitoraSom)
 library(usethis)
 
 # set the path to the project folder
 # project_path <- "path/to/project"
-# in case the current working directory is not an active project, set it with the following command. it may be necessary to restart the R session after that.
+# in case the current working directory is not an active project, set it
+# with the following command. it may be necessary to restart the R session
+# after that.
 create_project(path = project_path, open = TRUE, rstudio = TRUE)
 # check if the currently active working directory matches the project
 getwd()
 
-# set the path to the diorectory where soundscapes are located (it is not recursive)
+# set the path to the diorectory where soundscapes are located (it is not
+# recursive)
 soundscapes_path <- "soundscapes/"
 
 # launch the segmentation app
-launch_segmentation_app(
-  project_path = ".",
-  user = "Identify the user here",
-  soundscapes_path = soundscapes_path
-)
-}
+launch_segmentation_app( project_path = ".", user = "Identify the user here",
+  soundscapes_path = soundscapes_path ) }
 }

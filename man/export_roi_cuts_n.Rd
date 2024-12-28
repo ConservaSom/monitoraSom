@@ -10,6 +10,8 @@ export_roi_cuts_n(rois_n, path, overwrite = FALSE)
 \item{rois_n}{A tibble containing the ROIs to be cut}
 
 \item{path}{A character string indicating the path to save the cuts}
+
+\item{overwrite}{If TRUE, existing files will be overwritten}
 }
 \value{
 A message indicating if all cuts were made successfully

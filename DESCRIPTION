@@ -13,13 +13,12 @@ Encoding: UTF-8
 LazyData: TRUE
 Imports:
     caret,
+    cowplot,
     cutpointr,
     data.table,
     dplyr,
     DT,
-    dtwclust,
     farver,
-    furrr,
     future,
     ggplot2,
     keys,
@@ -42,7 +41,7 @@ Imports:
     tidyr,
     tuneR,
     viridis
-RoxygenNote: 7.3.1
 Suggests:
-    testthat
-Config/testthat/edition: 3
+    dtw,
+    dtwclust
+RoxygenNote: 7.3.1

@@ -83,6 +83,12 @@ slider.}
 
 \item{zoom_freq}{Frequency range to zoom in the spectrogram.}
 
+\item{time_guide_interval}{A numeric value indicating the interval in seconds
+between time guides in the spectrogram.}
+
+\item{freq_guide_interval}{A numeric value indicating the interval in kHz
+between frequency guides in the spectrogram.}
+
 \item{nav_shuffle}{If TRUE, the files will be shuffled before navigation.}
 
 \item{subset_seed}{Seed for the random shuffling.}
@@ -116,12 +122,14 @@ todo
 library(monitoraSom)
 library(usethis)
 
-# set the path to the diorectory where soundscapes are located (it is not recursive)
+# set the path to the diorectory where soundscapes are located (it is not
+# recursive)
 soundscapes_path <- "path/to/soundscapes"
 # set the path to the project folder
 project_path <- "path/to/project"
 
-# in case the current working directory is not an active project, set it with the following command. it may be necessary to restart the R session after that.
+# in case the current working directory is not an active project, set it with
+# the following command. it may be necessary to restart the R session after that.
 create_project(path = paste0(project_path, "/MyProject", open = TRUE, rstudio = TRUE)
 
 # launch the segmentation app
