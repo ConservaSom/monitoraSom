@@ -79,27 +79,17 @@
 #' @importFrom readxl read_excel
 #' @importFrom openxlsx write.xlsx
 #' @importFrom patchwork plot_layout
-#' @importFrom seewave ffilter
+#' @importFrom seewave ffilter duration
 #' @importFrom stringr str_replace str_remove str_pad
-#' @examples \dontrun{ library(monitoraSom)
-#' library(usethis)
+#' @importFrom DT dataTableOutput renderDataTable
+#' @importFrom shinyWidgets alert
+#' @examples
+#' \dontrun{
+#' library(monitoraSom)
 #'
 #' # set the path to the project folder
-#' # project_path <- "path/to/project"
-#' # in case the current working directory is not an active project, set it
-#' # with the following command. it may be necessary to restart the R session
-#' # after that.
-#' create_project(path = project_path, open = TRUE, rstudio = TRUE)
-#' # check if the currently active working directory matches the project
-#' getwd()
-#'
-#' # set the path to the diorectory where soundscapes are located (it is not
-#' # recursive)
-#' soundscapes_path <- "soundscapes/"
-#'
-#' # launch the segmentation app
-#' launch_segmentation_app( project_path = ".", user = "Identify the user here",
-#'   soundscapes_path = soundscapes_path ) }
+#' project_path <- "path/to/project"
+#' }
 launch_segmentation_app <- function(
     project_path = NULL, preset_path = NULL, user = NULL,
     soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,

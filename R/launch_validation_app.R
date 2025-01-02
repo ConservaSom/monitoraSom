@@ -49,14 +49,17 @@
 #' @return todo
 #'
 #' @export
-#' @import shiny dplyr tidyr ggplot2 lubridate seewave stringr tuneR DT
-#'   shinyWidgets shinydashboard keys shinyjs shinyBS cutpointr
+#' @import shiny dplyr tidyr ggplot2 stringr DT shinyWidgets shinydashboard keys
+#'    shinyjs shinyBS cutpointr
 #' @importFrom caret downSample upSample
 #' @importFrom ROSE ROSE
 #' @importFrom data.table fread fwrite
 #' @importFrom cowplot plot_grid
 #' @importFrom tuneR readWave normalize setWavPlayer play
 #' @importFrom seewave ffilter cutw duration addsilw ffilter fir
+#' @importFrom DT dataTableOutput renderDataTable
+#' @importFrom shinyjs show
+#' @importFrom shinyWidgets alert
 #' @examples
 #' \dontrun{
 #' library(monitoraSom)
@@ -115,6 +118,8 @@ launch_validation_app <- function(
   # requireNamespace("keys")
   # requireNamespace("shinydashboard")
   # requireNamespace("shinyBS")
+
+
 
   # input validation -----------------------------------------------------------
 
@@ -1417,7 +1422,7 @@ launch_validation_app <- function(
               if (zoom_pad() != 0) {
                 res <- seewave::cutw(
                   res,
-                  from = zoom_pad(), to = duration(res) - zoom_pad(),
+                  from = zoom_pad(), to = seewave::duration(res) - zoom_pad(),
                   output = "Wave"
                 )
               }

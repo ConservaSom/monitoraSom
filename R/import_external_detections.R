@@ -11,6 +11,8 @@
 #' @param names_vec A named character vector indicating the names of the
 #'   variables and the corresponding names in the provided table.
 #' @param output_path A character string indicating the path to save the output
+#' @details The function will rename and add the necessary variables to complete
+#'   the monitoraSom format.
 #'
 #' @import dplyr
 #' @return A tibble containing the detections in the 'monitoraSom' format

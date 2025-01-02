@@ -25,3 +25,7 @@ A tibble containing the detections in the 'monitoraSom' format
   match the 'monitoraSom' format and will add the necessary variables to
   complete the format.
 }
+\details{
+The function will rename and add the necessary variables to complete
+  the monitoraSom format.
+}
