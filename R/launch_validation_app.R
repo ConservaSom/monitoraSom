@@ -725,7 +725,7 @@ launch_validation_app <- function(
           tags$div(id = "template_player"),
           actionButton(
             "play_template", "Play Template (2)",
-            icon = icon("play"), width = "100%", style = "height:50px"
+            icon = icon("play"), width = "50%", style = "height:50px"
           )
         ),
 
@@ -984,6 +984,7 @@ launch_validation_app <- function(
       df_full <- reactiveValues(data = NULL)
       df_output <- reactiveVal(NULL)
       df_ref_templates <- reactiveVal(NULL)
+
 
       observeEvent(input$user_setup_confirm, {
         # Initial input validation
@@ -1372,36 +1373,67 @@ launch_validation_app <- function(
       #   }
       # })
 
+
+      custom_references <- reactiveVal(NULL)
+
       # Reactive object containing the wav of the active template
       # todo - change the rendered template spectrogram according to the selected template
       observeEvent(input$lock_template, {
+        req(input$templates_path)
         if (input$lock_template != TRUE) {
           enable("custom_reference")
-          updateSelectInput(
-            session, "custom_reference",
-            choices = df_ref_templates()$template_path
+          custom_refs <- monitoraSom::fetch_template_metadata(
+            path = input$templates_path, recursive = TRUE
           )
+          # Add validation to ensure custom_refs is not empty
+          if (nrow(custom_refs) > 0) {
+            custom_references(custom_refs)
+            updateSelectInput(
+              session, "custom_reference",
+              choices = custom_refs$template_path,
+              selected = input$custom_reference
+            )
+          } else {
+            showNotification("No template files found in the specified path", type = "warning")
+          }
         } else {
           updateSelectInput(
             session, "custom_reference",
-            choices = NA
+            choices = NULL
           )
           disable("custom_reference")
+          custom_references(NULL)
         }
       })
 
       rec_template <- reactiveVal(NULL)
       observe({
         req(df_template())
-        wav_path <- df_template()$template_path
-        if (nrow(df_template()) == 0 | is.na(wav_path) | !file.exists(wav_path)) {
-          rec_template(NULL)
+
+        template_data <- if (input$lock_template == TRUE) {
+          df_template()
+        } else if (!is.null(custom_references())) {
+          custom_refs <- custom_references() %>%
+            dplyr::filter(template_path == input$custom_reference)
+          if (nrow(custom_refs) > 0) {
+            custom_refs %>% head(1)
+          } else {
+            df_template() # Fallback to default if no custom template found
+          }
         } else {
-          template_duration <- df_template()$template_end - df_template()$template_start
-          rec_start <- max(0, df_template()$template_start - zoom_pad())
-          pre_silence <- max(0, -(df_template()$template_start - zoom_pad()))
-          rec_end <- min(template_duration, df_template()$template_end + zoom_pad())
-          pos_silence <- max(0, (df_template()$template_end + zoom_pad()) - template_duration)
+          df_template() # Fallback to default if no custom references available
+        }
+
+        wav_path <- template_data$template_path
+        if (nrow(template_data) == 0 | is.na(wav_path) | !file.exists(wav_path)) {
+          rec_template(NULL)
+          showNotification("Template file not found", type = "warning")
+        } else {
+          template_duration <- template_data$template_end - template_data$template_start
+          rec_start <- max(0, template_data$template_start - zoom_pad())
+          pre_silence <- max(0, -(template_data$template_start - zoom_pad()))
+          rec_end <- min(template_duration, template_data$template_end + zoom_pad())
+          pos_silence <- max(0, (template_data$template_end + zoom_pad()) - template_duration)
 
           if (length(wav_path) == 1) {
             res <- tuneR::readWave(
@@ -1461,6 +1493,55 @@ launch_validation_app <- function(
         }
       })
 
+      spectro_template <- reactive({
+        req(df_template())
+        if (is.null(rec_template())) {
+          ggplot() +
+            annotate("label", x = 1, y = 1, label = "Template not available") +
+            theme_void()
+        } else {
+          box_color <- ifelse(
+            input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
+          )
+          temp_rec <- rec_template()
+          fast_spectro(
+            rec = temp_rec, f = temp_rec@samp.rate, wl = input$wl,
+            ovlp = input$ovlp, flim = c(input$zoom_freq[1], input$zoom_freq[2]),
+            dyn_range = c(input$dyn_range_templ[1], input$dyn_range_templ[2]),
+            time_guide_interval = input$time_guide_interval,
+            freq_guide_interval = input$freq_guide_interval,
+            color_scale = input$color_scale, pitch_shift = input$pitch_shift
+          ) +
+            labs(title = "Template spectrogram") +
+            annotate(
+              "label",
+              label = paste0("Template: '", df_template()$template_name, "'"),
+              x = -Inf, y = Inf, hjust = 0, vjust = 1,
+              color = "white", fill = "black"
+            ) +
+            annotate(
+              "rect",
+              xmin = ifelse(zoom_pad() == 0, 0, zoom_pad()),
+              xmax = ifelse(
+                zoom_pad() == 0, seewave::duration(rec_template()),
+                seewave::duration(rec_template()) - zoom_pad()
+              ),
+              ymin = df_template()$template_min_freq,
+              ymax = df_template()$template_max_freq,
+              linetype = "dashed", alpha = 0,
+              color = box_color, fill = box_color
+            ) +
+            theme(legend.position = "none")
+        }
+      })
+
+      # render the template spectrogram in the interface
+      output$TemplateSpectrogram <- renderPlot({
+        req(df_template())
+        spectro_template()
+      })
+
+
       # Set of updates of spectrogram parameters that are obtained from
       # detection metadata
       observeEvent(input$get_templ_pars, {
@@ -1513,53 +1594,6 @@ launch_validation_app <- function(
         zoom_pad(input$time_pads)
       })
 
-      spectro_template <- reactive({
-        req(df_template())
-        if (is.null(rec_template())) {
-          ggplot() +
-            annotate("label", x = 1, y = 1, label = "Template not available") +
-            theme_void()
-        } else {
-          box_color <- ifelse(
-            input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
-          )
-          temp_rec <- rec_template()
-          fast_spectro(
-            rec = temp_rec, f = temp_rec@samp.rate, wl = input$wl,
-            ovlp = input$ovlp, flim = c(input$zoom_freq[1], input$zoom_freq[2]),
-            dyn_range = c(input$dyn_range_templ[1], input$dyn_range_templ[2]),
-            time_guide_interval = input$time_guide_interval,
-            freq_guide_interval = input$freq_guide_interval,
-            color_scale = input$color_scale, pitch_shift = input$pitch_shift
-          ) +
-            labs(title = "Template spectrogram") +
-            annotate(
-              "label",
-              label = paste0("Template: '", df_template()$template_name, "'"),
-              x = -Inf, y = Inf, hjust = 0, vjust = 1,
-              color = "white", fill = "black"
-            ) +
-            annotate(
-              "rect",
-              xmin = ifelse(zoom_pad() == 0, 0, zoom_pad()),
-              xmax = ifelse(
-                zoom_pad() == 0, seewave::duration(rec_template()),
-                seewave::duration(rec_template()) - zoom_pad()
-              ),
-              ymin = df_template()$template_min_freq,
-              ymax = df_template()$template_max_freq,
-              linetype = "dashed", alpha = 0,
-              color = box_color, fill = box_color
-            ) +
-            theme(legend.position = "none")
-        }
-      })
-
-      # render the template spectrogram in the interface
-      output$TemplateSpectrogram <- renderPlot({
-        req(df_template())
-        spectro_template()
-      })
 
       # Reactive object to store info about the detections in the active sounscape
       df_detections <- reactive({

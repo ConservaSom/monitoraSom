@@ -4,6 +4,20 @@ author: "GLMRosa"
 format: pdf
 ---
 
+- TODO - adicionar roi label ao nome de cortes obtidos no app de validação
+- TODO - Adicionar widget para controlar o tamanho da fonte dos plots nos apps
+- TODO - Adicionar controle para pasta de templates livres
+
+
+# increment version number to 0.2.0
+- Correção geral de bugs relacionados à construção do pacote e a forma como as dependências são carregadas. A quantidade de dependências foi reduzida.
+- NOVA FUNÇÃO: R/detections_to_rois.R
+  - Função dedicada à conversão de tabelas de detecções em tabelas de ROIs para que possam ser visualizadas no app de segmentação.
+  - A função usa um input, que pode ser um caminho para uma tabelas de detecções (já validadas ou não), e um caminho para um diretório de saída. Caso o caminho para o diretório de saída não exista, a função retornará somente um data frame para o ambiente do R. Caso o caminho para o diretório de saída exista, a função criará múltiplos arquivos CSV, cada um contendo uma tabela de ROIs, e salvará os arquivos no diretório de saída para simular a estrutura de arquivos gerados pelo app de segmentação. Durante o processo de conversão, variáveis relevantes da tabela de detecções são renomeadas para que sejam compatíveis com a estrutura de dados do app de segmentação e aquelas que não existem na tabela de detecções são concatenadas como comentários.
+  - Recomenda-se a filtragem e conversão somente de detecções que tenham sido validadas como true positives.
+- R/template_matching.R
+  - Atualização dos argumentos e estrutura interna para o funcionamento adequado desse wrapper.
+
 # increment version number to 0.1.1.9009
 - R/fast_spectro.R
   - BUG - Corrigido o bug que impedia que as linhas de guias de frequência fossem omitidas quando o intervalo entre elas era 0 e que impedia a exibição dos valores dos eixos quando as guidas de frequência e de tempo eram omitidas simultaneamente.
