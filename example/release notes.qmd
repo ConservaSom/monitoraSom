@@ -17,6 +17,9 @@ format: pdf
   - Recomenda-se a filtragem e conversão somente de detecções que tenham sido validadas como true positives.
 - R/template_matching.R
   - Atualização dos argumentos e estrutura interna para o funcionamento adequado desse wrapper.
+- R/launch_validation_app.R
+  - Adicionado um campo para a seleção de templates customizados.
+  - Quando o cadeado encontra-se fechado, o usuário irá visualizar obrigatoriamente o tenmplate definido para a detecção ativa da tabela que está sendo validada. Quando abeto, o app irá ofrecer uma lista de templates disponiveis no diretório definido na barra lateral. Para que estejam disponíveis nesse menu, os templates devem aderir às normas de nomenclatura do pacote, caso contrário não há como extrair todos os metadados necessários para a visualização. Atenção, o diretório de templates deve ter ao menos um template para que o app funcione.
 
 # increment version number to 0.1.1.9009
 - R/fast_spectro.R
