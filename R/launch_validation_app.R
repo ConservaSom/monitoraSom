@@ -2454,12 +2454,30 @@ launch_validation_app <- function(
       wav_default_filename <- reactive({
         req(det_i())
         res <- paste0(
-          stringr::str_remove(basename(det_i()$soundscape_file), ".WAV|.wav"), "_",
-          stringr::str_pad(round(det_i()$detection_start, 3), 7, "left", "0"), "-",
-          stringr::str_pad(round(det_i()$detection_end, 3), 7, "left", "0"), "s_",
-          stringr::str_pad(round(det_i()$template_min_freq, 3), 6, "left", "0"), "-",
-          stringr::str_pad(round(det_i()$template_max_freq, 3), 6, "left", "0"), "kHz.wav"
-          # todo add species name in the last field of this cut
+          stringr::str_replace(det_i()$soundscape_file, "\\.wav$|\\.WAV$", ""),
+          "_",
+          stringr::str_pad(
+            sprintf("%.3f", round(det_i()$detection_start, 3)), 7, pad = "0"
+          ),
+          "-",
+          stringr::str_pad(
+            sprintf("%.3f", round(det_i()$detection_end, 3)), 7, pad = "0"
+          ),
+          "s_",
+          stringr::str_pad(
+            sprintf("%.3f", round(det_i()$template_min_freq, 3)), 6, pad = "0"
+          ),
+          "-",
+          stringr::str_pad(
+            sprintf("%.3f", round(det_i()$template_max_freq, 3)), 6, pad = "0"
+          ),
+          "kHz_", input$wl, "wl_", input$ovlp, "ovlp_",
+          tail(
+            stringr::str_split(
+              gsub("\\.wav$", "", det_i()$template_name), "_"
+            )[[1]], 1
+          ),
+          ".wav"
         )
       })
       observe({
@@ -2500,12 +2518,30 @@ launch_validation_app <- function(
       spec_default_filename <- reactive({
         req(det_i())
         res <- paste0(
-          stringr::str_remove(basename(det_i()$soundscape_file), ".WAV|.wav"), "_",
-          stringr::str_pad(round(det_i()$detection_start, 3), 7, "left", "0"), "-",
-          stringr::str_pad(round(det_i()$detection_end, 3), 7, "left", "0"), "s_",
-          stringr::str_pad(round(det_i()$template_min_freq, 3), 6, "left", "0"), "-",
-          stringr::str_pad(round(det_i()$template_max_freq, 3), 6, "left", "0"), "kHz.jpeg"
-          # todo add species name in the last field of this cut
+          stringr::str_replace(det_i()$soundscape_file, "\\.wav$|\\.WAV$", ""),
+          "_",
+          stringr::str_pad(
+            sprintf("%.3f", round(det_i()$detection_start, 3)), 7, pad = "0"
+          ),
+          "-",
+          stringr::str_pad(
+            sprintf("%.3f", round(det_i()$detection_end, 3)), 7, pad = "0"
+          ),
+          "s_",
+          stringr::str_pad(
+            sprintf("%.3f", round(det_i()$template_min_freq, 3)), 6, pad = "0"
+          ),
+          "-",
+          stringr::str_pad(
+            sprintf("%.3f", round(det_i()$template_max_freq, 3)), 6, pad = "0"
+          ),
+          "kHz_", input$wl, "wl_", input$ovlp, "ovlp_",
+          tail(
+            stringr::str_split(
+              gsub("\\.wav$", "", det_i()$template_name), "_"
+            )[[1]], 1
+          ),
+          ".jpeg"
         )
       })
       observe({

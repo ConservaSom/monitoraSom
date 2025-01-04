@@ -47,7 +47,10 @@ export_roi_cuts_n <- function(rois_n, path, overwrite = FALSE) {
         stringr::str_pad(
           sprintf("%.3f", round(roi_max_freq, 3)), 6, pad = "0"
         ),
-        "kHz_", roi_wl, "wl_", roi_ovlp, "ovlp_", roi_label, ".wav",
+        "kHz_", roi_wl,
+        "wl_", roi_ovlp,
+        "ovlp_", roi_label,
+        ".wav",
         sep = ""
       ),
       filename = file.path(path, cut_name)

@@ -9,6 +9,10 @@ format: pdf
 - TODO - Adicionar controle para pasta de templates livres
 
 
+- R/launch_validation_app.R
+  - Correção dos nomes de cortes de arquivos de audio (standalone template standalone) e de sonogramas.
+
+
 # increment version number to 0.2.0
 - Correção geral de bugs relacionados à construção do pacote e a forma como as dependências são carregadas. A quantidade de dependências foi reduzida.
 - NOVA FUNÇÃO: R/detections_to_rois.R
