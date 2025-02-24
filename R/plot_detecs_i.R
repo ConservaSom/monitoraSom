@@ -55,7 +55,7 @@
 plot_detecs_i <- function(
     match_res_i,
     buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
-    flim = c(0, 10), ovlp = NULL, wl = NULL, dyn_range = c(-60, 0),
+    flim = NULL, tlim = NULL, ovlp = NULL, wl = NULL, dyn_range = c(-60, 0),
     color_scale = "inferno", n_colors = 124, interpolate = FALSE,
     score_lims = NULL, ...) {
 
@@ -75,6 +75,12 @@ plot_detecs_i <- function(
   )
 
   rec <- tuneR::readWave(filename = match_res_i$soundscape_path)
+  if (is.null(tlim)) {
+    tlim <- c(0, length(rec@left) / rec@samp.rate)
+  }
+  if (is.null(flim)) {
+    flim <- c(0, (rec@samp.rate / 2) / 1000)
+  }
 
   if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
     colormap <- viridis::viridis(n_colors, option = color_scale)
@@ -140,6 +146,7 @@ plot_detecs_i <- function(
       x = -Inf, y = Inf, hjust = 0, vjust = 1,
       color = "white", fill = "black", size = 3
     ) +
+    coord_cartesian(ylim = flim, xlim = tlim) +
     theme(
       axis.title.x = element_blank(),
       axis.text.x = element_blank(),
@@ -163,8 +170,6 @@ plot_detecs_i <- function(
       ymin = -Inf, ymax = Inf
     ) +
     geom_line() +
-    scale_x_continuous(expand = c(0, 0)) +
-    scale_y_continuous(limits = c(score_lims[1], score_lims[2] + 0.1)) +
     annotate(
       "label",
       label = paste0(
@@ -181,6 +186,10 @@ plot_detecs_i <- function(
     } +
     labs(
       x = "seconds", y = "matching score", caption = filter_caption
+    ) +
+    scale_x_continuous(expand = c(0, 0)) +
+    coord_cartesian(
+      xlim = tlim, ylim = c(score_lims[1], score_lims[2] + 0.1)
     ) +
     theme_bw()
 

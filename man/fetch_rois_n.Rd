@@ -2,12 +2,14 @@
 % Please edit documentation in R/fetch_rois_n.R
 \name{fetch_rois_n}
 \alias{fetch_rois_n}
-\title{ather ROI tables from a directory}
+\title{Gather ROI tables from a directory}
 \usage{
 fetch_rois_n(path, recursive = FALSE)
 }
 \arguments{
-\item{path}{Path to directory containing ROI tables}
+\item{path}{Path to directory containing ROI tables in CSV format. The
+expected variables must be consistent with those exported by the segmentation
+app.}
 
 \item{recursive}{Search recursively for roi tables, default is FALSE}
 }
@@ -15,5 +17,8 @@ fetch_rois_n(path, recursive = FALSE)
 A data frame with ROI tables
 }
 \description{
-ather ROI tables from a directory
+`r lifecycle::badge("experimental")`
+
+  This function gathers ROI tables from a directory and returns a data frame
+  with the ROI tables.
 }

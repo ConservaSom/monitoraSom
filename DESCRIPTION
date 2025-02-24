@@ -44,4 +44,4 @@ Imports:
 Suggests:
     dtw,
     dtwclust
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2

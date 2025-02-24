@@ -4,7 +4,7 @@
 # library(available)
 # library(roxygen2)
 
-# install.packages("devtools")
+install.packages("devtools", dependencies = TRUE)
 library(devtools)
 library(usethis)
 library(roxygen2)

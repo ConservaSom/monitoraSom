@@ -11,7 +11,8 @@ format: pdf
 
 - R/launch_validation_app.R
   - Correção dos nomes de cortes de arquivos de audio (standalone template standalone) e de sonogramas.
-
+- R/plot_detecs_i.R
+  - Correção de bugs que impediam o funcionamento correto dos argumentos para determinar os intervalos de tempo, frequência e score dos plots.
 
 # increment version number to 0.2.0
 - Correção geral de bugs relacionados à construção do pacote e a forma como as dependências são carregadas. A quantidade de dependências foi reduzida.

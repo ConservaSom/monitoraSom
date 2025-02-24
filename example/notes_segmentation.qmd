@@ -8,7 +8,7 @@ format: pdf
 
 ### To do now
 
-
+- tranformar fetch_match_grid em fetch_grid
 - Exibir score no sonograma da detecção
 - Atualizar os campos de score na UI
 - next no F e
@@ -59,13 +59,3 @@ format: pdf
 - Adicionar um sonograma de panorama para navegar no da soundscape
 - Usar o file input como alternativa quando o app é usado de forma local, carregando diretamente os múltiplos arquivos que serão segmentados. Talvez seja interessante ter modos remoto e local
 https://getbootstrap.com/docs/3.3/components/#glyphicons
-
-
-```{r}
-dput(sort(c(
-  "cicadas", "insect at mic", "insect swarm", "vegetation rumble",
-  "wind", "rain", "thunder", "water flow", "calibration tune",
-  "aircraft", "helicopter", "car/road", "voice notes", "conversation",
-  "human voice (other)"
-)))
-```
