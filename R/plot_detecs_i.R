@@ -66,8 +66,6 @@ plot_detecs_i <- function(
   requireNamespace("ggplot2")
   requireNamespace("dplyr")
 
-  # todo Adicionar informação de pitch_shift
-
   detecs <- fetch_score_peaks_i(
     match_res_i,
     buffer_size = buffer_size, min_score = min_score,
