@@ -6,20 +6,24 @@
 #'   for segemntation of WAV recorcings of soundscapes into tables containing
 #'   regions of interest (ROIs) and audio cuts of the ROIs.
 #'
-#' @param project_path Path to the project folder.
+#' @param project_path Path to the project folder. Defaults to ".".
 #' @param preset_path Path from which presets can be imported and to which new
 #'   presets can be exported.
 #' @param validation_user User name.
-#' @param templates_path Path to the template wave files.
-#' @param soundscapes_path Path to the soundscape wave files.
+#' @param templates_path Path to the template wave files. Defaults to
+#'   "roi_cuts/".
+#' @param soundscapes_path Path to the soundscape wave files. Defaults to
+#'   "soundscapes/".
 #' @param input_path Path to the input file containing detections.
-#' @param output_path Path to the output file.
-#' @param wav_cuts_path Path to the folder containing the cut wave files.
-#' @param spec_path Path to the folder containing the spectrogram images.
+#' @param output_path Path to the output file. Defaults to NULL.
+#' @param detec_cuts_path Path to the folder containing the cut wave files. Defaults
+#'   to "detection_cuts/".
+#' @param detec_spec_path Path to the folder containing the spectrogram images. Defaults
+#'   to "detection_spectrograms/".
 #' @param wav_player_path Path to the wav player executable (only for system
-#'   player).
+#'   player). Defaults to "play".
 #' @param wav_player_type The type of wav player. "R session" for R
-#'   session-based player, "system" for system player.
+#'   session-based player, "system" for system player. Defaults to "HTML player".
 #' @param val_subset Subset of detections to be validated.
 #' @param time_pads Time pads to be added to the start and end of the cut wave
 #'   files.
@@ -83,17 +87,22 @@
 #' )
 #' }
 launch_validation_app <- function(
-    project_path = NULL, preset_path = NULL,
-    validation_user, templates_path, soundscapes_path, input_path,
-    output_path = NULL, spec_path = NULL, wav_cuts_path = NULL,
+    project_path = ".", preset_path = NULL, validation_user,
+    templates_path = "roi_cuts/", soundscapes_path = "soundscapes/",
+    input_path = NULL, output_path = NULL,
+    detec_spec_path = "detection_spectrograms/",
+    detec_cuts_path = "detection_cuts/",
     wav_player_path = "play", wav_player_type = "HTML player",
     val_subset = c("NV", "TP", "FP", "UN"),
     time_pads = 1, ovlp = 0, wl = 2048, dyn_range_bar = c(-144, 0),
     dyn_range_templ = c(-84, 0), dyn_range_detec = c(-84, 0),
     color_scale = "inferno", zoom_freq = c(0, 23),
     time_guide_interval = 1, freq_guide_interval = 1,
-    nav_shuffle = FALSE, subset_seed = 123, auto_next = TRUE, nav_autosave = TRUE,
-    overwrite = FALSE, pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE) {
+    nav_shuffle = FALSE, subset_seed = 123, auto_next = TRUE,
+    nav_autosave = TRUE, overwrite = FALSE, pitch_shift = 1,
+    visible_bp = FALSE, play_norm = FALSE
+  ) {
+
   library(dplyr, warn.conflicts = FALSE)
   options(dplyr.summarise.inform = FALSE)
 
@@ -140,6 +149,7 @@ launch_validation_app <- function(
     )
   }
 
+  # TODO - remover preset path e deixar apenas o project path
   if (!is.null(preset_path)) {
     if (!dir.exists(preset_path)) {
       dir.create(preset_path)
@@ -388,11 +398,11 @@ launch_validation_app <- function(
       }
     }
   }
-  session_data$wav_cuts_path <- validate_and_set_path(
-    wav_cuts_path, "detection_cuts/", "wav_cuts_path"
+  session_data$detec_cuts_path <- validate_and_set_path(
+    detec_cuts_path, "detection_cuts/", "detec_cuts_path"
   )
-  session_data$spec_path <- validate_and_set_path(
-    spec_path, "detection_spectrograms/", "spec_path"
+  session_data$detec_spec_path <- validate_and_set_path(
+    detec_spec_path, "detection_spectrograms/", "detec_spec_path"
   )
 
   if (!is.numeric(pitch_shift) || !(pitch_shift %in% c(-8, -6, -4, -2, 1))) {
@@ -900,8 +910,8 @@ launch_validation_app <- function(
             column(
               width = 6,
               textInput(
-                "wav_cuts_path", "Wave cuts path",
-                value = session_data$wav_cuts_path, width = "100%",
+                "detec_cuts_path", "Wave cuts path",
+                value = session_data$detec_cuts_path, width = "100%",
                 placeholder = "Paste or load here the path to export the wav file"
               ),
               textInput(
@@ -922,8 +932,8 @@ launch_validation_app <- function(
             column(
               width = 6,
               textInput(
-                "spec_path", "Spectrogram cuts path",
-                value = session_data$spec_path, width = "100%",
+                "detec_spec_path", "Spectrogram cuts path",
+                value = session_data$detec_spec_path, width = "100%",
                 placeholder = "Paste or load here the path to export the spectrogram"
               ),
               textInput(
@@ -2496,20 +2506,20 @@ launch_validation_app <- function(
       })
       # Export the wav file by clicking the export button
       observeEvent(input$confirm_wav_export, {
-        req(input$wav_cuts_path, wav_filename(), rec_detection())
+        req(input$detec_cuts_path, wav_filename(), rec_detection())
         # todo - validate the path and return a message if it's not valid
         tuneR::writeWave(
           object = rec_detection(),
-          filename = file.path(input$wav_cuts_path, wav_filename())
+          filename = file.path(input$detec_cuts_path, wav_filename())
         )
         showNotification("Detection wave file successfully exported")
       })
       # Export the wav file by using the hotkey
       observeEvent(input$hotkeys, {
-        req(input$hotkeys == "r", input$wav_cuts_path, wav_filename(), rec_detection())
+        req(input$hotkeys == "r", input$detec_cuts_path, wav_filename(), rec_detection())
         tuneR::writeWave(
           object = rec_detection(),
-          filename = file.path(input$wav_cuts_path, wav_filename())
+          filename = file.path(input$detec_cuts_path, wav_filename())
         )
         showNotification("Detection wave file successfully exported")
       })
@@ -2560,21 +2570,21 @@ launch_validation_app <- function(
       })
       # Export the wav file by clicking the export button
       observeEvent(input$confirm_spec_export, {
-        req(input$spec_path, spec_filename(), rec_detection())
+        req(input$detec_spec_path, spec_filename(), rec_detection())
         # todo - validate the path and return a message if it's not valid
         res <- cowplot::plot_grid(spectro_template(), spectro_detection())
         ggplot2::ggsave(
-          filename = file.path(input$spec_path, spec_filename()),
+          filename = file.path(input$detec_spec_path, spec_filename()),
           plot = res, width = 12, height = 6, units = "in", dpi = 72
         )
         showNotification("Detection spectrogram successfully exported")
       })
       # Export the wav file by using the hotkey
       observeEvent(input$hotkeys, {
-        req(input$hotkeys == "t", input$spec_path, spec_filename(), rec_detection())
+        req(input$hotkeys == "t", input$detec_spec_path, spec_filename(), rec_detection())
         res <- cowplot::plot_grid(spectro_template(), spectro_detection())
         ggplot2::ggsave(
-          filename = file.path(input$spec_path, spec_filename()),
+          filename = file.path(input$detec_spec_path, spec_filename()),
           plot = res, width = 12, height = 6, units = "in", dpi = 72
         )
         showNotification("Detection spectrogram successfully exported")
@@ -2725,7 +2735,7 @@ launch_validation_app <- function(
         # Export Section
         export = list(
           list(
-            id = "wav_cuts_path", title = "Path for exporting an audio sample of the detection", placement = "bottom"
+            id = "detec_cuts_path", title = "Path for exporting an audio sample of the detection", placement = "bottom"
           ),
           list(
             id = "wav_cut_name", title = "Name of the file with the audio sample ('.wav')", placement = "bottom"
@@ -2737,7 +2747,7 @@ launch_validation_app <- function(
             id = "confirm_wav_export", title = "Hotkey: R", placement = "bottom"
           ),
           list(
-            id = "spec_path", title = "Path for exporting the spectrogram image", placement = "bottom"
+            id = "detec_spec_path", title = "Path for exporting the spectrogram image", placement = "bottom"
           ),
           list(
             id = "spec_name", title = "Name of the spectrogram image file ('.jpeg')", placement = "bottom"

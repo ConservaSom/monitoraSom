@@ -11,7 +11,7 @@
 #' selected, the user must provide the cutpoint to be used in the diagnostic
 #' validations.
 #'
-#' @param val_n A tibble containing the validation results of the detections
+#' @param df_validated A tibble containing the validation results of the detections
 #'   `validate_by_overlap()` function or within the validation app.
 #' @param diag_method A character string indicating the method to use for
 #'   diagnostic validations. The two methods available are: "Auto" (default) or
@@ -25,9 +25,10 @@
 #'
 #' @import dplyr
 diagnostic_validations_n <- function(
-    val_n, diag_method = "Auto", pos_prob = 0.95) {
+    df_validated, diag_method = "Auto", pos_prob = 0.95
+    ) {
 
-  split_validations <- val_n %>%
+  split_validations <- df_validated %>%
     group_by(template_name) %>%
     group_split()
 

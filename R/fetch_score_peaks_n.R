@@ -45,7 +45,7 @@
 #' @export
 fetch_score_peaks_n <- function(
     tib_match, recursive = FALSE, buffer_size = "template", min_score = NULL,
-    min_quant = NULL, top_n = NULL, save_res = NULL, ncores = 1) {
+    min_quant = NULL, top_n = NULL, output_file = NULL, ncores = 1) {
 
 
   # Check if input is a character path or a tibble
@@ -86,20 +86,16 @@ fetch_score_peaks_n <- function(
     cl = ncores
   )
   tib_detecs <- do.call(rbind, result_list)
+  message("Detections extracted from scores")
 
   # Save results if specified
-  if (!is.null(save_res)) {
-    file_ext <- file_ext(save_res)
-    if (file_ext == "rds") {
-      saveRDS(tib_detecs, save_res)
-    } else if (file_ext == "csv") {
-      write.csv(tib_detecs, save_res, row.names = FALSE)
-    } else {
-      stop("The file extension is not supported")
+  if (!is.null(output_file) || grepl("\\.csv$", output_file)) {
+    if (!dir.exists(dirname(output_file))) {
+      stop("The path provided to save the detections does not exist")
     }
+    write.csv(tib_detecs, output_file, row.names = FALSE)
+    message("Detections have been saved to ", output_file)
   }
-
-  message("Detections extracted from scores")
 
   return(tib_detecs)
 }

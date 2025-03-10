@@ -1,11 +1,12 @@
-#' plot_detecs_i - Plots the results of the match_i function
+#' Plot scores and detections of one template match run
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
 #'   This function plots a spectrogram of the soundscape and the results of the
 #'   match_i() and fetch_score_peaks_i() functions.
 #'
-#' @param match_res_i The output of the function tpmatch::match_i
+#' @param match_res_i One row of the output of `match_n` containing the raw
+#'   scores of a template match run.
 #' @param buffer_size A numeric value specifying the number of frames of the
 #'   buffer within which overlap between detections is avoided. Defaults to
 #'   "template", which means that the buffer size equals the number of frames
@@ -40,10 +41,11 @@
 #'   but will also result in faster rendering times.
 #' @param interpolate A logical value indicating whether the raster should be
 #'   interpolated or not.
-#' @param score_lims A numeric vector of length 2 specifying the score range to
+#' @param zoom_score A numeric vector of length 2 specifying the score range to
 #'   be displayed.
+#' @param zoom_freq Set frequency limits for the spectrogram panel
+#' @param zoom_time Set time limits for the spectrogram panel.
 #' @param ... Other arguments passed to the seewave::spectro() function
-#' @param flim Set frequency limits for the spectrogram panel
 #'
 #' @return Todo
 #'
@@ -52,12 +54,13 @@
 #' @importFrom tuneR readWave
 #' @importFrom seewave spectro reverse.gray.colors.1 reverse.gray.colors.2
 #' @importFrom viridis viridis
-plot_detecs_i <- function(
-    match_res_i,
-    buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
-    flim = NULL, tlim = NULL, ovlp = NULL, wl = NULL, dyn_range = c(-60, 0),
-    color_scale = "inferno", n_colors = 124, interpolate = FALSE,
-    score_lims = NULL, ...) {
+plot_scores_i <- function(
+    match_res_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
+    top_n = NULL, zoom_freq = NULL, zoom_time = NULL, zoom_score = NULL,
+    ovlp = NULL, wl = NULL, dyn_range = NULL, color_scale = "inferno",
+    n_colors = 124, interpolate = FALSE, ...) {
+  match_res_i <- teste[1, ]
+
 
   requireNamespace("patchwork")
   requireNamespace("viridis")
@@ -73,11 +76,11 @@ plot_detecs_i <- function(
   )
 
   rec <- tuneR::readWave(filename = match_res_i$soundscape_path)
-  if (is.null(tlim)) {
-    tlim <- c(0, length(rec@left) / rec@samp.rate)
+  if (is.null(zoom_time)) {
+    zoom_time <- c(0, length(rec@left) / rec@samp.rate)
   }
-  if (is.null(flim)) {
-    flim <- c(0, (rec@samp.rate / 2) / 1000)
+  if (is.null(zoom_freq)) {
+    zoom_freq <- c(0, (rec@samp.rate / 2) / 1000)
   }
 
   if (color_scale %in% c("viridis", "magma", "inferno", "cividis")) {
@@ -98,14 +101,11 @@ plot_detecs_i <- function(
   if (is.null(wl)) {
     wl <- match_res_i$template_wl
   }
-  if (is.null(flim)) {
-    flim <- c(0, 10)
-  }
   if (is.null(dyn_range)) {
     dyn_range <- c(-60, 0)
   }
-  if (is.null(score_lims)) {
-    score_lims <- range(match_res_i$score_vec[[1]]$score_vec)
+  if (is.null(zoom_score)) {
+    zoom_score <- range(match_res_i$score_vec[[1]]$score_vec)
   }
   if (buffer_size == "template") {
     buffer_size <- match_res_i$score_sliding_window
@@ -122,9 +122,9 @@ plot_detecs_i <- function(
 
   soundscape_spectro <- fast_spectro(
     rec,
-    f = rec@samp.rate, flim = flim, ovlp = ovlp, wl = wl,
+    f = rec@samp.rate, ovlp = ovlp, wl = wl,
     dyn_range = dyn_range, color_scale = color_scale, n_colors = 124,
-    interpolate = interpolate, ...
+    interpolate = interpolate, # ...
   ) +
     annotate(
       "rect",
@@ -144,7 +144,7 @@ plot_detecs_i <- function(
       x = -Inf, y = Inf, hjust = 0, vjust = 1,
       color = "white", fill = "black", size = 3
     ) +
-    coord_cartesian(ylim = flim, xlim = tlim) +
+    coord_cartesian(ylim = zoom_freq, xlim = zoom_time) +
     theme(
       axis.title.x = element_blank(),
       axis.text.x = element_blank(),
@@ -187,7 +187,7 @@ plot_detecs_i <- function(
     ) +
     scale_x_continuous(expand = c(0, 0)) +
     coord_cartesian(
-      xlim = tlim, ylim = c(score_lims[1], score_lims[2] + 0.1)
+      xlim = zoom_time, ylim = c(zoom_score[1], zoom_score[2] + 0.1)
     ) +
     theme_bw()
 

@@ -4,14 +4,16 @@
 \alias{fetch_rois_n}
 \title{Gather ROI tables from a directory}
 \usage{
-fetch_rois_n(path, recursive = FALSE)
+fetch_rois_n(rois_path = NULL, recursive = FALSE)
 }
 \arguments{
-\item{path}{Path to directory containing ROI tables in CSV format. The
-expected variables must be consistent with those exported by the segmentation
-app.}
+\item{rois_path}{Path to directory containing ROI tables in CSV format. The
+expected variables must be consistent with those exported by the
+segmentation app. If no path is provided, the function will look for the
+roi tables in the "roi_tables/" directory. If the directory does not exist,
+it will be created automatically.}
 
-\item{recursive}{Search recursively for roi tables, default is FALSE}
+\item{recursive}{Search recursively for roi tables. Defaults to FALSE.}
 }
 \value{
 A data frame with ROI tables

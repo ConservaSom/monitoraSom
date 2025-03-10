@@ -6,41 +6,50 @@
 #'   set of templates, and returns a dataframe with the detected events.
 #'
 #' @param path_soundscapes Path to a directory containing the soundscapes to be
-#'   analyzed.
+#'   analyzed. It defaults to "soundscapes/".
 #' @param path_templates Path to a directory containing the templates to be used
-#'   for matching.
+#'   for matching. It defaults to "roi_cuts/".
 #' @param score_method The method used for template matching, either "cor" or
-#'   "dtw".
+#'   "dtw". It defaults to "cor".
 #' @param buffer_size The size of the buffer used to calculate the scores for
-#'   the template matches, either "template" or "event".
+#'   the template matches, either "template" or "event". It defaults to "template".
 #' @param min_score A numeric value between 0 and 0.99 indicating the minimum
-#'   score of the detections that will be kept. Defaults to NULL, which returns
+#'   score of the detections that will be kept. It defaults to NULL, which returns
 #'   all available detections.
 #' @param min_quant A numeric value between 0 and 1 indicating the minimum score
-#'   quantile of the kept detections. Defaults to NULL, which returns all
+#'   quantile of the kept detections. It defaults to NULL, which returns all
 #'   available detections.
 #' @param top_n An integer indicating the maximum number of peaks to be
-#'   returned, selected according to the highest scores available. Defaults to
+#'   returned, selected according to the highest scores available. It defaults to
 #'   NULL, which return all available detections. It should be noted that
 #'   because the peak quantiles are callculated within each score vector, the
 #'   top_n parameter is applied to each score vector separately, and not to the
 #'   whole matching grid.
 #' @param ncores An integer indicating the number of cores to be used for
-#'   parallelization. Default is 1.
-#' @param recursive_soundscapes Todo
-#' @param recursive_templates Todo
-#' @param output_file Path to the file where the results will be saved.
-#' @param autosave_action Action to be taken when the user navigates to another
-#'   file. Possible values are "append" (default) and "overwrite".
+#'   parallelization. It defaults to 1.
+#' @param recursive_soundscapes A logical value indicating whether to search
+#'   soundscapes recursively. It defaults to FALSE.
+#' @param recursive_templates A logical value indicating whether to search
+#'   templates recursively. It defaults to FALSE.
+#' @param output_file Path to the file where the results will be saved. It
+#'   defaults to NULL. We recommend to export detection or raw score files to the
+#'   "detections/" subdirectory.
+#' @param autosave_action A character string indicating the action to be taken
+#'   if the output file already exists. Possible values are "append" and
+#'   "overwrite". To avoid overwriting existing files, set to "append", but be
+#'   aware that it can result in duplicated entries in the output file if the
+#'   function is run again. It defaults to "append".
 #'
 #' @return A dataframe with the detected events.
 #'
 #' @export
 template_matching <- function(
-    path_soundscapes, recursive_soundscapes = TRUE,
-    path_templates, recursive_templates = TRUE, score_method = "cor",
-    output_file = NULL, autosave_action = "append", buffer_size = "template",
-    min_score = NULL, min_quant = NULL, top_n = NULL, ncores = 1) {
+    path_soundscapes = "soundscapes/", recursive_soundscapes = FALSE,
+    path_templates = "roi_cuts/", recursive_templates = FALSE,
+    score_method = "cor", output_file = NULL, autosave_action = "append",
+    buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
+    ncores = 1
+    ) {
 
   df_templates <- fetch_template_metadata(
     path = path_templates, recursive = recursive_templates

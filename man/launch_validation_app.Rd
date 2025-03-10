@@ -5,15 +5,15 @@
 \title{Launch validation app}
 \usage{
 launch_validation_app(
-  project_path = NULL,
+  project_path = ".",
   preset_path = NULL,
   validation_user,
-  templates_path,
-  soundscapes_path,
-  input_path,
+  templates_path = "roi_cuts/",
+  soundscapes_path = "soundscapes/",
+  input_path = NULL,
   output_path = NULL,
-  spec_path = NULL,
-  wav_cuts_path = NULL,
+  detec_spec_path = "detection_spectrograms/",
+  detec_cuts_path = "detection_cuts/",
   wav_player_path = "play",
   wav_player_type = "HTML player",
   val_subset = c("NV", "TP", "FP", "UN"),
@@ -38,30 +38,34 @@ launch_validation_app(
 )
 }
 \arguments{
-\item{project_path}{Path to the project folder.}
+\item{project_path}{Path to the project folder. Defaults to ".".}
 
 \item{preset_path}{Path from which presets can be imported and to which new
 presets can be exported.}
 
 \item{validation_user}{User name.}
 
-\item{templates_path}{Path to the template wave files.}
+\item{templates_path}{Path to the template wave files. Defaults to
+"roi_cuts/".}
 
-\item{soundscapes_path}{Path to the soundscape wave files.}
+\item{soundscapes_path}{Path to the soundscape wave files. Defaults to
+"soundscapes/".}
 
 \item{input_path}{Path to the input file containing detections.}
 
-\item{output_path}{Path to the output file.}
+\item{output_path}{Path to the output file. Defaults to NULL.}
 
-\item{spec_path}{Path to the folder containing the spectrogram images.}
+\item{detec_spec_path}{Path to the folder containing the spectrogram images. Defaults
+to "detection_spectrograms/".}
 
-\item{wav_cuts_path}{Path to the folder containing the cut wave files.}
+\item{detec_cuts_path}{Path to the folder containing the cut wave files. Defaults
+to "detection_cuts/".}
 
 \item{wav_player_path}{Path to the wav player executable (only for system
-player).}
+player). Defaults to "play".}
 
 \item{wav_player_type}{The type of wav player. "R session" for R
-session-based player, "system" for system player.}
+session-based player, "system" for system player. Defaults to "HTML player".}
 
 \item{val_subset}{Subset of detections to be validated.}
 

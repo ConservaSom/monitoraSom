@@ -4,10 +4,10 @@
 \alias{diagnostic_validations_n}
 \title{Compute detection diagnostics of validated detections from multiple templates}
 \usage{
-diagnostic_validations_n(val_n, diag_method = "Auto", pos_prob = 0.95)
+diagnostic_validations_n(df_validated, diag_method = "Auto", pos_prob = 0.95)
 }
 \arguments{
-\item{val_n}{A tibble containing the validation results of the detections
+\item{df_validated}{A tibble containing the validation results of the detections
 `validate_by_overlap()` function or within the validation app.}
 
 \item{diag_method}{A character string indicating the method to use for

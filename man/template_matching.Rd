@@ -5,10 +5,10 @@
 \title{Perform template matching on a set of soundscapes using a set of templates}
 \usage{
 template_matching(
-  path_soundscapes,
-  recursive_soundscapes = TRUE,
-  path_templates,
-  recursive_templates = TRUE,
+  path_soundscapes = "soundscapes/",
+  recursive_soundscapes = FALSE,
+  path_templates = "roi_cuts/",
+  recursive_templates = FALSE,
   score_method = "cor",
   output_file = NULL,
   autosave_action = "append",
@@ -21,43 +21,50 @@ template_matching(
 }
 \arguments{
 \item{path_soundscapes}{Path to a directory containing the soundscapes to be
-analyzed.}
+analyzed. It defaults to "soundscapes/".}
 
-\item{recursive_soundscapes}{Todo}
+\item{recursive_soundscapes}{A logical value indicating whether to search
+soundscapes recursively. It defaults to FALSE.}
 
 \item{path_templates}{Path to a directory containing the templates to be used
-for matching.}
+for matching. It defaults to "roi_cuts/".}
 
-\item{recursive_templates}{Todo}
+\item{recursive_templates}{A logical value indicating whether to search
+templates recursively. It defaults to FALSE.}
 
 \item{score_method}{The method used for template matching, either "cor" or
-"dtw".}
+"dtw". It defaults to "cor".}
 
-\item{output_file}{Path to the file where the results will be saved.}
+\item{output_file}{Path to the file where the results will be saved. It
+defaults to NULL. We recommend to export detection or raw score files to the
+"detections/" subdirectory.}
 
-\item{autosave_action}{Action to be taken when the user navigates to another
-file. Possible values are "append" (default) and "overwrite".}
+\item{autosave_action}{A character string indicating the action to be taken
+if the output file already exists. Possible values are "append" and
+"overwrite". To avoid overwriting existing files, set to "append", but be
+aware that it can result in duplicated entries in the output file if the
+function is run again. It defaults to "append".}
 
 \item{buffer_size}{The size of the buffer used to calculate the scores for
-the template matches, either "template" or "event".}
+the template matches, either "template" or "event". It defaults to "template".}
 
 \item{min_score}{A numeric value between 0 and 0.99 indicating the minimum
-score of the detections that will be kept. Defaults to NULL, which returns
+score of the detections that will be kept. It defaults to NULL, which returns
 all available detections.}
 
 \item{min_quant}{A numeric value between 0 and 1 indicating the minimum score
-quantile of the kept detections. Defaults to NULL, which returns all
+quantile of the kept detections. It defaults to NULL, which returns all
 available detections.}
 
 \item{top_n}{An integer indicating the maximum number of peaks to be
-returned, selected according to the highest scores available. Defaults to
+returned, selected according to the highest scores available. It defaults to
 NULL, which return all available detections. It should be noted that
 because the peak quantiles are callculated within each score vector, the
 top_n parameter is applied to each score vector separately, and not to the
 whole matching grid.}
 
 \item{ncores}{An integer indicating the number of cores to be used for
-parallelization. Default is 1.}
+parallelization. It defaults to 1.}
 }
 \value{
 A dataframe with the detected events.

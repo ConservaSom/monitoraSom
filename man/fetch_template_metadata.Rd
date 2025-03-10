@@ -4,14 +4,15 @@
 \alias{fetch_template_metadata}
 \title{Extract template metadata}
 \usage{
-fetch_template_metadata(path, recursive = TRUE)
+fetch_template_metadata(templates_path = NULL, recursive = FALSE)
 }
 \arguments{
-\item{path}{The directory path containing the template wave files (for method
-= "standalone").}
+\item{templates_path}{The directory path containing the template wave files.
+If no path is provided, the function will look for the templates in the
+"roi_cuts/" directory.}
 
 \item{recursive}{A logical value indicating whether the search for template
-files should be recursive or not. Default is TRUE.}
+files should be recursive or not. Defaults to FALSE.}
 }
 \value{
 A tibble containing the following metadata for each template file:

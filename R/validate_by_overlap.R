@@ -8,19 +8,60 @@
 #'   with the validated detections.
 #'
 #' @param df_rois A data frame containing Regions of Interest (ROIs) as in the
-#'   output of `fetch_rois_n()`.
+#'   output of `fetch_rois_n()`. Alternatively, a path to a directory containing
+#'   the ROI tables as CSV files can be provided.
 #' @param df_detecs A data frame containing detections as in the output of
-#'   `fetch_score_peaks_n()`.
+#'   `fetch_score_peaks_n()`. Alternatively, a path to a CSV file
+#'   containing the detections (it accepts only one CSV file at a time).
 #' @param validation_user A character string specifying the user name.
+#' @param recursive A logical value indicating whether to search for ROIs
+#'   recursively when a path is provided instead of a data frame. Defaults to
+#'   FALSE.
+#' @param output_path A character string specifying the path to the output file.
+#'   Defaults to NULL. it is recommended to export it as a CSV file to the
+#'   "validation_output/" directory to avoid replacement of existing detection
+#'   files.
 #'
 #' @return A data frame with the validated detections.
 #' @import dplyr tidyr
 #' @importFrom purrr map_chr map2
+#'
 #' @export
-validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
+validate_by_overlap <- function(
+  df_detecs, df_rois, validation_user = NULL, recursive = FALSE,
+  output_path = NULL
+  ) {
 
   requireNamespace("dplyr")
   requireNamespace("purrr")
+
+  if (is.character(df_rois)) {
+    if (file.exists(df_rois)) {
+      df_rois <- fetch_rois_n(df_rois, recursive = recursive)
+    } else {
+      stop("There is no file at the provided path to df_rois")
+    }
+  } else if (!is.data.frame(df_rois)) {
+    stop(
+      "The input of the df_rois argument must be a data frame or a path to a CSV file"
+    )
+  }
+
+  if (is.character(df_detecs)) {
+    if (file.exists(df_detecs)) {
+      df_detecs <- read.csv(df_detecs)
+    } else {
+      stop("There is no file at the provided path to df_detecs")
+    }
+  } else if (!is.data.frame(df_detecs)) {
+    stop(
+      "The input of the df_detecs argument must be a data frame or a path to a CSV file"
+    )
+  }
+
+  if (is.null(validation_user)) {
+    stop("Please, identify yourself by setting the validation_user argument")
+  }
 
   validation_time <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
 
@@ -176,5 +217,12 @@ validate_by_overlap_n <- function(df_rois, df_detecs, validation_user) {
     }
   )
   res <- dplyr::bind_rows(val_res_raw)
+
+  if (!is.null(output_path)) {
+    write.csv(res, output_path, row.names = FALSE)
+    message("Validation results have been saved to ", output_path)
+  } else {
+    message("Validation results have been returned to the R session")
+  }
   return(res)
 }

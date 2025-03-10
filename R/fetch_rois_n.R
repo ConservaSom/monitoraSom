@@ -5,19 +5,26 @@
 #'   This function gathers ROI tables from a directory and returns a data frame
 #'   with the ROI tables.
 #'
-#' @param path Path to directory containing ROI tables in CSV format. The
-#'    expected variables must be consistent with those exported by the segmentation
-#'    app.
-#' @param recursive Search recursively for roi tables, default is FALSE
+#' @param rois_path Path to directory containing ROI tables in CSV format. The
+#'    expected variables must be consistent with those exported by the
+#'    segmentation app. If no path is provided, the function will look for the
+#'    roi tables in the "roi_tables/" directory. If the directory does not exist,
+#'    it will be created automatically.
+#' @param recursive Search recursively for roi tables. Defaults to FALSE.
 #'
 #' @return A data frame with ROI tables
 #'
 #' @importFrom pbapply pblapply
 #' @importFrom dplyr mutate
 #' @export
-fetch_rois_n <- function(path, recursive = FALSE) {
-  if (!dir.exists(path)) {
-    stop("Path does not exist: ", path)
+fetch_rois_n <- function(rois_path = NULL, recursive = FALSE) {
+
+  rois_path <- if (is.null(rois_path)) {
+    "roi_tables/"
+  } else if (!dir.exists(rois_path)) {
+    stop("The provided path to the roi tables does not exist")
+  } else {
+    rois_path
   }
 
   expected_cols <- list(
@@ -44,7 +51,7 @@ fetch_rois_n <- function(path, recursive = FALSE) {
 
   ls_roi_tables <- normalizePath(
     list.files(
-      path,
+      rois_path,
       pattern = "_roi_.*\\.csv$",
       recursive = recursive,
       full.names = TRUE
@@ -53,7 +60,7 @@ fetch_rois_n <- function(path, recursive = FALSE) {
   )
 
   if (length(ls_roi_tables) == 0) {
-    stop("No ROI tables found in path: ", path)
+    stop("No ROI tables found in path: ", rois_path)
   }
 
   read_roi_fun <- function(x) {
@@ -90,8 +97,7 @@ fetch_rois_n <- function(path, recursive = FALSE) {
   }
 
   df_rois <- do.call(
-    rbind,
-    pblapply(ls_roi_tables, read_roi_fun)
+    rbind, pblapply(ls_roi_tables, read_roi_fun)
   )
 
   valid_entries <- !vapply(df_rois, is.null, logical(1))

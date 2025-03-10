@@ -12,43 +12,41 @@
 #' @param df_grid The output of the function 'fetch_match_grid()
 #' @param score_method A character string indicating the method to use for
 #'   matching. The two methods available are: "cor" (Pearson correlation
-#'   coefficient) or "dtw" (dynamic time warping). Defaults to "cor".
+#'   coefficient) or "dtw" (dynamic time warping). It defaults to "cor".
 #' @param ncores An integer indicating the number of cores to be used for
-#'   parallelization. Default is 1.
+#'   parallelization. It defaults to 1.
 #' @param output A character string indicating the output of the function. The
-#'   two options are: "detections" (default) or "scores". If "detections" is
+#'   two options are: "detections" or "scores". If "detections" is
 #'   selected, the function will return the output of the function
 #'   'fetch_score_peaks_i()'. If "scores" is selected, the function will return
-#'   the raw output of the matching algorithm.
+#'   the raw output of the matching algorithm. It defaults to "detections".
 #' @param output_file A character string indicating the path to save the results
-#'   in the format of a CSV file. Default is NULL.
+#'   in the format of a CSV file for detections or RDS file for scores. Default
+#'   is NULL. We recommend to export detection or raw score files to the
+#'   "detections/" subdirectory.
 #' @param autosave_action A character string indicating the action to be taken
-#'   if the output file already exists. The available options are: "append"
-#'   (default) and "replace".
+#'   if the output file already exists. Possible values are "append" and
+#'   "overwrite". To avoid overwriting existing files, set to "append", but be
+#'   aware that it can result in duplicated entries in the output file if the
+#'   function is run again. It defaults to "append".
 #' @param buffer_size A character string indicating the size of the buffer to be
 #'   used in the function 'fetch_score_peaks_i()'. The two options are:
-#'   "template" (default) or the number of frames of the template spectrogram to
-#'   be used as buffer.
+#'   "template" or the number of frames of the template spectrogram to
+#'   be used as buffer. It defaults to "template".
 #' @param min_score A numeric value indicating the minimum score to be used in
-#'   the function 'fetch_score_peaks_i()'.
+#'   the function 'fetch_score_peaks_i()'. It defaults to NULL.
 #' @param min_quant A numeric value indicating the minimum quantile to be used
-#'   in the function 'fetch_score_peaks_i()'.
+#'   in the function 'fetch_score_peaks_i()'. It defaults to NULL.
 #' @param top_n A numeric value indicating the number of top detections to be
-#'   used in the function 'fetch_score_peaks_i()'.
+#'   used in the function 'fetch_score_peaks_i()'. It defaults to NULL.
 #'
-#' @return A tibble containing input data frame with an additional column
-#'   "score_vec", which is a list of dataframes with the columns "time_vec" (the
-#'   time value of each spectrogram frame) and "score_vec" (the matching score
-#'   obtained when the template and the soundscape spectrogram of samew
-#'   dimensions are alligned at that frame) for each match. The length of the
-#'   "score_vec" is equal to the number of frames of the soundscape spectrogram
-#'   minus the number of frames of the template spectrogram (i.e. the number of
-#'   possible allignments between the two spectrograms. The score is not
-#'   available for the first and last frames of the soundscape spectrogram
-#'   because score cannot be calculated between spectrograms of different
-#'   dimensions. To produce a score vector with the same number of frames of the
-#'   soundscape spectrogram, pads with length quals half the number of frames
-#'   from the template are added to the beginning and end of the
+#' @return If the format is set to scores, a tibble containing the input data
+#'   frame with an additional column "score_vec". This column contains dataframes
+#'   with "time_vec" (time of each frame) and "score_vec" (matching score at
+#'   that frame) columns. The scores are padded at the start and end to match the
+#'   soundscape spectrogram length. If the format is set to detections, the
+#'   function returns a data frame with the detections. If no paths are provided,
+#'   the output are returned to the R session.
 #'
 #' @import dplyr future
 #' @importFrom purrr list_rbind
@@ -69,7 +67,10 @@ match_n <- function(
       ncores <- parallel::makePSOCKcluster(getOption("cl.cores", ncores))
     } else {
       stop(
-        "The number of cores requested cannot be higher than the number of available cores"
+        paste(
+          "The number of cores requested cannot be higher than the number of ",
+          "available cores"
+        )
       )
     }
   } else {
@@ -91,7 +92,10 @@ match_n <- function(
         cl = ncores
       ) %>% list_rbind()
       message(
-        "Template matching finished. Detections have been returned to the R session"
+        paste(
+          "Template matching finished. Detections have been returned to the",
+          "R session"
+        )
       )
       return(res)
     } else {
@@ -141,7 +145,10 @@ match_n <- function(
           df_grid <- df_grid[idx, ]
           if (nrow(df_grid) == 0) {
             message(
-              "All matches have already been processed. No new detections were computed."
+              paste(
+                "All matches have already been processed. No new detections",
+                "were computed."
+              )
             )
             return(NULL)
           }
@@ -191,7 +198,10 @@ match_n <- function(
       )
     } else {
       message(
-        "Template matching finished. Raw scores have been returned to the R session"
+        paste(
+          "Template matching finished. Raw scores have been returned to the",
+          "R session"
+        )
       )
       return(res)
     }
