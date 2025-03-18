@@ -11,19 +11,22 @@
 #'   presets can be exported.
 #' @param validation_user User name.
 #' @param templates_path Path to the template wave files. Defaults to
-#'   "roi_cuts/".
+#'   "roi_cuts/". This directory must contain at least one `.wav` file for the
+#'   app to work.
 #' @param soundscapes_path Path to the soundscape wave files. Defaults to
-#'   "soundscapes/".
+#'   "soundscapes/". This directory must contain at least one `.wav` file for
+#'   the app to work.
 #' @param input_path Path to the input file containing detections.
 #' @param output_path Path to the output file. Defaults to NULL.
-#' @param detec_cuts_path Path to the folder containing the cut wave files. Defaults
-#'   to "detection_cuts/".
-#' @param detec_spec_path Path to the folder containing the spectrogram images. Defaults
-#'   to "detection_spectrograms/".
+#' @param detec_cuts_path Path to the folder containing the cut wave files.
+#'   Defaults to "detection_cuts/".
+#' @param detec_spec_path Path to the folder containing the spectrogram images.
+#'   Defaults to "detection_spectrograms/".
 #' @param wav_player_path Path to the wav player executable (only for system
 #'   player). Defaults to "play".
 #' @param wav_player_type The type of wav player. "R session" for R
-#'   session-based player, "system" for system player. Defaults to "HTML player".
+#'   session-based player, "system" for system player. Defaults to "HTML
+#'   player".
 #' @param val_subset Subset of detections to be validated.
 #' @param time_pads Time pads to be added to the start and end of the cut wave
 #'   files.
@@ -54,7 +57,7 @@
 #'
 #' @export
 #' @import shiny dplyr tidyr ggplot2 stringr DT shinyWidgets shinydashboard keys
-#'    shinyjs shinyBS cutpointr
+#'   shinyjs shinyBS cutpointr
 #' @importFrom caret downSample upSample
 #' @importFrom ROSE ROSE
 #' @importFrom data.table fread fwrite
@@ -88,19 +91,15 @@
 #' }
 launch_validation_app <- function(
     project_path = ".", preset_path = NULL, validation_user,
-    templates_path = "roi_cuts/", soundscapes_path = "soundscapes/",
-    input_path = NULL, output_path = NULL,
-    detec_spec_path = "detection_spectrograms/",
-    detec_cuts_path = "detection_cuts/",
+    templates_path = NULL, soundscapes_path = NULL, input_path = NULL,
+    output_path = NULL, detec_spec_path = NULL, detec_cuts_path = NULL,
     wav_player_path = "play", wav_player_type = "HTML player",
-    val_subset = c("NV", "TP", "FP", "UN"),
-    time_pads = 1, ovlp = 0, wl = 2048, dyn_range_bar = c(-144, 0),
-    dyn_range_templ = c(-84, 0), dyn_range_detec = c(-84, 0),
-    color_scale = "inferno", zoom_freq = c(0, 23),
-    time_guide_interval = 1, freq_guide_interval = 1,
-    nav_shuffle = FALSE, subset_seed = 123, auto_next = TRUE,
-    nav_autosave = TRUE, overwrite = FALSE, pitch_shift = 1,
-    visible_bp = FALSE, play_norm = FALSE
+    val_subset = c("NV", "TP", "FP", "UN"), time_pads = 1, ovlp = 0, wl = 2048,
+    dyn_range_bar = c(-144, 0), dyn_range_templ = c(-84, 0),
+    dyn_range_detec = c(-84, 0), color_scale = "inferno", zoom_freq = c(0, 23),
+    time_guide_interval = 1, freq_guide_interval = 1, nav_shuffle = FALSE,
+    subset_seed = 123, auto_next = TRUE, nav_autosave = TRUE, overwrite = FALSE,
+    pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
   ) {
 
   library(dplyr, warn.conflicts = FALSE)
@@ -168,8 +167,8 @@ launch_validation_app <- function(
     session_data$temp_path <- temp_path
   } else if (!is.null(project_path)) {
     # If a project path is defined,
-    preset_path <- file.path(project_path, "app_presets/")
-    temp_path <- file.path(project_path, "app_presets/temp/")
+    preset_path <- file.path(project_path, "000_app_presets/")
+    temp_path <- file.path(project_path, "000_app_presets/temp/")
     if (!dir.exists(preset_path)) {
       dir.create(preset_path)
       dir.create(temp_path)
@@ -188,12 +187,12 @@ launch_validation_app <- function(
 
   # Validate and set the templates path
   if (is.null(templates_path)) {
-    templates_path <- "roi_cuts/" # Default path
+    templates_path <- "050_templates_metadata/" # Default path
     if (dir.exists(templates_path)) {
       session_data$templates_path <- templates_path
-      warning("Warning! The path to the template wave files was not provided. Using the default path 'roi_cuts/'.")
+      warning("Warning! The path to the template wave files was not provided. Using the default path '050_templates_metadata/'.")
     } else {
-      stop("Error! The default path 'roi_cuts/' does not exist.")
+      stop("Error! The default path '050_templates_metadata/' does not exist.")
     }
   } else if (dir.exists(templates_path)) {
     session_data$templates_path <- templates_path
@@ -203,8 +202,13 @@ launch_validation_app <- function(
 
   # Validate and set the soundscapes path
   session_data$soundscapes_path <- soundscapes_path
-  if (!dir.exists(soundscapes_path)) {
-    stop("Error! The path to the soundscape wave files was not found locally.")
+  if (is.null(soundscapes_path)) {
+    soundscapes_path <- "010_soundscapes/" # Default path
+    if (!dir.exists(soundscapes_path)) {
+      stop("Error! The default path '010_soundscapes/' does not exist.")
+    }
+  } else if (!dir.exists(soundscapes_path)) {
+    stop("Error! The provided path to the soundscape wave files was not found locally.")
   }
 
   # Validate and set the input path
@@ -399,10 +403,10 @@ launch_validation_app <- function(
     }
   }
   session_data$detec_cuts_path <- validate_and_set_path(
-    detec_cuts_path, "detection_cuts/", "detec_cuts_path"
+    detec_cuts_path, "090_detection_cuts/", "detec_cuts_path"
   )
   session_data$detec_spec_path <- validate_and_set_path(
-    detec_spec_path, "detection_spectrograms/", "detec_spec_path"
+    detec_spec_path, "100_detection_spectrograms/", "detec_spec_path"
   )
 
   if (!is.numeric(pitch_shift) || !(pitch_shift %in% c(-8, -6, -4, -2, 1))) {

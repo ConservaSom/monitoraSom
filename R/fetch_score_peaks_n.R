@@ -6,12 +6,11 @@
 #'   score vectors from matches between multiple templates and soundscapes, i.e.
 #'   the `scores` output of 'match_n'.
 #'
-#' @param tib_match A tibble containing the `scores` output of 'match_n' or a
+#' @param df_scores A tibble containing the `scores` output of 'match_n' or a
 #'   filtered subset of it with at least two rows that is already within the
 #'   environement of the current R session. Alternatively, a path to a folder
 #'   containing the output of 'match_n' as .rds files for importing multiple
 #'   match objects from outside the current R session.
-#' @param recursive Set file search to recursive.
 #' @param buffer_size A numeric value specifying the number of frames of the
 #'   buffer within which overlap between detections is avoided. Defaults to
 #'   "template", which means that the buffer size equals the number of frames
@@ -30,8 +29,8 @@
 #'   because the peak quantiles are callculated within each score vector, the
 #'   top_n parameter is applied to each score vector separately, and not to the
 #'   whole matching grid.
-#' @param save_res Character. Path to save the result as an .rds or .csv file.
-#'   Defaults to NULL, which does not save the result.
+#' @param output_file Character. Path to save the result as an .rds or .csv
+#'   file. Defaults to NULL, which does not save the result.
 #' @param ncores An integer indicating the number of cores to be used for
 #'   parallelization. Default is 1.
 #'
@@ -44,22 +43,18 @@
 #' @importFrom tools file_ext
 #' @export
 fetch_score_peaks_n <- function(
-    tib_match, recursive = FALSE, buffer_size = "template", min_score = NULL,
+    df_scores, buffer_size = "template", min_score = NULL,
     min_quant = NULL, top_n = NULL, output_file = NULL, ncores = 1) {
 
 
   # Check if input is a character path or a tibble
-  if (is.character(tib_match)) {
-    if (!dir.exists(tib_match)) {
-      stop("The path provided does not exist")
+  if (is.character(df_scores)) {
+    if (!file.exists(df_scores)) {
+      stop("The path to the score RDS file does not exist")
     }
-    rds_list <- list.files(path = tib_match, pattern = "\\.rds$", full.names = TRUE)
-    if (length(rds_list) == 0) {
-      stop("The path provided does not contain any .rds files")
-    }
-    tib_match <- map_dfr(rds_list, readRDS)
-  } else if (!tibble::is_tibble(tib_match) || nrow(tib_match) < 2) {
-    stop("The input must be a tibble with at least two rows, or a path to a folder containing '.rds' files")
+    df_scores <- readRDS(df_scores)
+  } else if (!tibble::is_tibble(df_scores) || nrow(df_scores) < 2) {
+    stop("The input must be a tibble with at least two rows")
   }
 
   # Setup parallel processing if applicable
@@ -70,13 +65,13 @@ fetch_score_peaks_n <- function(
     ncores <- 1
   }
 
-  # Process each row of tib_match
-  split_data <- split(tib_match, seq(nrow(tib_match)))
+  # Process each row of df_scores
+  split_data <- split(df_scores, seq(nrow(df_scores)))
   result_list <- pbapply::pblapply(
     split_data,
     function(subset) {
       fetch_score_peaks_i(
-        subset,
+        df_scores_i = subset,
         buffer_size = buffer_size,
         min_score = min_score,
         min_quant = min_quant,
@@ -88,14 +83,24 @@ fetch_score_peaks_n <- function(
   tib_detecs <- do.call(rbind, result_list)
   message("Detections extracted from scores")
 
-  # Save results if specified
-  if (!is.null(output_file) || grepl("\\.csv$", output_file)) {
-    if (!dir.exists(dirname(output_file))) {
-      stop("The path provided to save the detections does not exist")
+  # Handle results based on output_file argument
+  if (!is.null(output_file)) {
+    # Validate file extension
+    if (!grepl("\\.csv$", output_file)) {
+      stop("Output file must have .csv extension")
     }
+
+    # Validate directory exists
+    output_dir <- dirname(output_file)
+    if (!dir.exists(output_dir)) {
+      stop("The directory '", output_dir, "' to save the detections does not exist")
+    }
+
+    # Save to CSV
     write.csv(tib_detecs, output_file, row.names = FALSE)
-    message("Detections have been saved to ", output_file)
+    message("Detections have been exported to ", output_file)
   }
 
+  # Always return the results
   return(tib_detecs)
 }

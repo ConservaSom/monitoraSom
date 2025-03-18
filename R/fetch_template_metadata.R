@@ -2,12 +2,12 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#' This function extracts metadata from a directory of template wave files,
-#' which can be used for soundscape analysis.
+#'   This function extracts metadata from a directory of template wave files,
+#'   which can be used for soundscape analysis.
 #'
 #' @param templates_path The directory path containing the template wave files.
 #'   If no path is provided, the function will look for the templates in the
-#'   "roi_cuts/" directory.
+#'   "040_roi_cuts/" directory.
 #' @param recursive A logical value indicating whether the search for template
 #'   files should be recursive or not. Defaults to FALSE.
 #'
@@ -20,7 +20,7 @@
 fetch_template_metadata <- function(templates_path = NULL, recursive = FALSE) {
 
   templates_path <- if (is.null(templates_path)) {
-    "roi_cuts/"
+    "040_roi_cuts/"
   } else if (!dir.exists(templates_path)) {
     stop("The provided path to the templates does not exist")
   } else {

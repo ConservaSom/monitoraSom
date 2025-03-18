@@ -7,8 +7,7 @@
 #' in which users can add custom species labels as new columns, with the first
 #' cell as the title of that respective list.
 #'
-#' @format ## `sp_labels`
-#' A data frame with the following columns:
+#' @format ## `sp_labels` A data frame with the following columns:
 #' \describe{
 #'   \item{`CBRO-2021 (Birds - Brazil)`}{List of bird species from the CBRO-2021
 #'   dataset, from Brazil.}

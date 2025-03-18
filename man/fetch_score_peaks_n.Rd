@@ -5,8 +5,7 @@
 \title{Batch find and filter detections from score vectors}
 \usage{
 fetch_score_peaks_n(
-  tib_match,
-  recursive = FALSE,
+  df_scores,
   buffer_size = "template",
   min_score = NULL,
   min_quant = NULL,
@@ -16,13 +15,11 @@ fetch_score_peaks_n(
 )
 }
 \arguments{
-\item{tib_match}{A tibble containing the `scores` output of 'match_n' or a
+\item{df_scores}{A tibble containing the `scores` output of 'match_n' or a
 filtered subset of it with at least two rows that is already within the
 environement of the current R session. Alternatively, a path to a folder
 containing the output of 'match_n' as .rds files for importing multiple
 match objects from outside the current R session.}
-
-\item{recursive}{Set file search to recursive.}
 
 \item{buffer_size}{A numeric value specifying the number of frames of the
 buffer within which overlap between detections is avoided. Defaults to
@@ -46,11 +43,11 @@ because the peak quantiles are callculated within each score vector, the
 top_n parameter is applied to each score vector separately, and not to the
 whole matching grid.}
 
+\item{output_file}{Character. Path to save the result as an .rds or .csv
+file. Defaults to NULL, which does not save the result.}
+
 \item{ncores}{An integer indicating the number of cores to be used for
 parallelization. Default is 1.}
-
-\item{save_res}{Character. Path to save the result as an .rds or .csv file.
-Defaults to NULL, which does not save the result.}
 }
 \value{
 A Tibble containing the detections of all audio scores.

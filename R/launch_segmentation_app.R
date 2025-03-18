@@ -69,10 +69,10 @@
 #' @param freq_guide_interval A numeric value indicating the interval in kHz
 #'   between frequency guides in the spectrogram.
 #'
-#' @return Todo
+#' @return A pop up with the rendered app.
 #' @export
-#' @import shiny dplyr ggplot2 DT shinyWidgets shinydashboard keys
-#'  shinyjs shinyBS
+#' @import shiny dplyr ggplot2 DT shinyWidgets shinydashboard keys shinyjs
+#'   shinyBS
 #' @importFrom data.table fread fwrite
 #' @importFrom lubridate ymd_hms
 #' @importFrom tuneR readWave normalize setWavPlayer play
@@ -94,13 +94,13 @@ launch_segmentation_app <- function(
     project_path = NULL, preset_path = NULL, user = NULL,
     soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
     labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)",
-    label_angle = 90, show_label = TRUE,
-    time_guide_interval = 3, freq_guide_interval = 2,
-    dyn_range = c(-60, 0), dyn_range_bar = c(-144, 0),
+    label_angle = 90, show_label = TRUE, time_guide_interval = 3,
+    freq_guide_interval = 2, dyn_range = c(-60, 0), dyn_range_bar = c(-144, 0),
     wl = 1024, ovlp = 0, color_scale = "inferno",
     wav_player_type = "HTML player", wav_player_path = "play",
-    visible_bp = FALSE, play_norm = FALSE, session_notes = NULL, zoom_freq = c(0, 180),
-    nav_autosave = TRUE, pitch_shift = 1) {
+    visible_bp = FALSE, play_norm = FALSE, session_notes = NULL,
+    zoom_freq = c(0, 180), nav_autosave = TRUE, pitch_shift = 1
+  ) {
 
   session_data <- list()
 
@@ -139,7 +139,7 @@ launch_segmentation_app <- function(
       "Warning! No values were provided for 'roi_tables_path' and 'project_path' variables. Please provide and confirm within the app."
     )
   } else if (is.null(roi_tables_path) & !is.null(project_path)) {
-    roi_tables_path <- file.path(project_path, "roi_tables/")
+    roi_tables_path <- file.path(project_path, "030_roi_tables/")
     if (!dir.exists(roi_tables_path)) {
       dir.create(roi_tables_path)
       warning(
@@ -161,7 +161,7 @@ launch_segmentation_app <- function(
       session_data$cuts_path <- NA
       warning("Warning! No value was provided for 'cuts_path' and 'project_path' variables. Inform the value and confirm within the app.")
     } else {
-      cuts_path <- file.path(project_path, "roi_cuts/")
+      cuts_path <- file.path(project_path, "040_roi_cuts/")
       if (!dir.exists(cuts_path)) {
         dir.create(cuts_path)
         warning("Warning! The path informed in 'cuts_path' was not found locally. A new 'cuts' directory was successfully created within the informed 'project_path', at '", cuts_path, "'")
@@ -322,7 +322,7 @@ launch_segmentation_app <- function(
     session_data$temp_path <- temp_path
   } else if (!is.null(project_path)) {
     # Define preset path based on project path
-    session_data$preset_path <- file.path(project_path, "app_presets/")
+    session_data$preset_path <- file.path(project_path, "000_app_presets/")
     session_data$temp_path <- file.path(session_data$preset_path, "temp/")
 
     # Create preset and temp directories if they do not exist
@@ -356,7 +356,7 @@ launch_segmentation_app <- function(
     }
     # Handle project path case
     if (!is.null(project_path)) {
-      preset_path <- file.path(project_path, "app_presets", "sp_labels.xlsx")
+      preset_path <- file.path(project_path, "000_app_presets", "sp_labels.xlsx")
       if (!dir.exists(dirname(preset_path))) {
         dir.create(dirname(preset_path), recursive = TRUE)
       }
@@ -2029,7 +2029,7 @@ launch_segmentation_app <- function(
           if (!is.null(input$res_table_rows_selected)) {
             df <- df[input$res_table_rows_selected, ]
           }
-          export_roi_cuts_n(rois_n = df, path = cuts_path_val())
+          export_roi_cuts_n(df_rois = df, roi_cuts_path = cuts_path_val())
           showNotification("Cuts sucessfully exported!", type = "message")
         }
       })

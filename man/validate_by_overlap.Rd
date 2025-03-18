@@ -14,8 +14,8 @@ validate_by_overlap(
 }
 \arguments{
 \item{df_detecs}{A data frame containing detections as in the output of
-`fetch_score_peaks_n()`. Alternatively, a path to a CSV file
-containing the detections (it accepts only one CSV file at a time).}
+`fetch_score_peaks_n()`. Alternatively, a path to a CSV file containing the
+detections (it accepts only one CSV file at a time).}
 
 \item{df_rois}{A data frame containing Regions of Interest (ROIs) as in the
 output of `fetch_rois_n()`. Alternatively, a path to a directory containing

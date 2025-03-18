@@ -11,8 +11,8 @@
 #'   output of `fetch_rois_n()`. Alternatively, a path to a directory containing
 #'   the ROI tables as CSV files can be provided.
 #' @param df_detecs A data frame containing detections as in the output of
-#'   `fetch_score_peaks_n()`. Alternatively, a path to a CSV file
-#'   containing the detections (it accepts only one CSV file at a time).
+#'   `fetch_score_peaks_n()`. Alternatively, a path to a CSV file containing the
+#'   detections (it accepts only one CSV file at a time).
 #' @param validation_user A character string specifying the user name.
 #' @param recursive A logical value indicating whether to search for ROIs
 #'   recursively when a path is provided instead of a data frame. Defaults to

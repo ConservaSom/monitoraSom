@@ -7,8 +7,8 @@
 diagnostic_validations_n(df_validated, diag_method = "Auto", pos_prob = 0.95)
 }
 \arguments{
-\item{df_validated}{A tibble containing the validation results of the detections
-`validate_by_overlap()` function or within the validation app.}
+\item{df_validated}{A tibble containing the validation results of the
+detections `validate_by_overlap()` function or within the validation app.}
 
 \item{diag_method}{A character string indicating the method to use for
 diagnostic validations. The two methods available are: "Auto" (default) or
@@ -20,7 +20,8 @@ validations.}
 \item{pos_prob}{A numeric value indicating the probability of a positive test}
 }
 \value{
-A list of results from the diagnostic validations, or NULL if all validations failed.
+A list of results from the diagnostic validations, or NULL if all
+  validations failed.
 }
 \description{
 #' @description `r lifecycle::badge("experimental")`

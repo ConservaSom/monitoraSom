@@ -5,7 +5,7 @@
 \title{Plot scores and detections of one template match run}
 \usage{
 plot_scores_i(
-  match_res_i,
+  df_scores_i,
   buffer_size = "template",
   min_score = NULL,
   min_quant = NULL,
@@ -23,7 +23,7 @@ plot_scores_i(
 )
 }
 \arguments{
-\item{match_res_i}{One row of the output of `match_n` containing the raw
+\item{df_scores_i}{One row of the output of `match_n` containing the raw
 scores of a template match run.}
 
 \item{buffer_size}{A numeric value specifying the number of frames of the
@@ -57,11 +57,11 @@ be displayed.}
 
 \item{ovlp}{A numeric value specifying the percentage overlap of windows in
 the spectrogram calculation. Defaults to NULL, which uses the value
-obtained from match_res_i, but overrides it if a value is provided.}
+obtained from df_scores_i, but overrides it if a value is provided.}
 
 \item{wl}{An integer specifying the length of the FFT window used to
 calculate the spectrogram. Defaults to NULL, which uses the value obtained
-from match_res_i, but overrides it if a value is provided.}
+from df_scores_i, but overrides it if a value is provided.}
 
 \item{dyn_range}{A numeric vector of length 2 giving the minimum and maximum
 values of relative amplitude to be displayed in the spectrogram.}

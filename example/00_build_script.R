@@ -23,7 +23,7 @@ document(roclets = c("rd", "collate", "namespace"))
 check()
 
 # montar um tar.gz do pacote
-build()
+# build()
 
 # instalar o pacote
 devtools::install()
@@ -40,6 +40,9 @@ use_gpl3_license()
 # adicionar pacotes
 # check()
 # use_package("dplyr")
+# use_package("dtw")
+# use_package("dtwclust")
+# use_package("rstudioapi")
 # use_package("DT")
 # use_package("ROSE")
 # use_package("caret")
@@ -79,15 +82,89 @@ use_gpl3_license()
 # Data ------------------------------------------------------------
 
 library(dplyr)
+library(tuneR)
 
+# Species lists
 sp_labels <- readxl::read_xlsx(
-    "example/presets/MonitoraSom_UI_label_lists.xlsx"
+    "example/000_app_presets/sp_labels.xlsx"
 ) %>%
     as.data.frame() %>%
     glimpse()
-
-sp_labels$`CBRO-2021 (Birds - Brazil)` %>% tail
+# sp_labels$`CBRO-2021 (Birds - Brazil)` %>% tail()
 usethis::use_data(sp_labels, overwrite = TRUE)
+
+# Soundscape recordings
+ls_soundscapes_raw <- list.files("example/010_soundscapes", full.names = TRUE)
+ls_soundscapes <- lapply(ls_soundscapes_raw, \(x) readWave(x))
+names(ls_soundscapes) <- basename(ls_soundscapes_raw)
+usethis::use_data(ls_soundscapes, overwrite = TRUE)
+
+# Templates
+ls_templates_raw <- list.files("example/040_roi_cuts", full.names = TRUE)
+ls_templates <- lapply(ls_templates_raw, \(x) readWave(x))
+names(ls_templates) <- basename(ls_templates_raw)
+usethis::use_data(ls_templates, overwrite = TRUE)
+
+# Roi tables
+ls_roi_tables_raw <- list.files("example/030_roi_tables", full.names = TRUE)
+ls_roi_tables <- lapply(ls_roi_tables_raw, \(x) read.csv(x))
+names(ls_roi_tables) <- basename(ls_roi_tables_raw)
+usethis::use_data(ls_roi_tables, overwrite = TRUE)
+df_rois <- do.call(rbind, ls_roi_tables) %>%
+    glimpse()
+usethis::use_data(df_rois, overwrite = TRUE)
+
+# todo - construir novamente o df_grid com os caminhos corretos
+
+# Soundscapes metadata
+df_soundscapes <- read.csv("example/020_soundscapes_metadata/df_soundscapes.csv") %>%
+    # mutate(
+    #     soundscape_path = gsub(
+    #         "soundscapes", "010_soundscapes", soundscape_path
+    #     )
+    # ) %>%
+    glimpse()
+usethis::use_data(df_soundscapes, overwrite = TRUE)
+
+# Templates metadata
+df_templates <- read.csv("example/050_templates_metadata/df_templates.csv") %>%
+    # mutate(
+    #     template_path = gsub(
+    #         "roi_cuts", "040_roi_cuts", template_path
+    #     )
+    # ) %>%
+    glimpse()
+usethis::use_data(df_templates, overwrite = TRUE)
+
+# Match grid metadata
+df_grid <- read.csv("example/060_match_grid_metadata/df_grid.csv") %>%
+    glimpse()
+usethis::use_data(df_grid, overwrite = TRUE)
+
+# Match scores
+df_scores <- readRDS("example/070_match_scores/df_scores.rds") %>%
+    glimpse()
+usethis::use_data(df_scores, overwrite = TRUE)
+
+# Detections
+df_detecs <- read.csv("example/080_detections/df_detecs.csv") %>%
+    glimpse()
+usethis::use_data(df_detecs, overwrite = TRUE)
+
+# Validated detections
+df_detecs_val_manual <- read.csv(
+    "example/110_validation_outputs/df_detecs_val_manual.csv"
+    ) %>%
+    glimpse()
+usethis::use_data(df_detecs_val_manual, overwrite = TRUE)
+
+# Validated detections
+df_detecs_val_tovlp <- read.csv(
+    "example/110_validation_outputs/df_detecs_val_tovlp.csv"
+    ) %>%
+    glimpse()
+usethis::use_data(df_detecs_val_tovlp, overwrite = TRUE)
+
 
 # Tests ------------------------------------------------------------
 

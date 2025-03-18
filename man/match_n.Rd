@@ -10,7 +10,7 @@ match_n(
   ncores = 1,
   output = "detections",
   output_file = NULL,
-  autosave_action = "append",
+  autosave_action = "replace",
   buffer_size = "template",
   min_score = NULL,
   min_quant = NULL,
@@ -28,26 +28,26 @@ coefficient) or "dtw" (dynamic time warping). It defaults to "cor".}
 parallelization. It defaults to 1.}
 
 \item{output}{A character string indicating the output of the function. The
-two options are: "detections" or "scores". If "detections" is
-selected, the function will return the output of the function
-'fetch_score_peaks_i()'. If "scores" is selected, the function will return
-the raw output of the matching algorithm. It defaults to "detections".}
+two options are: "detections" or "scores". If "detections" is selected, the
+function will return the output of the function 'fetch_score_peaks_i()'. If
+"scores" is selected, the function will return the raw output of the
+matching algorithm. It defaults to "detections".}
 
 \item{output_file}{A character string indicating the path to save the results
 in the format of a CSV file for detections or RDS file for scores. Default
 is NULL. We recommend to export detection or raw score files to the
-"detections/" subdirectory.}
+"080_detections/" subdirectory.}
 
 \item{autosave_action}{A character string indicating the action to be taken
 if the output file already exists. Possible values are "append" and
-"overwrite". To avoid overwriting existing files, set to "append", but be
+"replace". To avoid overwriting existing files, set to "append", but be
 aware that it can result in duplicated entries in the output file if the
-function is run again. It defaults to "append".}
+function is run again. It defaults to "replace".}
 
 \item{buffer_size}{A character string indicating the size of the buffer to be
 used in the function 'fetch_score_peaks_i()'. The two options are:
-"template" or the number of frames of the template spectrogram to
-be used as buffer. It defaults to "template".}
+"template" or the number of frames of the template spectrogram to be used
+as buffer. It defaults to "template".}
 
 \item{min_score}{A numeric value indicating the minimum score to be used in
 the function 'fetch_score_peaks_i()'. It defaults to NULL.}
@@ -60,12 +60,12 @@ used in the function 'fetch_score_peaks_i()'. It defaults to NULL.}
 }
 \value{
 If the format is set to scores, a tibble containing the input data
-  frame with an additional column "score_vec". This column contains dataframes
-  with "time_vec" (time of each frame) and "score_vec" (matching score at
-  that frame) columns. The scores are padded at the start and end to match the
-  soundscape spectrogram length. If the format is set to detections, the
-  function returns a data frame with the detections. If no paths are provided,
-  the output are returned to the R session.
+  frame with an additional column "score_vec". This column contains
+  dataframes with "time_vec" (time of each frame) and "score_vec" (matching
+  score at that frame) columns. The scores are padded at the start and end to
+  match the soundscape spectrogram length. If the format is set to
+  detections, the function returns a data frame with the detections. If no
+  paths are provided, the output are returned to the R session.
 }
 \description{
 `r lifecycle::badge("experimental")`

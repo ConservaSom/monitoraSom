@@ -4,12 +4,14 @@
 \alias{export_roi_cuts_n}
 \title{Export ROI cuts}
 \usage{
-export_roi_cuts_n(rois_n, path, overwrite = FALSE)
+export_roi_cuts_n(df_rois, roi_cuts_path = "040_roi_cuts/", overwrite = FALSE)
 }
 \arguments{
-\item{rois_n}{A tibble containing the ROIs to be cut}
+\item{df_rois}{A tibble containing the ROIs to be cut}
 
-\item{path}{A character string indicating the path to save the cuts}
+\item{roi_cuts_path}{A character string indicating the path to save the cuts.
+We recommend to provide the "040_roi_cuts/" directory, which is the default
+path used by the segmentation app.}
 
 \item{overwrite}{If TRUE, existing files will be overwritten}
 }

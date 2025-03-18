@@ -1,13 +1,29 @@
 Package: monitoraSom
 Type: Package
-Title: What the Package Does (Title Case)
+Title: A Complete Workflow for Automated Sound Recognition and Validation in
+    Bioacoustics
 Version: 0.3.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Gabriel L. M. Rosa; Juan Ingrid D. Rocha; Cassio R. Simões;
+    Carlos B. de Araújo;
+Maintainer: Gabriel L. M. Rosa <gabrielrosa@conservasom.com.br>
+Description: `monitoraSom` is an R package designed to overcome the challenges of
+    automated sound recognition and validation in bioacoustics. It provides a
+    complete workflow for this purpose, including tools for segmentation,
+    validation, and performance evaluation. Among its core functionalities, we
+    highlight the graphical interfaces designed to accelerate manual
+    segmentation of soundscape recordings and detection validation. Additionally,
+    monitoraSom includes dedicated tools for validation diagnostics, offering
+    quantitative assessments of detection performance. By addressing gaps in
+    currently available tools, monitoraSom promotes data reproducibility and
+    ensures methodological rigor. The modular design of the functions supports
+    creative customization, encourages methodological experimentation, and
+    reduces the learning curve associated with scripting. By consolidating
+    these features, monitoraSom not only  reduces the learning curve associated
+    with scripting but also empowers users to focus on ecological insights
+    rather than technical hurdles, accelerating the transformation of raw
+    acoustic data into actionable knowledge.
 Depends:
-    R (>= 3.4.1)
+    R (>= 3.5)
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: TRUE
@@ -18,6 +34,8 @@ Imports:
     data.table,
     dplyr,
     DT,
+    dtw,
+    dtwclust,
     farver,
     future,
     ggplot2,
@@ -29,6 +47,7 @@ Imports:
     purrr,
     readxl,
     ROSE,
+    rstudioapi,
     seewave,
     shiny,
     shinyBS,
@@ -41,7 +60,4 @@ Imports:
     tidyr,
     tuneR,
     viridis
-Suggests:
-    dtw,
-    dtwclust
 RoxygenNote: 7.3.2

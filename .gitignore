@@ -44,3 +44,9 @@ example/build_script.R
 
 #Personal folder
 NoSync_extras&tests/
+
+# RStudio files
+monitoraSom.Rproj
+
+# VSCode files
+.vscode

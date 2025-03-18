@@ -5,13 +5,14 @@
 \title{Perform template matching on a set of soundscapes using a set of templates}
 \usage{
 template_matching(
-  path_soundscapes = "soundscapes/",
+  path_soundscapes = "010_soundscapes/",
   recursive_soundscapes = FALSE,
-  path_templates = "roi_cuts/",
+  path_templates = "040_roi_cuts/",
   recursive_templates = FALSE,
   score_method = "cor",
   output_file = NULL,
-  autosave_action = "append",
+  autosave_action = "replace",
+  skip_processed = FALSE,
   buffer_size = "template",
   min_score = NULL,
   min_quant = NULL,
@@ -36,29 +37,34 @@ templates recursively. It defaults to FALSE.}
 "dtw". It defaults to "cor".}
 
 \item{output_file}{Path to the file where the results will be saved. It
-defaults to NULL. We recommend to export detection or raw score files to the
-"detections/" subdirectory.}
+defaults to NULL. We recommend to export detection or raw score files to
+the "080_detections/" subdirectory. If the file already exists, the action
+specified in the `autosave_action` parameter will be taken.}
 
 \item{autosave_action}{A character string indicating the action to be taken
 if the output file already exists. Possible values are "append" and
-"overwrite". To avoid overwriting existing files, set to "append", but be
+"replace". To avoid overwriting existing files, set to "append", but be
 aware that it can result in duplicated entries in the output file if the
-function is run again. It defaults to "append".}
+function is run again. It defaults to "replace".}
+
+\item{skip_processed}{A logical value indicating whether to skip the
+processed soundscapes. It defaults to FALSE.}
 
 \item{buffer_size}{The size of the buffer used to calculate the scores for
-the template matches, either "template" or "event". It defaults to "template".}
+the template matches, either "template" or "event". It defaults to
+"template".}
 
 \item{min_score}{A numeric value between 0 and 0.99 indicating the minimum
-score of the detections that will be kept. It defaults to NULL, which returns
-all available detections.}
+score of the detections that will be kept. It defaults to NULL, which
+returns all available detections.}
 
 \item{min_quant}{A numeric value between 0 and 1 indicating the minimum score
 quantile of the kept detections. It defaults to NULL, which returns all
 available detections.}
 
 \item{top_n}{An integer indicating the maximum number of peaks to be
-returned, selected according to the highest scores available. It defaults to
-NULL, which return all available detections. It should be noted that
+returned, selected according to the highest scores available. It defaults
+to NULL, which return all available detections. It should be noted that
 because the peak quantiles are callculated within each score vector, the
 top_n parameter is applied to each score vector separately, and not to the
 whole matching grid.}

@@ -5,7 +5,7 @@
 #'   This function plots a spectrogram of the soundscape and the results of the
 #'   match_i() and fetch_score_peaks_i() functions.
 #'
-#' @param match_res_i One row of the output of `match_n` containing the raw
+#' @param df_scores_i One row of the output of `match_n` containing the raw
 #'   scores of a template match run.
 #' @param buffer_size A numeric value specifying the number of frames of the
 #'   buffer within which overlap between detections is avoided. Defaults to
@@ -27,10 +27,10 @@
 #'   whole matching grid.
 #' @param ovlp A numeric value specifying the percentage overlap of windows in
 #'   the spectrogram calculation. Defaults to NULL, which uses the value
-#'   obtained from match_res_i, but overrides it if a value is provided.
+#'   obtained from df_scores_i, but overrides it if a value is provided.
 #' @param wl An integer specifying the length of the FFT window used to
 #'   calculate the spectrogram. Defaults to NULL, which uses the value obtained
-#'   from match_res_i, but overrides it if a value is provided.
+#'   from df_scores_i, but overrides it if a value is provided.
 #' @param dyn_range A numeric vector of length 2 giving the minimum and maximum
 #'   values of relative amplitude to be displayed in the spectrogram.
 #' @param color_scale A character string specifying the color scale to be used
@@ -55,12 +55,10 @@
 #' @importFrom seewave spectro reverse.gray.colors.1 reverse.gray.colors.2
 #' @importFrom viridis viridis
 plot_scores_i <- function(
-    match_res_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
+    df_scores_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
     top_n = NULL, zoom_freq = NULL, zoom_time = NULL, zoom_score = NULL,
     ovlp = NULL, wl = NULL, dyn_range = NULL, color_scale = "inferno",
     n_colors = 124, interpolate = FALSE, ...) {
-  match_res_i <- teste[1, ]
-
 
   requireNamespace("patchwork")
   requireNamespace("viridis")
@@ -70,12 +68,12 @@ plot_scores_i <- function(
   requireNamespace("dplyr")
 
   detecs <- fetch_score_peaks_i(
-    match_res_i,
+    df_scores_i,
     buffer_size = buffer_size, min_score = min_score,
     min_quant = min_quant, top_n = top_n
   )
 
-  rec <- tuneR::readWave(filename = match_res_i$soundscape_path)
+  rec <- tuneR::readWave(filename = df_scores_i$soundscape_path)
   if (is.null(zoom_time)) {
     zoom_time <- c(0, length(rec@left) / rec@samp.rate)
   }
@@ -96,19 +94,19 @@ plot_scores_i <- function(
   )
 
   if (is.null(ovlp)) {
-    ovlp <- match_res_i$template_ovlp
+    ovlp <- df_scores_i$template_ovlp
   }
   if (is.null(wl)) {
-    wl <- match_res_i$template_wl
+    wl <- df_scores_i$template_wl
   }
   if (is.null(dyn_range)) {
     dyn_range <- c(-60, 0)
   }
   if (is.null(zoom_score)) {
-    zoom_score <- range(match_res_i$score_vec[[1]]$score_vec)
+    zoom_score <- range(df_scores_i$score_vec[[1]]$score_vec)
   }
   if (buffer_size == "template") {
-    buffer_size <- match_res_i$score_sliding_window
+    buffer_size <- df_scores_i$score_sliding_window
   } else if (!is.numeric(buffer_size)) {
     stop("buffer_size must be either 'template' or a numeric value")
   }
@@ -138,8 +136,8 @@ plot_scores_i <- function(
     annotate(
       "label",
       label = paste0(
-        match_res_i$soundscape_file,
-        " (sr = ", match_res_i$soundscape_sample_rate, ")"
+        df_scores_i$soundscape_file,
+        " (sr = ", df_scores_i$soundscape_sample_rate, ")"
       ),
       x = -Inf, y = Inf, hjust = 0, vjust = 1,
       color = "white", fill = "black", size = 3
@@ -151,12 +149,12 @@ plot_scores_i <- function(
       axis.ticks.x = element_blank()
     )
 
-  plot_score <- match_res_i$score_vec[[1]] %>%
+  plot_score <- df_scores_i$score_vec[[1]] %>%
     ggplot(aes(x = time_vec, y = score_vec)) +
     annotate(
       "point",
-      x = match_res_i$score_vec[[1]]$time_vec[detecs$peak_index],
-      y = match_res_i$score_vec[[1]]$score_vec[detecs$peak_index],
+      x = df_scores_i$score_vec[[1]]$time_vec[detecs$peak_index],
+      y = df_scores_i$score_vec[[1]]$score_vec[detecs$peak_index],
       pch = 21, color = "black", fill = "#ff6262", size = 4
     ) +
     annotate(
@@ -171,8 +169,8 @@ plot_scores_i <- function(
     annotate(
       "label",
       label = paste0(
-        match_res_i$template_file,
-        " (sr = ", match_res_i$template_sample_rate, ")"
+        df_scores_i$template_file,
+        " (sr = ", df_scores_i$template_sample_rate, ")"
       ),
       x = -Inf, y = Inf, hjust = 0, vjust = 1,
       color = "#000000", fill = "#ffffff", size = 3

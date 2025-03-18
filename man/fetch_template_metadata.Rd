@@ -9,7 +9,7 @@ fetch_template_metadata(templates_path = NULL, recursive = FALSE)
 \arguments{
 \item{templates_path}{The directory path containing the template wave files.
 If no path is provided, the function will look for the templates in the
-"roi_cuts/" directory.}
+"040_roi_cuts/" directory.}
 
 \item{recursive}{A logical value indicating whether the search for template
 files should be recursive or not. Defaults to FALSE.}
@@ -20,6 +20,6 @@ A tibble containing the following metadata for each template file:
 \description{
 `r lifecycle::badge("experimental")`
 
-This function extracts metadata from a directory of template wave files,
-which can be used for soundscape analysis.
+  This function extracts metadata from a directory of template wave files,
+  which can be used for soundscape analysis.
 }

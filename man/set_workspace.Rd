@@ -7,16 +7,20 @@
 set_workspace(
   project_path = NULL,
   ext_soundscapes_path = FALSE,
-  soundscapes_path = "./soundscapes/",
-  soundscapes_metadata_path = "./soundscapes_metadata/",
-  roi_tables_path = "./roi_tables/",
-  roi_cuts_path = "./roi_cuts/",
-  detections_path = "./detections/",
-  validation_outputs_path = "./validation_outputs/",
-  detection_spectrograms_path = "./detection_spectrograms/",
-  detection_cuts_path = "./detection_cuts/",
-  validation_diagnostics_path = "./validation_diagnostics/",
-  app_presets_path = "./app_presets/"
+  app_presets_path = "./000_app_presets/",
+  soundscapes_path = "./010_soundscapes/",
+  soundscapes_metadata_path = "./020_soundscapes_metadata/",
+  roi_tables_path = "./030_roi_tables/",
+  roi_cuts_path = "./040_roi_cuts/",
+  templates_metadata_path = "./050_templates_metadata/",
+  match_grid_metadata_path = "./060_match_grid_metadata/",
+  match_scores_path = "./070_match_scores/",
+  detections_path = "./080_detections/",
+  detection_cuts_path = "./090_detection_cuts/",
+  detection_spectrograms_path = "./100_detection_spectrograms/",
+  validation_outputs_path = "./110_validation_outputs/",
+  validation_diagnostics_path = "./120_validation_diagnostics/",
+  example_data = FALSE
 )
 }
 \arguments{
@@ -28,6 +32,8 @@ the R script that is being executed.}
 is external to the project directory. If TRUE, the soundscapes directory
 will not be created.}
 
+\item{app_presets_path}{The path to the app presets directory.}
+
 \item{soundscapes_path}{The path to the soundscapes directory.}
 
 \item{soundscapes_metadata_path}{The path to the soundscapes metadata
@@ -37,24 +43,34 @@ directory.}
 
 \item{roi_cuts_path}{The path to the roi cuts directory.}
 
+\item{templates_metadata_path}{The path to the templates metadata directory.}
+
+\item{match_grid_metadata_path}{The path to the match grid metadata directory.}
+
+\item{match_scores_path}{The path to the match scores directory.}
+
 \item{detections_path}{The path to the detections directory.}
 
-\item{validation_outputs_path}{The path to the validation outputs directory.}
+\item{detection_cuts_path}{The path to the detection cuts directory.}
 
 \item{detection_spectrograms_path}{The path to the detection spectrograms
 directory.}
 
-\item{detection_cuts_path}{The path to the detection cuts directory.}
+\item{validation_outputs_path}{The path to the validation outputs directory.}
 
 \item{validation_diagnostics_path}{The path to the validation diagnostics
 directory.}
 
-\item{app_presets_path}{The path to the app presets directory.}
+\item{example_data}{Logical indicating whether to populate the workspace with
+example data. Defaults to FALSE.}
+}
+\value{
+Multiple directories at the project path.
 }
 \description{
 `r lifecycle::badge("experimental")`
 
-This function sets the working directory to the project path and creates
-the necessary directories if they do not exist. It also creates the species
-labels file if it doesn't exist.
+  This function sets the working directory to the project path and creates
+  the necessary directories if they do not exist. It also creates the species
+  labels file if it doesn't exist.
 }

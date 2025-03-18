@@ -5,7 +5,7 @@
 \title{Find and filter detections from one score vector}
 \usage{
 fetch_score_peaks_i(
-  match_res_i,
+  df_scores_i,
   buffer_size = "template",
   min_score = NULL,
   min_quant = NULL,
@@ -13,7 +13,7 @@ fetch_score_peaks_i(
 )
 }
 \arguments{
-\item{match_res_i}{One row of the output of the function 'match_n()' or the
+\item{df_scores_i}{One row of the output of the function 'match_n()' or the
 output of 'match_i()', which contain score vector the result of a template
 matching operation performed with a specific template and soundscape
 recording.}
@@ -33,21 +33,22 @@ all available detections.}
 quantile of the kept detections. Defaults to NULL, which returns all
 available detections.}
 
-\item{top_n}{An integer indicating the maximum number of peaks to be returned,
-selected according to the highest scores available. Defaults to NULL, which
-return all available detections. It should be noted that because the peak
-quantiles are callculated within each score vector, the top_n parameter is
-applied to each score vector separately, and not to the whole matching grid.}
+\item{top_n}{An integer indicating the maximum number of peaks to be
+returned, selected according to the highest scores available. Defaults to
+NULL, which return all available detections. It should be noted that
+because the peak quantiles are callculated within each score vector, the
+top_n parameter is applied to each score vector separately, and not to the
+whole matching grid.}
 }
 \value{
 A data frame in which each row is a detection and has the follwing
- attributes:
+  attributes:
 }
 \description{
 `r lifecycle::badge("experimental")`
 
- This function detects peaks in the score vector resulting from one iteration
- of template matching, i.e. the output of 'match_i()' or one row of the
- output of 'match_n()' . The peaks represent potential detections of a
- template in a soundscape recording.
+  This function detects peaks in the score vector resulting from one
+  iteration of template matching, i.e. the output of 'match_i()' or one row
+  of the output of 'match_n()' . The peaks represent potential detections of
+  a template in a soundscape recording.
 }

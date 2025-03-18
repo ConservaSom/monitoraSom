@@ -12,16 +12,17 @@
 #' @param score_method The method used for template matching, either "cor" or
 #'   "dtw". It defaults to "cor".
 #' @param buffer_size The size of the buffer used to calculate the scores for
-#'   the template matches, either "template" or "event". It defaults to "template".
+#'   the template matches, either "template" or "event". It defaults to
+#'   "template".
 #' @param min_score A numeric value between 0 and 0.99 indicating the minimum
-#'   score of the detections that will be kept. It defaults to NULL, which returns
-#'   all available detections.
+#'   score of the detections that will be kept. It defaults to NULL, which
+#'   returns all available detections.
 #' @param min_quant A numeric value between 0 and 1 indicating the minimum score
 #'   quantile of the kept detections. It defaults to NULL, which returns all
 #'   available detections.
 #' @param top_n An integer indicating the maximum number of peaks to be
-#'   returned, selected according to the highest scores available. It defaults to
-#'   NULL, which return all available detections. It should be noted that
+#'   returned, selected according to the highest scores available. It defaults
+#'   to NULL, which return all available detections. It should be noted that
 #'   because the peak quantiles are callculated within each score vector, the
 #'   top_n parameter is applied to each score vector separately, and not to the
 #'   whole matching grid.
@@ -31,36 +32,40 @@
 #'   soundscapes recursively. It defaults to FALSE.
 #' @param recursive_templates A logical value indicating whether to search
 #'   templates recursively. It defaults to FALSE.
+#' @param skip_processed A logical value indicating whether to skip the
+#'   processed soundscapes. It defaults to FALSE.
 #' @param output_file Path to the file where the results will be saved. It
-#'   defaults to NULL. We recommend to export detection or raw score files to the
-#'   "detections/" subdirectory.
+#'   defaults to NULL. We recommend to export detection or raw score files to
+#'   the "080_detections/" subdirectory. If the file already exists, the action
+#'   specified in the `autosave_action` parameter will be taken.
 #' @param autosave_action A character string indicating the action to be taken
 #'   if the output file already exists. Possible values are "append" and
-#'   "overwrite". To avoid overwriting existing files, set to "append", but be
+#'   "replace". To avoid overwriting existing files, set to "append", but be
 #'   aware that it can result in duplicated entries in the output file if the
-#'   function is run again. It defaults to "append".
+#'   function is run again. It defaults to "replace".
 #'
 #' @return A dataframe with the detected events.
 #'
 #' @export
 template_matching <- function(
-    path_soundscapes = "soundscapes/", recursive_soundscapes = FALSE,
-    path_templates = "roi_cuts/", recursive_templates = FALSE,
-    score_method = "cor", output_file = NULL, autosave_action = "append",
-    buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
-    ncores = 1
+    path_soundscapes = "010_soundscapes/", recursive_soundscapes = FALSE,
+    path_templates = "040_roi_cuts/", recursive_templates = FALSE,
+    score_method = "cor", output_file = NULL, autosave_action = "replace",
+    skip_processed = FALSE, buffer_size = "template", min_score = NULL,
+    min_quant = NULL, top_n = NULL, ncores = 1
     ) {
 
-  df_templates <- fetch_template_metadata(
-    path = path_templates, recursive = recursive_templates
+  df_templates <- monitoraSom::fetch_template_metadata(
+    templates_path = path_templates, recursive = recursive_templates
   )
-  df_soundscapes <- fetch_soundscape_metadata(
-    path = path_soundscapes, recursive = recursive_soundscapes, ncores = 1
+  df_soundscapes <- monitoraSom::fetch_soundscapes_metadata(
+    soundscapes_path = path_soundscapes, recursive = recursive_soundscapes,
+    output_file = output_file, skip_processed = skip_processed, ncores = ncores
   )
-  df_grid <- fetch_match_grid(
+  df_grid <- monitoraSom::fetch_match_grid(
     template_data = df_templates, soundscape_data = df_soundscapes
   )
-  df_detections <- match_n(
+  df_detections <- monitoraSom::match_n(
     df_grid = df_grid, score_method = score_method, output = "detections",
     output_file = output_file, autosave_action = autosave_action,
     ncores = ncores, buffer_size = buffer_size, min_score = min_score,

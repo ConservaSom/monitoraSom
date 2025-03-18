@@ -11,8 +11,8 @@
 #' selected, the user must provide the cutpoint to be used in the diagnostic
 #' validations.
 #'
-#' @param df_validated A tibble containing the validation results of the detections
-#'   `validate_by_overlap()` function or within the validation app.
+#' @param df_validated A tibble containing the validation results of the
+#'   detections `validate_by_overlap()` function or within the validation app.
 #' @param diag_method A character string indicating the method to use for
 #'   diagnostic validations. The two methods available are: "Auto" (default) or
 #'   "Manual". If "Auto" is selected, the function will automatically determine
@@ -20,7 +20,8 @@
 #'   selected, the user must provide the cutpoint to be used in the diagnostic
 #'   validations.
 #' @param pos_prob A numeric value indicating the probability of a positive test
-#' @return A list of results from the diagnostic validations, or NULL if all validations failed.
+#' @return A list of results from the diagnostic validations, or NULL if all
+#'   validations failed.
 #' @export
 #'
 #' @import dplyr

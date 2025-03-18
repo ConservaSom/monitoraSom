@@ -5,8 +5,7 @@
 \alias{sp_labels}
 \title{Spectrogram Labels}
 \format{
-## `sp_labels`
-A data frame with the following columns:
+## `sp_labels` A data frame with the following columns:
 \describe{
   \item{`CBRO-2021 (Birds - Brazil)`}{List of bird species from the CBRO-2021
   dataset, from Brazil.}

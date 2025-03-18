@@ -117,7 +117,7 @@ automatically save the ROI table of the active soundscape.}
 to the soundscape audio. The default is 1, which means no pitch shift.}
 }
 \value{
-Todo
+A pop up with the rendered app.
 }
 \description{
 `r lifecycle::badge("experimental")`
