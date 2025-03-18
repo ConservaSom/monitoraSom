@@ -36,3 +36,79 @@ validations if the "Auto" method is selected. If the "Manual" method is
 selected, the user must provide the cutpoint to be used in the diagnostic
 validations.
 }
+\examples{
+\dontrun{
+
+# Load the necessary packages to run this example
+library(monitoraSom)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+
+# Load a dataset with detections validated with the time overlap method (output
+# of `validate_by_overlap()`)
+data(df_detecs_val_tovlp)
+glimpse(df_detecs_val_tovlp)
+
+# In this type of validation it is recommended to mitigate the large number of
+# false positives. Here we filter the detections with a peak score greater than
+# 0.2, but other methods can be used for more informed decisions at this stage.
+df_detecs_val_tovlp <- df_detecs_val_tovlp \%>\%
+  filter(peak_score > 0.2)
+
+# Run the diagnostics on the validated detections
+ls_diag_tovlp <- diagnostic_validations_n(
+  df_validated = df_detecs_val_tovlp,
+  diag_method = "Auto", pos_prob = 0.90
+)
+
+# Check the number of templates in the diagnostics object
+length(ls_diag_tovlp)
+
+# check the diagnostics plots of the first template
+template_1 <- ls_diag_tovlp[[1]]
+template_1$mod_plot /
+  (template_1$roc_plot + template_1$precrec_plot + template_1$f1_plot) /
+  (template_1$plot_dens)
+
+# Comparing diagnostics of all templates
+template_2 <- ls_diag_tovlp[[2]]
+template_3 <- ls_diag_tovlp[[3]]
+template_4 <- ls_diag_tovlp[[4]]
+template_5 <- ls_diag_tovlp[[5]]
+template_6 <- ls_diag_tovlp[[6]]
+
+(template_1$precrec_plot + template_2$precrec_plot + template_3$precrec_plot +
+  template_4$precrec_plot + template_5$precrec_plot + template_6$precrec_plot)
+
+data(df_detecs_val_manual)
+glimpse(df_detecs_val_manual)
+
+# Run the diagnostics on the validated detections
+ls_diag_manual <- diagnostic_validations_n(
+  df_validated = df_detecs_val_manual,
+  diag_method = "Auto", pos_prob = 0.90
+)
+
+# Check the number of templates in the diagnostics object
+length(ls_diag_manual)
+
+# check the diagnostics plots of the first template
+template_1 <- ls_diag_manual[[1]]
+template_1$mod_plot /
+  (template_1$roc_plot + template_1$precrec_plot + template_1$f1_plot) /
+  (template_1$plot_dens)
+
+# Comparing the diagnostics of the same template under different validation
+# methods
+template_A <- ls_diag_tovlp[[1]]
+template_B <- ls_diag_manual[[1]]
+
+(
+  template_A$mod_plot + labs(title = "Time overlap validation") +
+    template_B$mod_plot + labs(title = "Manual validation")
+) /
+  (template_A$precrec_plot + template_B$precrec_plot) #'
+
+}
+}

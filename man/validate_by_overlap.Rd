@@ -43,3 +43,25 @@ A data frame with the validated detections.
   by checking for overlaps with the ROIs. The function returns a data frame
   with the validated detections.
 }
+\examples{
+\dontrun{
+
+# Load the necessary packages to run this example
+library(monitoraSom)
+library(dplyr)
+
+# Load the detections to populate the example data
+data(df_detecs)
+glimpse(df_detecs)
+
+# Load the rois to populate the example data
+data(df_rois)
+glimpse(df_rois)
+
+# Run the validation by overlap.
+df_detecs_val_tovlp <- validate_by_overlap(
+  df_detecs = df_detecs, df_rois, validation_user = "Rosa G.L.M."
+)
+glimpse(df_detecs_val_tovlp)
+}
+}

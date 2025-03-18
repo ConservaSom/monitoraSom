@@ -83,3 +83,27 @@ This function returns a ggplot2 object.
   instead of 'geom_raster' or 'geom_tile'. Credits to Sergio Oller in
   <https://github.com/tidyverse/ggplot2/issues/4989>
 }
+\examples{
+\dontrun{
+# Load the necessary packages to run this example
+
+library(monitoraSom)
+library(dplyr)
+
+# Load the soundscape list stored in the package to populate the example data
+data(ls_soundscapes)
+
+# Get the second soundscape in the list
+soundscape_2 <- ls_soundscapes[[2]]
+glimpse(soundscape_2)
+
+# Render the spectrogram
+fast_spectro(
+  rec = soundscape_2, f = soundscape_2@samp.rate,
+  flim = c(0, 10), tlim = c(10, 30), ovlp = 90, wl = 2048,
+  dyn_range = c(-80, -40), color_scale = "inferno", theme_mode = "dark",
+  time_guide_interval = 1, freq_guide_interval = 1
+)
+
+}
+}

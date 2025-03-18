@@ -15,20 +15,38 @@
 #'   include true positives. Defaults to FALSE.
 #'
 #' @return A data frame containing the ROI information.
-#'
-#' @examples
-#' # Load example detections data
-#' data(df_detecs)
-#'
-#' # Convert detections to ROIs
-#' rois <- detecs_to_rois(
-#'   df_detecs = df_detecs,
-#'   username = "example_user"
-#' )
-#'
 #' @import dplyr
 #' @importFrom stringr str_split
 #' @export
+#' @examples
+#' \dontrun{
+#'
+#' # Load the necessary packages to run this example
+#' library(monitoraSom)
+#' library(dplyr)
+#'
+#' # Load a dataset with validated detections (output of the of validation app)
+#' data(df_detecs_val_manual)
+#' glimpse(df_detecs_val_manual)
+#'
+#' # Create a directory to store the roi tables
+#' roi_cuts_path <- "./130_rois_from_detections"
+#' dir.create(roi_cuts_path)
+#'
+#' # Convert the detections to rois to a unified roi table within the current R
+#' # session and export it as multiple roi tables in the directory created earlier
+#' df_detecs_to_rois <- detecs_to_rois(
+#'     df_detecs = df_detecs_val_manual, username = "Rosa G.L.M.",
+#'     output_path = roi_cuts_path
+#' )
+#'
+#' # Check the object
+#' glimpse(df_detecs_to_rois)
+#'
+#' # Check the roi tables in the directory created earlier
+#' list.files(roi_cuts_path, pattern = "*.csv")
+#' }
+#'
 detecs_to_rois <- function(
     df_detecs, username = NULL, output_path = NULL, filter_tp = FALSE
     ) {

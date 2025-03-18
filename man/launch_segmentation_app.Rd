@@ -129,9 +129,32 @@ A pop up with the rendered app.
 }
 \examples{
 \dontrun{
+
+# Load the necessary packages to run this example
 library(monitoraSom)
 
-# set the path to the project folder
-project_path <- "path/to/project"
+# Essential setup
+launch_segmentation_app(
+  project_path = ".", user = "Rosa G.L.M.",
+  soundscapes_path = "./010_soundscapes",
+  roi_tables_path = "./030_roi_tables/",
+  cuts_path = "./040_roi_cuts/"
+)
+
+# Check the segmentation files produced by the segmentation app
+list.files("./040_roi_cuts/", pattern = "*.csv")
+
+# Check the roi cuts exported to be used as templates
+list.files("./roi_cuts/", pattern = "*.wav")
+
+# Detailed setup
+launch_segmentation_app(
+  project_path = ".", user = "Rosa G.L.M.",
+  soundscapes_path = "./010_soundscapes",
+  roi_tables_path = "./030_roi_tables/", cuts_path = "./040_roi_cuts/",
+  dyn_range = c(-84, -48), wl = 1024, ovlp = 80, color_scale = "greyscale 1",
+  zoom_freq = c(0, 10)
+)
+
 }
 }

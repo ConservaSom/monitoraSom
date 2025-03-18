@@ -36,6 +36,36 @@
 #' @importFrom openxlsx write.xlsx
 #' @importFrom tuneR writeWave
 #' @export
+#' @examples
+#' \dontrun{
+#'
+#' # The script below os intended to be run from the a clean R session within a new
+#' # project diorectory. The commands below should not be run in an existing
+#' # project. After running the commands below, close the current R session and
+#' # start a new one within the project directory to run the examples or to build a
+#' # new project from scratch.
+#'
+#' # set the workspace to the current directory and populate it with the complete
+#' # example data. Uncomment the command below to run it.
+#'
+#' # library(monitoraSom)
+#' # set_workspace(
+#' #     project_path = NULL, ext_soundscapes_path = FALSE, example_data = TRUE
+#' # )
+#'
+#' # Or, alternatively, set the workspace to the current directory and populate it
+#' # only with the subdirectories with the recommended structure for a new project.
+#' # When working with soundscapes stored in external directories, which is highly
+#' # recommended, the `ext_soundscapes_path` argument should be set to `TRUE` and
+#' # it will prevent the creation of a soundscapes subdirectory. Uncomment the
+#' # command below to run it.
+#'
+#' # library(monitoraSom)
+#' # set_workspace(
+#' #     project_path = NULL, ext_soundscapes_path = TRUE, example_data = FALSE
+#' # )
+#'
+#' }
 set_workspace <- function(
     project_path = NULL, ext_soundscapes_path = FALSE,
     app_presets_path = "./000_app_presets/",

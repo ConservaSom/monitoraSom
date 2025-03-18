@@ -31,3 +31,52 @@ A data frame with a grid of all possible matching combinations
   and returns a new data frame with a grid of all possible matching
   combinations between the two data sets.
 }
+\examples{
+\dontrun{
+
+# Load the necessary packages to run this example
+library(monitoraSom)
+library(dplyr)
+library(tuneR)
+
+# Load the soundscape list and the template list to populate the example data
+data(ls_soundscapes)
+data(ls_templates)
+
+# Create a directory and export the soundscapes
+soundscapes_path <- "./010_soundscapes"
+dir.create(soundscapes_path)
+invisible(lapply(1:length(ls_soundscapes), function(i) {
+  writeWave(
+    ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
+  )
+}))
+
+# Create a directory and export the templates
+templates_path <- "./040_roi_cuts"
+dir.create(templates_path)
+invisible(lapply(1:length(ls_templates), function(i) {
+  writeWave(
+    ls_templates[[i]], file.path(templates_path, names(ls_templates)[i])
+  )
+}))
+
+# Import the soundscapes metadata
+df_soundscapes <- fetch_soundscapes_metadata(
+  soundscapes_path = soundscapes_path
+)
+
+# Import the templates metadata
+df_templates <- fetch_template_metadata(templates_path = templates_path)
+
+# Create a match grid
+df_grid <- fetch_match_grid(
+  soundscape_data = df_soundscapes, template_data = df_templates
+)
+
+# Check if there is one match per soundscape-template pair in the grid
+table(df_grid$template_file, df_grid$soundscape_file) \%>\%
+  as.vector()
+
+}
+}

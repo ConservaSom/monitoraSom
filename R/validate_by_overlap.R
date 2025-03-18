@@ -25,8 +25,28 @@
 #' @return A data frame with the validated detections.
 #' @import dplyr tidyr
 #' @importFrom purrr map_chr map2
-#'
 #' @export
+#' @examples
+#' \dontrun{
+#' 
+#' # Load the necessary packages to run this example
+#' library(monitoraSom)
+#' library(dplyr)
+#'
+#' # Load the detections to populate the example data
+#' data(df_detecs)
+#' glimpse(df_detecs)
+#'
+#' # Load the rois to populate the example data
+#' data(df_rois)
+#' glimpse(df_rois)
+#'
+#' # Run the validation by overlap.
+#' df_detecs_val_tovlp <- validate_by_overlap(
+#'   df_detecs = df_detecs, df_rois, validation_user = "Rosa G.L.M."
+#' )
+#' glimpse(df_detecs_val_tovlp)
+#' }
 validate_by_overlap <- function(
   df_detecs, df_rois, validation_user = NULL, recursive = FALSE,
   output_path = NULL

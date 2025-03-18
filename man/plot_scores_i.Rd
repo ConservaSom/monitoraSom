@@ -88,3 +88,63 @@ Todo
   This function plots a spectrogram of the soundscape and the results of the
   match_i() and fetch_score_peaks_i() functions.
 }
+\examples{
+\dontrun{
+
+# Load the necessary packages to run this example
+library(monitoraSom)
+library(dplyr)
+library(tuneR)
+
+# Load the soundscape list to populate the example data
+data(ls_soundscapes)
+
+# Create a directory to store the soundscapes
+soundscapes_path <- "./010_soundscapes"
+dir.create(soundscapes_path)
+invisible(lapply(1:length(ls_soundscapes), function(i) {
+  writeWave(
+    ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
+  )
+}))
+
+data(df_scores)
+
+# Plot the scores of the 20th match with the default parameters. It gets most
+# peaks, but several false positives and the spectrogram is not very
+# informative.
+plot_scores_i(df_scores_i = df_scores[20, ])
+
+# Now with filtered scores and adjusted spectrogram parameters. Now we can see
+# the target signals more clearly, but we still have some false positives.
+plot_scores_i(
+  df_scores_i = df_scores[20, ], ovlp = 50, wl = 512, dyn_range = c(-90, -30)
+)
+
+# Now lets turn of the default detection filters to have a look at the
+# detections obtained without any filtering. We can barely see the target
+# signals among so many false positives.
+plot_scores_i(
+  df_scores_i = df_scores[20, ], ovlp = 50, wl = 512, dyn_range = c(-90, -30),
+  buffer_size = 0, min_score = NULL, min_quant = NULL, top_n = NULL
+)
+
+# Now lets improve the filters so that only true positives are shown as
+# detections. We set a minimum score of 0.3 and a minimum quantile of 0.9.
+plot_scores_i(
+  df_scores_i = df_scores[20, ], ovlp = 50, wl = 512, dyn_range = c(-90, -30),
+  buffer_size = 0, min_score = 0.3, min_quant = 0.9, top_n = NULL
+)
+
+# Now lets zoom in one detection to see the details. We can notice that the
+# template has a target siognal that matches the final two notes of the target
+# species' song
+plot_scores_i(
+  df_scores_i = df_scores[20, ],
+  buffer_size = "template", min_score = 0.3, min_quant = NULL, top_n = NULL,
+  ovlp = 50, wl = 512, dyn_range = c(-90, -30),
+  zoom_freq = c(2, 10), zoom_time = c(20, 25)
+)
+
+}
+}

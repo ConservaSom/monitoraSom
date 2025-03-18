@@ -22,3 +22,30 @@ A data frame with ROI tables
   This function gathers ROI tables from a directory and returns a data frame
   with the ROI tables.
 }
+\examples{
+\dontrun{
+
+# Load the necessary packages to run this example
+library(monitoraSom)
+library(dplyr)
+
+# Load the roi tables to populate the example data
+data(ls_roi_tables)
+
+# Create a directory and export the roi tables
+rois_path <- "./030_roi_tables"
+dir.create(rois_path)
+invisible(lapply(1:length(ls_roi_tables), function(i) {
+  write.csv(
+    ls_roi_tables[[i]],
+    file.path(rois_path, names(ls_roi_tables)[i]),
+    row.names = FALSE
+  )
+}))
+
+# Import the roi tables as a unified dataframe
+df_rois <- fetch_rois(rois_path = rois_path)
+glimpse(df_rois)
+
+}
+}

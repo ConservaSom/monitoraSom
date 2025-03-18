@@ -45,8 +45,46 @@
 #'   function is run again. It defaults to "replace".
 #'
 #' @return A dataframe with the detected events.
-#'
 #' @export
+#' @examples
+#' \dontrun{
+#'
+#' # Load the necessary packages to run this example
+#' library(monitoraSom)
+#' library(dplyr)
+#' library(tuneR)
+#'
+#' # Load the soundscape list to populate the example data
+#' data(ls_soundscapes)
+#'
+#' # Create a directory to store the soundscapes
+#' soundscapes_path <- "./010_soundscapes"
+#' dir.create(soundscapes_path)
+#' invisible(lapply(1:length(ls_soundscapes), function(i) {
+#'   writeWave(
+#'     ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
+#'   )
+#' }))
+#'
+#' # Load the templates to populate the example data
+#' data(ls_templates)
+#'
+#' # Create a directory to store the templates
+#' templates_path <- "./040_roi_cuts"
+#' dir.create(templates_path)
+#' invisible(lapply(1:length(ls_templates), function(i) {
+#'   writeWave(
+#'     ls_templates[[i]], file.path(templates_path, names(ls_templates)[i])
+#'   )
+#' }))
+#'
+#' df_detecs <- template_matching(
+#'   path_soundscapes = soundscapes_path,
+#'   path_templates = templates_path,
+#' )
+#' glimpse(df_detecs)
+#'
+#' }
 template_matching <- function(
     path_soundscapes = "010_soundscapes/", recursive_soundscapes = FALSE,
     path_templates = "040_roi_cuts/", recursive_templates = FALSE,

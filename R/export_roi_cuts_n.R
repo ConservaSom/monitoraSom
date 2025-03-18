@@ -19,6 +19,32 @@
 #'
 #' @return A message indicating if all cuts were made successfully
 #' @export
+#' @examples
+#' \dontrun{
+#' 
+#' # Load the necessary packages to run this example
+#' library(monitoraSom)
+#' library(dplyr)
+#'
+#' # Load the roi data (output of `fetch_rois()`)
+#' data(df_rois)
+#'
+#' # Selecting 5 random ROIs to export
+#' df_rois_to_export <- sample_n(df_rois, 5)
+#' glimpse(df_rois_to_export)
+#'
+#' # Create a directory to store the roi cuts
+#' dir.create("./temp_roi_cuts/")
+#'
+#' # Export the roi cuts
+#' export_roi_cuts_n(
+#'   df_rois = df_rois_to_export, roi_cuts_path = "./temp_roi_cuts/"
+#' )
+#'
+#' # Check the roi cuts exported
+#' list.files("./temp_roi_cuts/", pattern = "*.wav")
+#'
+#' }
 export_roi_cuts_n <- function(
     df_rois, roi_cuts_path = "040_roi_cuts/", overwrite = FALSE
     ) {

@@ -46,3 +46,30 @@ A data frame in the R session with the soundscapes metadata. If an
   Extracts metadata from all WAV files found in a directory and its
   subdirectories.
 }
+\examples{
+\dontrun{
+
+# Load the necessary packages to run this example
+library(monitoraSom)
+library(dplyr)
+
+# Load the soundscape list to populate the example data
+data(ls_soundscapes)
+
+# Create a directory and export the soundscapes
+soundscapes_path <- "./010_soundscapes"
+dir.create(soundscapes_path)
+invisible(lapply(1:length(ls_soundscapes), function(i) {
+  tuneR::writeWave(
+    ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
+  )
+}))
+
+# Import the soundscapes metadata
+df_soundscapes <- fetch_soundscapes_metadata(
+  soundscapes_path = soundscapes_path
+)
+glimpse(df_soundscapes)
+
+}
+}

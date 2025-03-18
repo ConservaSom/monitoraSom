@@ -42,6 +42,21 @@
 #' @importFrom tibble is_tibble
 #' @importFrom tools file_ext
 #' @export
+#' @examples
+#' \dontrun{
+#' 
+#' # Load the necessary packages to run this example
+#' library(monitoraSom)
+#' library(dplyr)
+#'
+#' # Load the scores (output of `match_n()`)
+#' data(df_scores)
+#'
+#' # Get detections from raw scores
+#' df_detecs <- fetch_score_peaks_n(df_scores = df_scores)
+#' glimpse(df_detecs)
+#'
+#' }
 fetch_score_peaks_n <- function(
     df_scores, buffer_size = "template", min_score = NULL,
     min_quant = NULL, top_n = NULL, output_file = NULL, ncores = 1) {

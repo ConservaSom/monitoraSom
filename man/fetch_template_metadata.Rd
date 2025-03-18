@@ -23,3 +23,29 @@ A tibble containing the following metadata for each template file:
   This function extracts metadata from a directory of template wave files,
   which can be used for soundscape analysis.
 }
+\examples{
+\dontrun{
+
+# Load the necessary packages to run this example
+library(monitoraSom)
+library(dplyr)
+library(tuneR)
+
+# Load the templates to populate the example data
+data(ls_templates)
+
+# Create a directory and export the templates
+templates_path <- "./040_roi_cuts"
+dir.create(templates_path)
+invisible(lapply(1:length(ls_templates), function(i) {
+  writeWave(
+    ls_templates[[i]], file.path(templates_path, names(ls_templates)[i])
+  )
+}))
+
+# Import the templates metadata
+df_templates <- fetch_template_metadata(templates_path = templates_path)
+glimpse(df_templates)
+
+}
+}

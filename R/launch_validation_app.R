@@ -69,25 +69,50 @@
 #' @importFrom shinyWidgets alert
 #' @examples
 #' \dontrun{
+#' # Load the necessary packages to run this example
 #' library(monitoraSom)
-#' library(usethis)
 #'
-#' # set the path to the diorectory where soundscapes are located (it is not
-#' # recursive)
-#' soundscapes_path <- "path/to/soundscapes"
-#' # set the path to the project folder
-#' project_path <- "path/to/project"
+#' # Load and save the soundscape recordings to be rendered in the validation app.
+#' data(ls_soundscapes)
+#' dir.create("./010_soundscapes")
+#' invisible(lapply(1:length(ls_soundscapes), function(i) {
+#'   tuneR::writeWave(
+#'     ls_soundscapes[[i]],
+#'     file.path("./010_soundscapes", names(ls_soundscapes)[i])
+#'   )
+#' }))
 #'
-#' # in case the current working directory is not an active project, set it with
-#' # the following command. it may be necessary to restart the R session after that.
-#' create_project(path = paste0(project_path, "/MyProject", open = TRUE, rstudio = TRUE)
+#' # Load and save the template recordings to be rendered in the validation app.
+#' data(ls_templates)
+#' dir.create("./040_roi_cuts")
+#' invisible(lapply(1:length(ls_templates), function(i) {
+#'   tuneR::writeWave(
+#'     ls_templates[[i]],
+#'     file.path("./040_roi_cuts", names(ls_templates)[i])
+#'   )
+#' }))
 #'
-#' # launch the segmentation app
-#' launch_segmentation_app(
-#'   project_path = project_path,
-#'   user = "Identify the user here",
-#'   soundscapes_path = soundscapes_path
+#' # Load and save the detection data. We recommend to save an external copy of the
+#' # detection data to store validations to avoid overwriting it.
+#' data(df_detecs)
+#' write.csv(
+#'   df_detecs,
+#'   file.path("./110_validation_outputs", "df_detecs_validation_app_test.csv"),
+#'   row.names = FALSE
 #' )
+#'
+#' # Launch the validation app. We recommendo to use the same file for input and
+#' # output to avoid overwriting the original detection data and to store the
+#' # validation results across multiple sessions of the validation app.
+#' launch_validation_app(
+#'   project_path = ".", validation_user = "Rosa G.L.M.",
+#'   templates_path = "040_roi_cuts/", soundscapes_path = "./010_soundscapes/",
+#'   input_path = "./110_validation_outputs/df_detecs_validation_app_test.csv",
+#'   output_path = "./110_validation_outputs/df_detecs_validation_app_test.csv",
+#'   dyn_range_templ = c(-48, 0), dyn_range_detec = c(-90, -48), wl = 512,
+#'   ovlp = 50, time_guide_interval = 0, freq_guide_interval = 0
+#' )
+#'
 #' }
 launch_validation_app <- function(
     project_path = ".", preset_path = NULL, validation_user,

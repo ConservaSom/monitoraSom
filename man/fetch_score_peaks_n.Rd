@@ -59,3 +59,19 @@ A Tibble containing the detections of all audio scores.
   score vectors from matches between multiple templates and soundscapes, i.e.
   the `scores` output of 'match_n'.
 }
+\examples{
+\dontrun{
+
+# Load the necessary packages to run this example
+library(monitoraSom)
+library(dplyr)
+
+# Load the scores (output of `match_n()`)
+data(df_scores)
+
+# Get detections from raw scores
+df_detecs <- fetch_score_peaks_n(df_scores = df_scores)
+glimpse(df_detecs)
+
+}
+}
