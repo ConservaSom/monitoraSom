@@ -2,7 +2,7 @@ Package: monitoraSom
 Type: Package
 Title: A Complete Workflow for Automated Sound Recognition and Validation in
     Bioacoustics
-Version: 0.3.0
+Version: 0.3.1
 Author: Gabriel L. M. Rosa; Juan Ingrid D. Rocha; Cassio R. Simões;
     Carlos B. de Araújo;
 Maintainer: Gabriel L. M. Rosa <gabrielrosa@conservasom.com.br>
