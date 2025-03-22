@@ -5,9 +5,9 @@
 \alias{df_detecs_val_tovlp}
 \title{Detections with validation labels based on temporal overlap}
 \format{
-## `df_detecs_val_tovlp`
-  A data frame containing detections with validation labels and all the
-  standard detection variables from the `match_n()` function output.
+## `df_detecs_val_tovlp` A data frame containing detections with
+  validation labels and all the standard detection variables from the
+  `match_n()` function output.
 }
 \usage{
 df_detecs_val_tovlp
@@ -18,7 +18,7 @@ temporal overlap with manually validated detections. The detections were
 extracted from soundscape recordings with the `match_n()` function and
 validated by comparing their temporal overlap with manually validated
 detections in `df_detecs_val_manual`. Detections with sufficient temporal
-overlap with true positives were labeled as true positives (TP), while
-those without sufficient overlap were labeled as false positives (FP).
+overlap with true positives were labeled as true positives (TP), while those
+without sufficient overlap were labeled as false positives (FP).
 }
 \keyword{datasets}

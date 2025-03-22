@@ -42,7 +42,7 @@
 #' data(ls_soundscapes)
 #'
 #' # Create a directory and export the soundscapes
-#' soundscapes_path <- "./010_soundscapes"
+#' soundscapes_path <- "./soundscapes"
 #' dir.create(soundscapes_path)
 #' invisible(lapply(1:length(ls_soundscapes), function(i) {
 #'   tuneR::writeWave(
@@ -55,7 +55,7 @@
 #'   soundscapes_path = soundscapes_path
 #' )
 #' glimpse(df_soundscapes)
-#' 
+#'
 #' }
 fetch_soundscapes_metadata <- function(
     soundscapes_path = NULL, recursive = TRUE, output_file = NULL,

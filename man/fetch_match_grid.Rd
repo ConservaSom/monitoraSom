@@ -44,7 +44,7 @@ data(ls_soundscapes)
 data(ls_templates)
 
 # Create a directory and export the soundscapes
-soundscapes_path <- "./010_soundscapes"
+soundscapes_path <- "./soundscapes"
 dir.create(soundscapes_path)
 invisible(lapply(1:length(ls_soundscapes), function(i) {
   writeWave(
@@ -53,7 +53,7 @@ invisible(lapply(1:length(ls_soundscapes), function(i) {
 }))
 
 # Create a directory and export the templates
-templates_path <- "./040_roi_cuts"
+templates_path <- "./templates"
 dir.create(templates_path)
 invisible(lapply(1:length(ls_templates), function(i) {
   writeWave(
@@ -73,10 +73,11 @@ df_templates <- fetch_template_metadata(templates_path = templates_path)
 df_grid <- fetch_match_grid(
   soundscape_data = df_soundscapes, template_data = df_templates
 )
+glimpse(df_grid)
 
-# Check if there is one match per soundscape-template pair in the grid
-table(df_grid$template_file, df_grid$soundscape_file) \%>\%
-  as.vector()
+# Check if there is one match per soundscape-template pair in the grid. The test
+# should return TRUE
+nrow(df_grid) == length(ls_soundscapes) * length(ls_templates)
 
 }
 }

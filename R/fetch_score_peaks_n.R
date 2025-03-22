@@ -44,7 +44,7 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' 
+#'
 #' # Load the necessary packages to run this example
 #' library(monitoraSom)
 #' library(dplyr)

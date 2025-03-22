@@ -68,7 +68,7 @@
 #'   dyn_range = c(-80, -40), color_scale = "inferno", theme_mode = "dark",
 #'   time_guide_interval = 1, freq_guide_interval = 1
 #' )
-#' 
+#'
 #' }
 fast_spectro <- function(
     rec, f, flim = NULL, tlim = NULL,

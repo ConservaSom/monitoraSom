@@ -30,13 +30,13 @@
 #' glimpse(df_detecs_val_manual)
 #'
 #' # Create a directory to store the roi tables
-#' roi_cuts_path <- "./130_rois_from_detections"
+#' roi_cuts_path <- "./rois_from_detections"
 #' dir.create(roi_cuts_path)
 #'
 #' # Convert the detections to rois to a unified roi table within the current R
 #' # session and export it as multiple roi tables in the directory created earlier
 #' df_detecs_to_rois <- detecs_to_rois(
-#'     df_detecs = df_detecs_val_manual, username = "Rosa G.L.M.",
+#'     df_detecs = df_detecs_val_manual, username = "User",
 #'     output_path = roi_cuts_path
 #' )
 #'
@@ -45,8 +45,8 @@
 #'
 #' # Check the roi tables in the directory created earlier
 #' list.files(roi_cuts_path, pattern = "*.csv")
-#' }
 #'
+#' }
 detecs_to_rois <- function(
     df_detecs, username = NULL, output_path = NULL, filter_tp = FALSE
     ) {

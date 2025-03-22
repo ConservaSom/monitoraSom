@@ -23,7 +23,7 @@
 #' @param output_file A character string indicating the path to save the results
 #'   in the format of a CSV file for detections or RDS file for scores. Default
 #'   is NULL. We recommend to export detection or raw score files to the
-#'   "080_detections/" subdirectory.
+#'   "detections/" subdirectory.
 #' @param autosave_action A character string indicating the action to be taken
 #'   if the output file already exists. Possible values are "append" and
 #'   "replace". To avoid overwriting existing files, set to "append", but be
@@ -60,43 +60,47 @@
 #' library(dplyr)
 #' library(tuneR)
 #'
+#' library(monitoraSom)
+#' library(dplyr)
+#' library(tuneR)
+#' 
 #' # Load the soundscape list to populate the example data
 #' data(ls_soundscapes)
-#'
+#' 
 #' # Create a directory to store the soundscapes
-#' soundscapes_path <- "./010_soundscapes"
+#' soundscapes_path <- "./soundscapes"
 #' dir.create(soundscapes_path)
 #' invisible(lapply(1:length(ls_soundscapes), function(i) {
 #'   writeWave(
 #'     ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
 #'   )
 #' }))
-#'
+#' 
 #' # Load the templates to populate the example data
 #' data(ls_templates)
-#'
+#' 
 #' # Create a directory to store the templates
-#' templates_path <- "./040_roi_cuts"
+#' templates_path <- "./templates"
 #' dir.create(templates_path)
 #' invisible(lapply(1:length(ls_templates), function(i) {
 #'   writeWave(
 #'     ls_templates[[i]], file.path(templates_path, names(ls_templates)[i])
 #'   )
 #' }))
-#'
+#' 
 #' # Import the soundscapes and templates as dataframes
 #' df_soundscapes <- fetch_soundscapes_metadata(
 #'   soundscapes_path = soundscapes_path
 #' )
-#'
+#' 
 #' # Import the templates as a dataframe
 #' df_templates <- fetch_template_metadata(templates_path = templates_path)
-#'
+#' 
 #' # Create a match grid
 #' df_grid <- fetch_match_grid(
 #'   soundscape_data = df_soundscapes, template_data = df_templates
 #' )
-#'
+#' 
 #' # Run the template matching to store raw scores of the first ten matches
 #' df_scores <- match_n(
 #'   df_grid = df_grid[1:10, ], score_method = "cor", output = "scores"
@@ -105,7 +109,7 @@
 #' glimpse(df_scores)
 #' # Look into the raw score vector of the first match
 #' glimpse(df_scores$score_vec[1])
-#'
+#' 
 #' # Run the template matching to get the raw detections
 #' df_detecs <- match_n(
 #'   df_grid = df_grid[1:10, ], score_method = "cor", output = "detections"

@@ -36,7 +36,7 @@
 #'   processed soundscapes. It defaults to FALSE.
 #' @param output_file Path to the file where the results will be saved. It
 #'   defaults to NULL. We recommend to export detection or raw score files to
-#'   the "080_detections/" subdirectory. If the file already exists, the action
+#'   the "detections/" subdirectory. If the file already exists, the action
 #'   specified in the `autosave_action` parameter will be taken.
 #' @param autosave_action A character string indicating the action to be taken
 #'   if the output file already exists. Possible values are "append" and
@@ -58,11 +58,12 @@
 #' data(ls_soundscapes)
 #'
 #' # Create a directory to store the soundscapes
-#' soundscapes_path <- "./010_soundscapes"
+#' soundscapes_path <- "./soundscapes"
 #' dir.create(soundscapes_path)
 #' invisible(lapply(1:length(ls_soundscapes), function(i) {
 #'   writeWave(
-#'     ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
+#'     ls_soundscapes[[i]],
+#'     file.path(soundscapes_path, names(ls_soundscapes)[i])
 #'   )
 #' }))
 #'
@@ -70,7 +71,7 @@
 #' data(ls_templates)
 #'
 #' # Create a directory to store the templates
-#' templates_path <- "./040_roi_cuts"
+#' templates_path <- "./templates"
 #' dir.create(templates_path)
 #' invisible(lapply(1:length(ls_templates), function(i) {
 #'   writeWave(
@@ -79,25 +80,25 @@
 #' }))
 #'
 #' df_detecs <- template_matching(
-#'   path_soundscapes = soundscapes_path,
-#'   path_templates = templates_path,
+#'   soundscapes_path = soundscapes_path,
+#'   templates_path = templates_path,
 #' )
 #' glimpse(df_detecs)
 #'
 #' }
 template_matching <- function(
-    path_soundscapes = "010_soundscapes/", recursive_soundscapes = FALSE,
-    path_templates = "040_roi_cuts/", recursive_templates = FALSE,
+    soundscapes_path = "soundscapes/", recursive_soundscapes = FALSE,
+    templates_path = "roi_cuts/", recursive_templates = FALSE,
     score_method = "cor", output_file = NULL, autosave_action = "replace",
     skip_processed = FALSE, buffer_size = "template", min_score = NULL,
     min_quant = NULL, top_n = NULL, ncores = 1
     ) {
 
   df_templates <- monitoraSom::fetch_template_metadata(
-    templates_path = path_templates, recursive = recursive_templates
+    templates_path = templates_path, recursive = recursive_templates
   )
   df_soundscapes <- monitoraSom::fetch_soundscapes_metadata(
-    soundscapes_path = path_soundscapes, recursive = recursive_soundscapes,
+    soundscapes_path = soundscapes_path, recursive = recursive_soundscapes,
     output_file = output_file, skip_processed = skip_processed, ncores = ncores
   )
   df_grid <- monitoraSom::fetch_match_grid(

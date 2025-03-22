@@ -69,26 +69,27 @@
 #' @importFrom shinyWidgets alert
 #' @examples
 #' \dontrun{
+#'
 #' # Load the necessary packages to run this example
 #' library(monitoraSom)
 #'
 #' # Load and save the soundscape recordings to be rendered in the validation app.
 #' data(ls_soundscapes)
-#' dir.create("./010_soundscapes")
+#' dir.create("./soundscapes")
 #' invisible(lapply(1:length(ls_soundscapes), function(i) {
 #'   tuneR::writeWave(
 #'     ls_soundscapes[[i]],
-#'     file.path("./010_soundscapes", names(ls_soundscapes)[i])
+#'     file.path("./soundscapes", names(ls_soundscapes)[i])
 #'   )
 #' }))
 #'
 #' # Load and save the template recordings to be rendered in the validation app.
 #' data(ls_templates)
-#' dir.create("./040_roi_cuts")
+#' dir.create("./templates")
 #' invisible(lapply(1:length(ls_templates), function(i) {
 #'   tuneR::writeWave(
 #'     ls_templates[[i]],
-#'     file.path("./040_roi_cuts", names(ls_templates)[i])
+#'     file.path("./templates", names(ls_templates)[i])
 #'   )
 #' }))
 #'
@@ -97,7 +98,7 @@
 #' data(df_detecs)
 #' write.csv(
 #'   df_detecs,
-#'   file.path("./110_validation_outputs", "df_detecs_validation_app_test.csv"),
+#'   file.path("./validation_outputs", "df_detecs_validation_app_test.csv"),
 #'   row.names = FALSE
 #' )
 #'
@@ -105,10 +106,10 @@
 #' # output to avoid overwriting the original detection data and to store the
 #' # validation results across multiple sessions of the validation app.
 #' launch_validation_app(
-#'   project_path = ".", validation_user = "Rosa G.L.M.",
-#'   templates_path = "040_roi_cuts/", soundscapes_path = "./010_soundscapes/",
-#'   input_path = "./110_validation_outputs/df_detecs_validation_app_test.csv",
-#'   output_path = "./110_validation_outputs/df_detecs_validation_app_test.csv",
+#'   project_path = ".", validation_user = "User",
+#'   templates_path = "./templates/", soundscapes_path = "./soundscapes/",
+#'   input_path = "./validation_outputs/df_detecs_validation_app_test.csv",
+#'   output_path = "./validation_outputs/df_detecs_validation_app_test.csv",
 #'   dyn_range_templ = c(-48, 0), dyn_range_detec = c(-90, -48), wl = 512,
 #'   ovlp = 50, time_guide_interval = 0, freq_guide_interval = 0
 #' )
@@ -192,8 +193,8 @@ launch_validation_app <- function(
     session_data$temp_path <- temp_path
   } else if (!is.null(project_path)) {
     # If a project path is defined,
-    preset_path <- file.path(project_path, "000_app_presets/")
-    temp_path <- file.path(project_path, "000_app_presets/temp/")
+    preset_path <- file.path(project_path, "app_presets/")
+    temp_path <- file.path(project_path, "app_presets/temp/")
     if (!dir.exists(preset_path)) {
       dir.create(preset_path)
       dir.create(temp_path)
@@ -212,12 +213,12 @@ launch_validation_app <- function(
 
   # Validate and set the templates path
   if (is.null(templates_path)) {
-    templates_path <- "050_templates_metadata/" # Default path
+    templates_path <- "templates_metadata/" # Default path
     if (dir.exists(templates_path)) {
       session_data$templates_path <- templates_path
-      warning("Warning! The path to the template wave files was not provided. Using the default path '050_templates_metadata/'.")
+      warning("Warning! The path to the template wave files was not provided. Using the default path 'templates_metadata/'.")
     } else {
-      stop("Error! The default path '050_templates_metadata/' does not exist.")
+      stop("Error! The default path 'templates_metadata/' does not exist.")
     }
   } else if (dir.exists(templates_path)) {
     session_data$templates_path <- templates_path
@@ -228,9 +229,9 @@ launch_validation_app <- function(
   # Validate and set the soundscapes path
   session_data$soundscapes_path <- soundscapes_path
   if (is.null(soundscapes_path)) {
-    soundscapes_path <- "010_soundscapes/" # Default path
+    soundscapes_path <- "soundscapes/" # Default path
     if (!dir.exists(soundscapes_path)) {
-      stop("Error! The default path '010_soundscapes/' does not exist.")
+      stop("Error! The default path 'soundscapes/' does not exist.")
     }
   } else if (!dir.exists(soundscapes_path)) {
     stop("Error! The provided path to the soundscape wave files was not found locally.")
@@ -428,10 +429,10 @@ launch_validation_app <- function(
     }
   }
   session_data$detec_cuts_path <- validate_and_set_path(
-    detec_cuts_path, "090_detection_cuts/", "detec_cuts_path"
+    detec_cuts_path, "detection_cuts/", "detec_cuts_path"
   )
   session_data$detec_spec_path <- validate_and_set_path(
-    detec_spec_path, "100_detection_spectrograms/", "detec_spec_path"
+    detec_spec_path, "detection_spectrograms/", "detec_spec_path"
   )
 
   if (!is.numeric(pitch_shift) || !(pitch_shift %in% c(-8, -6, -4, -2, 1))) {

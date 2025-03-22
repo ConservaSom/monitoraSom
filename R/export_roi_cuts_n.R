@@ -8,7 +8,7 @@
 #'
 #' @param df_rois A tibble containing the ROIs to be cut
 #' @param roi_cuts_path A character string indicating the path to save the cuts.
-#'   We recommend to provide the "040_roi_cuts/" directory, which is the default
+#'   We recommend to provide the "roi_cuts/" directory, which is the default
 #'   path used by the segmentation app.
 #' @param overwrite If TRUE, existing files will be overwritten
 #'
@@ -21,7 +21,7 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' 
+#'
 #' # Load the necessary packages to run this example
 #' library(monitoraSom)
 #' library(dplyr)
@@ -29,24 +29,30 @@
 #' # Load the roi data (output of `fetch_rois()`)
 #' data(df_rois)
 #'
-#' # Selecting 5 random ROIs to export
-#' df_rois_to_export <- sample_n(df_rois, 5)
-#' glimpse(df_rois_to_export)
+#' # Filter the rois to export as templates. Two layers of filtering are applied:
+#' # 1) the soundscape file paths that contain "recordings" to avoid exporting
+#' # ROIs obtained from the soundscapes recording segmentation.
+#' # 2) the roi comment contains "Substructure C", to select only the ROIs of
+#' # interest
+#' df_rois_processed <- df_rois %>%
+#'   filter(grepl("recordings", soundscape_path)) %>%
+#'   filter(grepl("Substructure C", roi_comment)) %>%
+#'   glimpse()
 #'
 #' # Create a directory to store the roi cuts
-#' dir.create("./temp_roi_cuts/")
+#' dir.create("./templates/")
 #'
 #' # Export the roi cuts
 #' export_roi_cuts_n(
-#'   df_rois = df_rois_to_export, roi_cuts_path = "./temp_roi_cuts/"
+#'   df_rois = df_rois_processed, roi_cuts_path = "./templates/"
 #' )
 #'
 #' # Check the roi cuts exported
-#' list.files("./temp_roi_cuts/", pattern = "*.wav")
+#' list.files("./templates/", pattern = "*.wav")
 #'
 #' }
 export_roi_cuts_n <- function(
-    df_rois, roi_cuts_path = "040_roi_cuts/", overwrite = FALSE
+    df_rois, roi_cuts_path = "roi_cuts/", overwrite = FALSE
     ) {
 
   if (nrow(df_rois) == 0) {
@@ -77,34 +83,36 @@ export_roi_cuts_n <- function(
       filename = file.path(roi_cuts_path, cut_name)
     )
 
-  results <- pbapply::pblapply(1:nrow(rois_list), function(i) {
-    roi_row <- rois_list[i, ]
-    if (!file.exists(roi_row$soundscape_path)) {
-      warning("File does not exist: ", roi_row$soundscape_path)
-      return(FALSE)
-    }
-    if (file.exists(roi_row$filename) && !overwrite) {
-      message("Skipping overwrite of existing file: ", roi_row$filename)
-      return(FALSE)
-    }
-    tryCatch(
-      {
-        sound <- tuneR::readWave(
-          roi_row$soundscape_path,
-          from = roi_row$roi_start,
-          to = roi_row$roi_end, units = "seconds"
-        )
-        tuneR::writeWave(sound, roi_row$filename)
-        TRUE
-      },
-      error = function(e) {
-        message(
-          "Failed to process: ", roi_row$filename, " Error: ", e$message
-        )
-        FALSE
+  invisible(
+    results <- pbapply::pblapply(1:nrow(rois_list), function(i) {
+      roi_row <- rois_list[i, ]
+      if (!file.exists(roi_row$soundscape_path)) {
+        warning("File does not exist: ", roi_row$soundscape_path)
+        return(FALSE)
       }
-    )
-  })
+      if (file.exists(roi_row$filename) && !overwrite) {
+        message("Skipping overwrite of existing file: ", roi_row$filename)
+        return(FALSE)
+      }
+      tryCatch(
+        {
+          sound <- tuneR::readWave(
+            roi_row$soundscape_path,
+            from = roi_row$roi_start,
+            to = roi_row$roi_end, units = "seconds"
+          )
+          tuneR::writeWave(sound, roi_row$filename)
+          TRUE
+        },
+        error = function(e) {
+          message(
+            "Failed to process: ", roi_row$filename, " Error: ", e$message
+          )
+          FALSE
+        }
+      )
+    })
+  )
 
   if (all(results)) {
     message("All cuts were made successfully")

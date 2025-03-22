@@ -55,9 +55,12 @@ Imports:
     shinyjs,
     shinyWidgets,
     slider,
+    stats,
     stringr,
     tibble,
     tidyr,
     tuneR,
+    usethis,
+    utils,
     viridis
 RoxygenNote: 7.3.2

@@ -66,11 +66,12 @@
 #' data(ls_soundscapes)
 #'
 #' # Create a directory to store the soundscapes
-#' soundscapes_path <- "./010_soundscapes"
+#' soundscapes_path <- "./soundscapes"
 #' dir.create(soundscapes_path)
 #' invisible(lapply(1:length(ls_soundscapes), function(i) {
 #'   writeWave(
-#'     ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
+#'     ls_soundscapes[[i]],
+#'     file.path(soundscapes_path, names(ls_soundscapes)[i])
 #'   )
 #' }))
 #'

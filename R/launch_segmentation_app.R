@@ -91,27 +91,26 @@
 #'
 #' # Essential setup
 #' launch_segmentation_app(
-#'   project_path = ".", user = "Rosa G.L.M.",
-#'   soundscapes_path = "./010_soundscapes",
-#'   roi_tables_path = "./030_roi_tables/",
-#'   cuts_path = "./040_roi_cuts/"
+#'   project_path = ".", user = "User",
+#'   soundscapes_path = "./soundscapes", roi_tables_path = "./roi_tables/",
+#'   cuts_path = "./roi_cuts/"
 #' )
 #'
 #' # Check the segmentation files produced by the segmentation app
-#' list.files("./040_roi_cuts/", pattern = "*.csv")
+#' list.files("./roi_cuts/", pattern = "*.csv")
 #'
 #' # Check the roi cuts exported to be used as templates
 #' list.files("./roi_cuts/", pattern = "*.wav")
 #'
 #' # Detailed setup
 #' launch_segmentation_app(
-#'   project_path = ".", user = "Rosa G.L.M.",
-#'   soundscapes_path = "./010_soundscapes",
-#'   roi_tables_path = "./030_roi_tables/", cuts_path = "./040_roi_cuts/",
-#'   dyn_range = c(-84, -48), wl = 1024, ovlp = 80, color_scale = "greyscale 1",
-#'   zoom_freq = c(0, 10)
+#'   project_path = ".", user = "User",
+#'   soundscapes_path = "./soundscapes", roi_tables_path = "./roi_tables/",
+#'   cuts_path = "./roi_cuts/",
+#'   dyn_range = c(-84, -48), wl = 1024, ovlp = 80, zoom_freq = c(0, 10),
+#'   color_scale = "greyscale 1",
 #' )
-#' 
+#'
 #' }
 launch_segmentation_app <- function(
     project_path = NULL, preset_path = NULL, user = NULL,
@@ -162,7 +161,7 @@ launch_segmentation_app <- function(
       "Warning! No values were provided for 'roi_tables_path' and 'project_path' variables. Please provide and confirm within the app."
     )
   } else if (is.null(roi_tables_path) & !is.null(project_path)) {
-    roi_tables_path <- file.path(project_path, "030_roi_tables/")
+    roi_tables_path <- file.path(project_path, "roi_tables/")
     if (!dir.exists(roi_tables_path)) {
       dir.create(roi_tables_path)
       warning(
@@ -184,7 +183,7 @@ launch_segmentation_app <- function(
       session_data$cuts_path <- NA
       warning("Warning! No value was provided for 'cuts_path' and 'project_path' variables. Inform the value and confirm within the app.")
     } else {
-      cuts_path <- file.path(project_path, "040_roi_cuts/")
+      cuts_path <- file.path(project_path, "roi_cuts/")
       if (!dir.exists(cuts_path)) {
         dir.create(cuts_path)
         warning("Warning! The path informed in 'cuts_path' was not found locally. A new 'cuts' directory was successfully created within the informed 'project_path', at '", cuts_path, "'")
@@ -345,7 +344,7 @@ launch_segmentation_app <- function(
     session_data$temp_path <- temp_path
   } else if (!is.null(project_path)) {
     # Define preset path based on project path
-    session_data$preset_path <- file.path(project_path, "000_app_presets/")
+    session_data$preset_path <- file.path(project_path, "app_presets/")
     session_data$temp_path <- file.path(session_data$preset_path, "temp/")
 
     # Create preset and temp directories if they do not exist
@@ -379,7 +378,7 @@ launch_segmentation_app <- function(
     }
     # Handle project path case
     if (!is.null(project_path)) {
-      preset_path <- file.path(project_path, "000_app_presets", "sp_labels.xlsx")
+      preset_path <- file.path(project_path, "app_presets", "sp_labels.xlsx")
       if (!dir.exists(dirname(preset_path))) {
         dir.create(dirname(preset_path), recursive = TRUE)
       }

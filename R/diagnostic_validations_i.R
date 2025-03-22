@@ -4,28 +4,28 @@
 #'
 #'   This function performs diagnostic validations on the detections. The
 #'   diagnostic validations are used to determine the optimal cutpoint to be
-#'   used in the detections. The function will automatically determine the
-#'   cutpoint to be used in the diagnostic validations if the "Auto" method is
-#'   selected. If the "Manual" method is selected, the user must provide the
-#'   cutpoint to be used in the diagnostic validations.
+#'   used in the detections.
 #'
 #' @param val_i A tibble containing the validation results of the detections
 #' @param diag_method A character string indicating the method to use for
-#'   diagnostic validations. The two methods available are: "Auto" (default) or
-#'   "Manual". If "Auto" is selected, the function will automatically determine
+#'   diagnostic validations. The two methods available are: "auto" (default) or
+#'   "Manual". If "auto" is selected, the function will automatically determine
 #'   the cutpoint to be used in the diagnostic validations. If "Manual" is
-#'   selected, the user must provide the cutpoint to be used in the diagnostic
-#'   validations.
-#' @param pos_prob A numeric value indicating the probability of a positive test
+#'   selected, the user must explicitly pass the cutpoint to be used in the
+#'   diagnostic validations to the `diag_cut` argument.
+#' @param pos_prob A numeric value indicating the probability of a positive
+#'   test, if `diag_method` is set to "auto", otherwise it is ignored. It
+#'   defaults to 0.95.
 #' @param diag_cut A numeric value indicating the cutpoint to be used in the
-#'   diagnostic
+#'   diagnostic, if `diag_method` is set to "manual", otherwise it is ignored.
+#'   It defaults to NULL.
 #'
 #' @import dplyr ggplot2
 #' @importFrom cutpointr cutpointr
 #' @return A list containing the diagnostic results
 #' @export
 diagnostic_validations_i <- function(
-    val_i, diag_method = "Auto", pos_prob = 0.95, diag_cut = NULL) {
+    val_i, diag_method = "auto", pos_prob = 0.95, diag_cut = NULL) {
 
   # check if there is only one template name in the data
   if (length(unique(val_i$template_name)) > 1) {
@@ -64,7 +64,7 @@ diagnostic_validations_i <- function(
         score_cut <- diag_cut
       )
     }
-  } else if (diag_method == "Auto") {
+  } else if (diag_method == "auto") {
     df_pred <- data.frame(peak_score = seq(0.01, 0.99, 0.01))
     df_pred$prob <- predict(bin_mod, newdata = df_pred, type = "response")
     score_cut <- df_pred$peak_score[min(which(df_pred$prob >= pos_prob))]
@@ -74,7 +74,7 @@ diagnostic_validations_i <- function(
     cutpointr_raw <- cutpointr::cutpointr(
       df_diag_input, peak_score, validation,
       cutpoint = score_cut, silent = TRUE, pos_class = "TP",
-      neg_class = "FP", direction = ">=", method = oc_manual,
+      neg_class = "FP", direction = ">=", method = cutpointr::oc_manual,
       use_midpoints = FALSE
     )
 

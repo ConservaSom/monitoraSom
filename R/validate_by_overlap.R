@@ -28,7 +28,7 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' 
+#'
 #' # Load the necessary packages to run this example
 #' library(monitoraSom)
 #' library(dplyr)
@@ -43,9 +43,10 @@
 #'
 #' # Run the validation by overlap.
 #' df_detecs_val_tovlp <- validate_by_overlap(
-#'   df_detecs = df_detecs, df_rois, validation_user = "Rosa G.L.M."
+#'   df_detecs = df_detecs, df_rois, validation_user = "User"
 #' )
 #' glimpse(df_detecs_val_tovlp)
+#'
 #' }
 validate_by_overlap <- function(
   df_detecs, df_rois, validation_user = NULL, recursive = FALSE,

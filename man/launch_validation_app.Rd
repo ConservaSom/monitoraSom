@@ -126,26 +126,27 @@ todo
 }
 \examples{
 \dontrun{
+
 # Load the necessary packages to run this example
 library(monitoraSom)
 
 # Load and save the soundscape recordings to be rendered in the validation app.
 data(ls_soundscapes)
-dir.create("./010_soundscapes")
+dir.create("./soundscapes")
 invisible(lapply(1:length(ls_soundscapes), function(i) {
   tuneR::writeWave(
     ls_soundscapes[[i]],
-    file.path("./010_soundscapes", names(ls_soundscapes)[i])
+    file.path("./soundscapes", names(ls_soundscapes)[i])
   )
 }))
 
 # Load and save the template recordings to be rendered in the validation app.
 data(ls_templates)
-dir.create("./040_roi_cuts")
+dir.create("./templates")
 invisible(lapply(1:length(ls_templates), function(i) {
   tuneR::writeWave(
     ls_templates[[i]],
-    file.path("./040_roi_cuts", names(ls_templates)[i])
+    file.path("./templates", names(ls_templates)[i])
   )
 }))
 
@@ -154,7 +155,7 @@ invisible(lapply(1:length(ls_templates), function(i) {
 data(df_detecs)
 write.csv(
   df_detecs,
-  file.path("./110_validation_outputs", "df_detecs_validation_app_test.csv"),
+  file.path("./validation_outputs", "df_detecs_validation_app_test.csv"),
   row.names = FALSE
 )
 
@@ -162,10 +163,10 @@ write.csv(
 # output to avoid overwriting the original detection data and to store the
 # validation results across multiple sessions of the validation app.
 launch_validation_app(
-  project_path = ".", validation_user = "Rosa G.L.M.",
-  templates_path = "040_roi_cuts/", soundscapes_path = "./010_soundscapes/",
-  input_path = "./110_validation_outputs/df_detecs_validation_app_test.csv",
-  output_path = "./110_validation_outputs/df_detecs_validation_app_test.csv",
+  project_path = ".", validation_user = "User",
+  templates_path = "./templates/", soundscapes_path = "./soundscapes/",
+  input_path = "./validation_outputs/df_detecs_validation_app_test.csv",
+  output_path = "./validation_outputs/df_detecs_validation_app_test.csv",
   dyn_range_templ = c(-48, 0), dyn_range_detec = c(-90, -48), wl = 512,
   ovlp = 50, time_guide_interval = 0, freq_guide_interval = 0
 )

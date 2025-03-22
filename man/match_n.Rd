@@ -36,7 +36,7 @@ matching algorithm. It defaults to "detections".}
 \item{output_file}{A character string indicating the path to save the results
 in the format of a CSV file for detections or RDS file for scores. Default
 is NULL. We recommend to export detection or raw score files to the
-"080_detections/" subdirectory.}
+"detections/" subdirectory.}
 
 \item{autosave_action}{A character string indicating the action to be taken
 if the output file already exists. Possible values are "append" and
@@ -83,11 +83,15 @@ library(monitoraSom)
 library(dplyr)
 library(tuneR)
 
+library(monitoraSom)
+library(dplyr)
+library(tuneR)
+
 # Load the soundscape list to populate the example data
 data(ls_soundscapes)
 
 # Create a directory to store the soundscapes
-soundscapes_path <- "./010_soundscapes"
+soundscapes_path <- "./soundscapes"
 dir.create(soundscapes_path)
 invisible(lapply(1:length(ls_soundscapes), function(i) {
   writeWave(
@@ -99,7 +103,7 @@ invisible(lapply(1:length(ls_soundscapes), function(i) {
 data(ls_templates)
 
 # Create a directory to store the templates
-templates_path <- "./040_roi_cuts"
+templates_path <- "./templates"
 dir.create(templates_path)
 invisible(lapply(1:length(ls_templates), function(i) {
   writeWave(

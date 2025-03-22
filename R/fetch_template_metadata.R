@@ -7,7 +7,7 @@
 #'
 #' @param templates_path The directory path containing the template wave files.
 #'   If no path is provided, the function will look for the templates in the
-#'   "040_roi_cuts/" directory.
+#'   "roi_cuts/" directory.
 #' @param recursive A logical value indicating whether the search for template
 #'   files should be recursive or not. Defaults to FALSE.
 #'
@@ -23,29 +23,37 @@
 #' # Load the necessary packages to run this example
 #' library(monitoraSom)
 #' library(dplyr)
-#' library(tuneR)
-#' 
-#' # Load the templates to populate the example data
-#' data(ls_templates)
-#' 
-#' # Create a directory and export the templates
-#' templates_path <- "./040_roi_cuts"
-#' dir.create(templates_path)
-#' invisible(lapply(1:length(ls_templates), function(i) {
-#'   writeWave(
-#'     ls_templates[[i]], file.path(templates_path, names(ls_templates)[i])
-#'   )
-#' }))
-#' 
+#'
+#' # Load the roi data (output of `fetch_rois()`)
+#' data(df_rois)
+#'
+#' # Filter the rois to export as templates. Two layers of filtering are applied:
+#' # 1) the soundscape file paths that contain "recordings" to avoid exporting
+#' # ROIs obtained from the soundscapes recording segmentation.
+#' # 2) the roi comment contains "Substructure C", to select only the ROIs of
+#' # interest
+#' df_rois_processed <- df_rois %>%
+#'   filter(grepl("recordings", soundscape_path)) %>%
+#'   filter(grepl("Substructure C", roi_comment)) %>%
+#'   glimpse()
+#'
+#' # Create a directory to store the roi cuts
+#' dir.create("./templates/")
+#'
+#' # Export the roi cuts
+#' export_roi_cuts_n(
+#'   df_rois = df_rois_processed, roi_cuts_path = "./templates/"
+#' )
+#'
 #' # Import the templates metadata
-#' df_templates <- fetch_template_metadata(templates_path = templates_path)
+#' df_templates <- fetch_template_metadata(templates_path = "./templates/")
 #' glimpse(df_templates)
-#' 
+#'
 #' }
 fetch_template_metadata <- function(templates_path = NULL, recursive = FALSE) {
 
   templates_path <- if (is.null(templates_path)) {
-    "040_roi_cuts/"
+    "roi_cuts/"
   } else if (!dir.exists(templates_path)) {
     stop("The provided path to the templates does not exist")
   } else {

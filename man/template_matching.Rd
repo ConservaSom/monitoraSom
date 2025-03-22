@@ -5,9 +5,9 @@
 \title{Perform template matching on a set of soundscapes using a set of templates}
 \usage{
 template_matching(
-  path_soundscapes = "010_soundscapes/",
+  soundscapes_path = "soundscapes/",
   recursive_soundscapes = FALSE,
-  path_templates = "040_roi_cuts/",
+  templates_path = "roi_cuts/",
   recursive_templates = FALSE,
   score_method = "cor",
   output_file = NULL,
@@ -21,14 +21,8 @@ template_matching(
 )
 }
 \arguments{
-\item{path_soundscapes}{Path to a directory containing the soundscapes to be
-analyzed. It defaults to "soundscapes/".}
-
 \item{recursive_soundscapes}{A logical value indicating whether to search
 soundscapes recursively. It defaults to FALSE.}
-
-\item{path_templates}{Path to a directory containing the templates to be used
-for matching. It defaults to "roi_cuts/".}
 
 \item{recursive_templates}{A logical value indicating whether to search
 templates recursively. It defaults to FALSE.}
@@ -38,7 +32,7 @@ templates recursively. It defaults to FALSE.}
 
 \item{output_file}{Path to the file where the results will be saved. It
 defaults to NULL. We recommend to export detection or raw score files to
-the "080_detections/" subdirectory. If the file already exists, the action
+the "detections/" subdirectory. If the file already exists, the action
 specified in the `autosave_action` parameter will be taken.}
 
 \item{autosave_action}{A character string indicating the action to be taken
@@ -71,6 +65,12 @@ whole matching grid.}
 
 \item{ncores}{An integer indicating the number of cores to be used for
 parallelization. It defaults to 1.}
+
+\item{path_soundscapes}{Path to a directory containing the soundscapes to be
+analyzed. It defaults to "soundscapes/".}
+
+\item{path_templates}{Path to a directory containing the templates to be used
+for matching. It defaults to "roi_cuts/".}
 }
 \value{
 A dataframe with the detected events.
@@ -93,11 +93,12 @@ library(tuneR)
 data(ls_soundscapes)
 
 # Create a directory to store the soundscapes
-soundscapes_path <- "./010_soundscapes"
+soundscapes_path <- "./soundscapes"
 dir.create(soundscapes_path)
 invisible(lapply(1:length(ls_soundscapes), function(i) {
   writeWave(
-    ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
+    ls_soundscapes[[i]],
+    file.path(soundscapes_path, names(ls_soundscapes)[i])
   )
 }))
 
@@ -105,7 +106,7 @@ invisible(lapply(1:length(ls_soundscapes), function(i) {
 data(ls_templates)
 
 # Create a directory to store the templates
-templates_path <- "./040_roi_cuts"
+templates_path <- "./templates"
 dir.create(templates_path)
 invisible(lapply(1:length(ls_templates), function(i) {
   writeWave(
@@ -114,8 +115,8 @@ invisible(lapply(1:length(ls_templates), function(i) {
 }))
 
 df_detecs <- template_matching(
-  path_soundscapes = soundscapes_path,
-  path_templates = templates_path,
+  soundscapes_path = soundscapes_path,
+  templates_path = templates_path,
 )
 glimpse(df_detecs)
 

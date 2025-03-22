@@ -4,13 +4,13 @@
 \alias{export_roi_cuts_n}
 \title{Export ROI cuts}
 \usage{
-export_roi_cuts_n(df_rois, roi_cuts_path = "040_roi_cuts/", overwrite = FALSE)
+export_roi_cuts_n(df_rois, roi_cuts_path = "roi_cuts/", overwrite = FALSE)
 }
 \arguments{
 \item{df_rois}{A tibble containing the ROIs to be cut}
 
 \item{roi_cuts_path}{A character string indicating the path to save the cuts.
-We recommend to provide the "040_roi_cuts/" directory, which is the default
+We recommend to provide the "roi_cuts/" directory, which is the default
 path used by the segmentation app.}
 
 \item{overwrite}{If TRUE, existing files will be overwritten}
@@ -35,20 +35,26 @@ library(dplyr)
 # Load the roi data (output of `fetch_rois()`)
 data(df_rois)
 
-# Selecting 5 random ROIs to export
-df_rois_to_export <- sample_n(df_rois, 5)
-glimpse(df_rois_to_export)
+# Filter the rois to export as templates. Two layers of filtering are applied:
+# 1) the soundscape file paths that contain "recordings" to avoid exporting
+# ROIs obtained from the soundscapes recording segmentation.
+# 2) the roi comment contains "Substructure C", to select only the ROIs of
+# interest
+df_rois_processed <- df_rois \%>\%
+  filter(grepl("recordings", soundscape_path)) \%>\%
+  filter(grepl("Substructure C", roi_comment)) \%>\%
+  glimpse()
 
 # Create a directory to store the roi cuts
-dir.create("./temp_roi_cuts/")
+dir.create("./templates/")
 
 # Export the roi cuts
 export_roi_cuts_n(
-  df_rois = df_rois_to_export, roi_cuts_path = "./temp_roi_cuts/"
+  df_rois = df_rois_processed, roi_cuts_path = "./templates/"
 )
 
 # Check the roi cuts exported
-list.files("./temp_roi_cuts/", pattern = "*.wav")
+list.files("./templates/", pattern = "*.wav")
 
 }
 }

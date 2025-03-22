@@ -26,7 +26,7 @@
 #' data(ls_roi_tables)
 #'
 #' # Create a directory and export the roi tables
-#' rois_path <- "./030_roi_tables"
+#' rois_path <- "./roi_tables"
 #' dir.create(rois_path)
 #' invisible(lapply(1:length(ls_roi_tables), function(i) {
 #'   write.csv(
@@ -39,7 +39,20 @@
 #' # Import the roi tables as a unified dataframe
 #' df_rois <- fetch_rois(rois_path = rois_path)
 #' glimpse(df_rois)
-#' 
+#'
+#' # Lets use some data wrangling to separate the rois into those from focal
+#' # recordings, destined to be used as templates, which could be later exported
+#' # with the `export_roi_cuts_n()` function...
+#' df_rois_templates <- df_rois %>%
+#'   filter(grepl("recordings", soundscape_path))
+#' glimpse(df_rois_templates)
+#'
+#' # ...From those from the soundscapes, destined to be used to validate the
+#' # detections with the `validate_by_overlap()` function.
+#' df_rois_soundscapes <- df_rois %>%
+#'   filter(grepl("soundscapes", soundscape_path))
+#' glimpse(df_rois_soundscapes)
+#'
 #' }
 fetch_rois <- function(rois_path = NULL, recursive = FALSE) {
 

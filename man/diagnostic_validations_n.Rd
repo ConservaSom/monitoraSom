@@ -4,16 +4,16 @@
 \alias{diagnostic_validations_n}
 \title{Compute detection diagnostics of validated detections from multiple templates}
 \usage{
-diagnostic_validations_n(df_validated, diag_method = "Auto", pos_prob = 0.95)
+diagnostic_validations_n(df_validated, diag_method = "auto", pos_prob = 0.95)
 }
 \arguments{
 \item{df_validated}{A tibble containing the validation results of the
 detections `validate_by_overlap()` function or within the validation app.}
 
 \item{diag_method}{A character string indicating the method to use for
-diagnostic validations. The two methods available are: "Auto" (default) or
-"Manual". If "Auto" is selected, the function will automatically determine
-the cutpoint to be used in the diagnostic validations. If "Manual" is
+diagnostic validations. The two methods available are: "auto" (default) or
+"manual". If "auto" is selected, the function will automatically determine
+the cutpoint to be used in the diagnostic validations. If "manual" is
 selected, the user must provide the cutpoint to be used in the diagnostic
 validations.}
 
@@ -30,11 +30,10 @@ A list of results from the diagnostic validations, or NULL if all
 This function performs diagnostic validations on the detections from
 `diagnostic_validations_i()` in cases where there are detections generated
 for multiple templates or classes. The diagnostic validations are used to
-determine the optimal cutpoint to be used in the detections. The function
-will automatically determine the cutpoint to be used in the diagnostic
-validations if the "Auto" method is selected. If the "Manual" method is
-selected, the user must provide the cutpoint to be used in the diagnostic
-validations.
+determine the optimal cutpoint to be used in the detections. This function is
+a wrapper around `diagnostic_validations_i()`, and is works stricctly in the
+"auto" mode, thus cutpoints are automatically determined by the logistic
+regression model, if the data allows for it.
 }
 \examples{
 \dontrun{
@@ -53,13 +52,14 @@ glimpse(df_detecs_val_tovlp)
 # In this type of validation it is recommended to mitigate the large number of
 # false positives. Here we filter the detections with a peak score greater than
 # 0.2, but other methods can be used for more informed decisions at this stage.
-df_detecs_val_tovlp <- df_detecs_val_tovlp \%>\%
-  filter(peak_score > 0.2)
+df_detecs_val_tovlp_subset <- df_detecs_val_tovlp \%>\%
+  filter(peak_score > 0.2) \%>\%
+  glimpse()
 
 # Run the diagnostics on the validated detections
 ls_diag_tovlp <- diagnostic_validations_n(
   df_validated = df_detecs_val_tovlp,
-  diag_method = "Auto", pos_prob = 0.90
+  diag_method = "auto", pos_prob = 0.90
 )
 
 # Check the number of templates in the diagnostics object
@@ -87,7 +87,7 @@ glimpse(df_detecs_val_manual)
 # Run the diagnostics on the validated detections
 ls_diag_manual <- diagnostic_validations_n(
   df_validated = df_detecs_val_manual,
-  diag_method = "Auto", pos_prob = 0.90
+  diag_method = "auto", pos_prob = 0.90
 )
 
 # Check the number of templates in the diagnostics object
@@ -108,7 +108,8 @@ template_B <- ls_diag_manual[[1]]
   template_A$mod_plot + labs(title = "Time overlap validation") +
     template_B$mod_plot + labs(title = "Manual validation")
 ) /
-  (template_A$precrec_plot + template_B$precrec_plot) #'
+  (template_A$precrec_plot + template_B$precrec_plot)
+
 
 }
 }
