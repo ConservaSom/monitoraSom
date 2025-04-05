@@ -5,9 +5,9 @@
 #'   This function performs template matching on a set of soundscapes using a
 #'   set of templates, and returns a dataframe with the detected events.
 #'
-#' @param path_soundscapes Path to a directory containing the soundscapes to be
+#' @param soundscapes_path Path to a directory containing the soundscapes to be
 #'   analyzed. It defaults to "soundscapes/".
-#' @param path_templates Path to a directory containing the templates to be used
+#' @param templates_path Path to a directory containing the templates to be used
 #'   for matching. It defaults to "roi_cuts/".
 #' @param score_method The method used for template matching, either "cor" or
 #'   "dtw". It defaults to "cor".

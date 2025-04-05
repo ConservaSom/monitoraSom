@@ -21,7 +21,6 @@
 #'   documentation of the functions 'fetch_soundscape_metadata()' and
 #'   'fetch_template_metadata()' for more details).
 #'
-#' @import dplyr
 #' @export
 #' @examples
 #' \dontrun{

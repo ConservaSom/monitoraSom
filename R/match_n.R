@@ -48,10 +48,7 @@
 #'   detections, the function returns a data frame with the detections. If no
 #'   paths are provided, the output are returned to the R session.
 #'
-#' @import dplyr future
-#' @importFrom purrr list_rbind
-#' @importFrom parallel makePSOCKcluster detectCores
-#' @importFrom pbapply pblapply
+#' @import future
 
 #' @export
 #' @examples
@@ -63,10 +60,10 @@
 #' library(monitoraSom)
 #' library(dplyr)
 #' library(tuneR)
-#' 
+#'
 #' # Load the soundscape list to populate the example data
 #' data(ls_soundscapes)
-#' 
+#'
 #' # Create a directory to store the soundscapes
 #' soundscapes_path <- "./soundscapes"
 #' dir.create(soundscapes_path)
@@ -75,10 +72,10 @@
 #'     ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
 #'   )
 #' }))
-#' 
+#'
 #' # Load the templates to populate the example data
 #' data(ls_templates)
-#' 
+#'
 #' # Create a directory to store the templates
 #' templates_path <- "./templates"
 #' dir.create(templates_path)
@@ -87,20 +84,20 @@
 #'     ls_templates[[i]], file.path(templates_path, names(ls_templates)[i])
 #'   )
 #' }))
-#' 
+#'
 #' # Import the soundscapes and templates as dataframes
 #' df_soundscapes <- fetch_soundscapes_metadata(
 #'   soundscapes_path = soundscapes_path
 #' )
-#' 
+#'
 #' # Import the templates as a dataframe
 #' df_templates <- fetch_template_metadata(templates_path = templates_path)
-#' 
+#'
 #' # Create a match grid
 #' df_grid <- fetch_match_grid(
 #'   soundscape_data = df_soundscapes, template_data = df_templates
 #' )
-#' 
+#'
 #' # Run the template matching to store raw scores of the first ten matches
 #' df_scores <- match_n(
 #'   df_grid = df_grid[1:10, ], score_method = "cor", output = "scores"
@@ -109,7 +106,7 @@
 #' glimpse(df_scores)
 #' # Look into the raw score vector of the first match
 #' glimpse(df_scores$score_vec[1])
-#' 
+#'
 #' # Run the template matching to get the raw detections
 #' df_detecs <- match_n(
 #'   df_grid = df_grid[1:10, ], score_method = "cor", output = "detections"
@@ -145,7 +142,9 @@ match_n <- function(
 
   if (output == "detections") {
     if (is.null(output_file)) {
-      grid_list <- group_split(rowwise(df_grid))
+      grid_list <- dplyr::group_split(
+        dplyr::rowwise(df_grid)
+      )
       res <- pbapply::pblapply(
         grid_list,
         function(x) {
@@ -156,7 +155,8 @@ match_n <- function(
           )
         },
         cl = ncores
-      ) %>% list_rbind()
+      )
+      res <- purrr::list_rbind(res)
       message(
         paste(
           "Template matching finished. Detections have been returned to the",
@@ -186,7 +186,7 @@ match_n <- function(
       if (file.exists(output_file) && autosave_action == "append") {
         df_check <- data.table::fread(output_file)
         if (nrow(df_check) > 0) {
-          df_check <- df_check %>%
+          df_check <- df_check |>
             dplyr::transmute(
               soundscape_file = soundscape_file,
               template_file = template_file,
@@ -198,11 +198,11 @@ match_n <- function(
               min_quant = detection_min_quant,
               top_n = detection_top_n
             )
-          df_grid_check <- df_grid %>%
+          df_grid_check <- df_grid |>
             dplyr::mutate(
               buffer_size = buffer_size, min_score = min_score,
               min_quant = min_quant, top_n = top_n
-            ) %>%
+            ) |>
             dplyr::select(
               soundscape_file, template_file, template_wl, template_ovlp,
               template_sample_rate, buffer_size, min_score, min_quant, top_n
@@ -220,7 +220,9 @@ match_n <- function(
           }
         }
       }
-      grid_list <- group_split(rowwise(df_grid))
+      grid_list <- dplyr::group_split(
+        dplyr::rowwise(df_grid)
+      )
       pbapply::pblapply(
         grid_list,
         function(x) {
@@ -241,7 +243,9 @@ match_n <- function(
       )
     }
   } else {
-    grid_list <- group_split(rowwise(df_grid))
+    grid_list <- dplyr::group_split(
+      dplyr::rowwise(df_grid)
+    )
     res <- pbapply::pblapply(
       grid_list,
       function(x) {
@@ -252,7 +256,8 @@ match_n <- function(
         )
       },
       cl = ncores
-    ) %>% list_rbind()
+    ) |>
+      purrr::list_rbind()
     if (!is.null(output_file)) {
       if (!dir.exists(dirname(output_file)) || !grepl("\\.rds$", output_file)) {
         stop("The path for the RDS output file is not valid")

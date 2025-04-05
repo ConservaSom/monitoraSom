@@ -36,11 +36,6 @@
 #'
 #' @return A Tibble containing the detections of all audio scores.
 #'
-#' @import dplyr
-#' @importFrom pbapply pblapply
-#' @importFrom parallel makePSOCKcluster detectCores
-#' @importFrom tibble is_tibble
-#' @importFrom tools file_ext
 #' @export
 #' @examples
 #' \dontrun{

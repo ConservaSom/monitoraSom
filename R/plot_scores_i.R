@@ -50,10 +50,7 @@
 #' @return Todo
 #'
 #' @export
-#' @import ggplot2 patchwork
-#' @importFrom tuneR readWave
-#' @importFrom seewave spectro reverse.gray.colors.1 reverse.gray.colors.2
-#' @importFrom viridis viridis
+#' @import ggplot2 patchwork seewave viridis
 #' @examples
 #' \dontrun{
 #'
@@ -120,12 +117,12 @@ plot_scores_i <- function(
     ovlp = NULL, wl = NULL, dyn_range = NULL, color_scale = "inferno",
     n_colors = 124, interpolate = FALSE, ...) {
 
-  requireNamespace("patchwork")
-  requireNamespace("viridis")
-  requireNamespace("seewave")
-  requireNamespace("tuneR")
-  requireNamespace("ggplot2")
-  requireNamespace("dplyr")
+  # requireNamespace("patchwork")
+  # requireNamespace("viridis")
+  # requireNamespace("seewave")
+  # requireNamespace("tuneR")
+  # requireNamespace("ggplot2")
+  # requireNamespace("dplyr")
 
   detecs <- fetch_score_peaks_i(
     df_scores_i,
@@ -209,7 +206,7 @@ plot_scores_i <- function(
       axis.ticks.x = element_blank()
     )
 
-  plot_score <- df_scores_i$score_vec[[1]] %>%
+  plot_score <- df_scores_i$score_vec[[1]] |>
     ggplot(aes(x = time_vec, y = score_vec)) +
     annotate(
       "point",

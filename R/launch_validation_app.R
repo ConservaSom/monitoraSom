@@ -56,17 +56,8 @@
 #' @return todo
 #'
 #' @export
-#' @import shiny dplyr tidyr ggplot2 stringr DT shinyWidgets shinydashboard keys
-#'   shinyjs shinyBS cutpointr
-#' @importFrom caret downSample upSample
-#' @importFrom ROSE ROSE
-#' @importFrom data.table fread fwrite
-#' @importFrom cowplot plot_grid
-#' @importFrom tuneR readWave normalize setWavPlayer play
-#' @importFrom seewave ffilter cutw duration addsilw ffilter fir
-#' @importFrom DT dataTableOutput renderDataTable
-#' @importFrom shinyjs show
-#' @importFrom shinyWidgets alert
+#' @import tidyr ggplot2 stringr shinydashboard shinyBS cutpointr
+#' @importFrom dplyr %>%
 #' @examples
 #' \dontrun{
 #'
@@ -128,13 +119,14 @@ launch_validation_app <- function(
     pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
   ) {
 
-  library(dplyr, warn.conflicts = FALSE)
   options(dplyr.summarise.inform = FALSE)
+  # require(dplyr, warn.conflicts = FALSE)
+  # require(shinyjs, exclude = "runExample")
+  # require(shinyWidgets, exclude = "alert")
 
   # requireNamespace("tidyr")
   # requireNamespace("dplyr")
   # requireNamespace("ggplot2")
-  # requireNamespace("lubridate")
   # requireNamespace("seewave")
   # requireNamespace("stringr")
   # requireNamespace("tuneR")
@@ -702,11 +694,11 @@ launch_validation_app <- function(
       body = dashboardBody(
 
         # Set up shinyjs
-        useShinyjs(),
+        shinyjs::useShinyjs(),
 
         # Make keyboard shotcuts available
-        useKeys(),
-        keysInput("hotkeys", hotkeys),
+        keys::useKeys(),
+        keys::keysInput("hotkeys", hotkeys),
 
         # Avoid blinking figures while rendering
         tags$style(type = "text/css", ".recalculating {opacity: 1.0;}"),
@@ -908,7 +900,7 @@ launch_validation_app <- function(
 
           tabPanel("Detection Table",
             height = "100%",
-            DTOutput("res_table")
+            DT::DTOutput("res_table")
           ),
 
           # Soundscape spectrogram -----------------------------------------------
@@ -1042,7 +1034,7 @@ launch_validation_app <- function(
         } else {
           tryCatch(
             {
-              test_read <- fread(input$input_path, nrows = 1)
+              test_read <- data.table::fread(input$input_path, nrows = 1)
             },
             error = function(e) {
               validation_errors <<- c(
@@ -1153,7 +1145,9 @@ launch_validation_app <- function(
               dplyr::mutate(template_file = basename(template_path))
             df_ref_templates(df_templates)
 
-            res <- data.table::fread(input$input_path, data.table = FALSE, header = TRUE) %>%
+            res <- data.table::fread(
+              input$input_path, data.table = FALSE, header = TRUE
+              ) %>%
               dplyr::mutate(
                 soundscape_path = as.character(NA),
                 template_path = as.character(NA)
@@ -1804,7 +1798,7 @@ launch_validation_app <- function(
       # Reactive object to store info about the active soundscape
       df_soundscape <- reactive({
         req(df_detections())
-        slice_head(df_detections())
+        dplyr::slice_head(df_detections())
       })
 
       # Reactive object to store the active soundscape wav
@@ -1954,7 +1948,7 @@ launch_validation_app <- function(
       # Template player (not HTML)
       observeEvent(input$play_template, {
         req(df_template())
-        res <- readWave(df_template()$template_path)
+        res <- tuneR::readWave(df_template()$template_path)
         pitch_shift <- abs(input$pitch_shift)
         if (input$pitch_shift < 1) {
           res@samp.rate <- res@samp.rate / pitch_shift
@@ -2040,7 +2034,7 @@ launch_validation_app <- function(
               input$wav_player_type %in% c("R session", "External player")
             )
             req(df_template())
-            res <- readWave(df_template()$template_path)
+            res <- tuneR::readWave(df_template()$template_path)
             pitch_shift <- abs(input$pitch_shift)
             if (input$pitch_shift < 1) {
               res@samp.rate <- res@samp.rate / pitch_shift
@@ -2150,7 +2144,7 @@ launch_validation_app <- function(
               validation %in% c("TP", "FP")
           ) %>%
           dplyr::mutate(
-            validation_bin = case_when(
+            validation_bin = dplyr::case_when(
               validation == "TP" ~ 1, validation == "FP" ~ 0
             )
           )
@@ -2175,8 +2169,9 @@ launch_validation_app <- function(
         if (input$overwrite == TRUE) {
           if (res_A$validation_user == det_i()$validation_user || is.na(det_i()$validation_user)) {
             det_i(res_A)
-            df_cut(rows_update(df_cut(), res_A, by = "detection_id", unmatched = "ignore"))
-            df_output(rows_update(df_output(), res_A, by = "detection_id", unmatched = "ignore"))
+            df_cut(
+              dplyr::rows_update(df_cut(), res_A, by = "detection_id", unmatched = "ignore"))
+            df_output(dplyr::rows_update(df_output(), res_A, by = "detection_id", unmatched = "ignore"))
             validation_input(NULL) # reset after value is passed on forward
             if (input$lock_detec_note == FALSE) {
               updateTextInput(session, "detec_note", value = NA)
@@ -2211,7 +2206,9 @@ launch_validation_app <- function(
         }
 
         if (input$nav_autosave == TRUE) {
-          fwrite(x = df_output(), file = input$output_path, na = NA, row.names = FALSE)
+          data.table::fwrite(
+            x = df_output(), file = input$output_path, na = NA, row.names = FALSE
+          )
           showNotification("Detections successfully exported")
           updateProgressBar(
             session = session, id = "prog_bar_full",
@@ -2232,7 +2229,9 @@ launch_validation_app <- function(
       # Set up the reaction of the export button from the UI
       observeEvent(input$button_save, {
         req(df_output(), df_cut(), input$output_path)
-        fwrite(x = df_output(), file = input$output_path, na = NA, row.names = FALSE)
+        data.table::fwrite(
+          x = df_output(), file = input$output_path, na = NA, row.names = FALSE
+        )
         showNotification("Detections successfully exported")
         updateProgressBar(
           session = session, id = "prog_bar_full",
@@ -2251,7 +2250,9 @@ launch_validation_app <- function(
       # Set up the reaction of the export hotkey
       observeEvent(input$hotkeys, {
         req(df_output(), df_cut(), input$output_path, input$hotkeys == "s")
-        fwrite(x = df_output(), file = input$output_path, na = NA, row.names = FALSE)
+        data.table::fwrite(
+          x = df_output(), file = input$output_path, na = NA, row.names = FALSE
+        )
         showNotification("Detections successfully exported")
         updateProgressBar(
           session = session, id = "prog_bar_full",
@@ -2281,7 +2282,7 @@ launch_validation_app <- function(
       })
 
       # Render the interactive detection table
-      output$res_table <- renderDT(
+      output$res_table <- DT::renderDT(
         {
           req(df_cut())
           df_cut() %>%
@@ -2320,7 +2321,7 @@ launch_validation_app <- function(
           req(df_output(), df_cut())
           df_output() %>%
             dplyr::group_by(template_name, validation) %>%
-            dplyr::summarise(n = n()) %>%
+            dplyr::summarise(n = dplyr::n()) %>%
             dplyr::ungroup() %>%
             tidyr::pivot_wider(names_from = "validation", values_from = "n") %>%
             dplyr::rename(Template = template_name)
@@ -2333,7 +2334,7 @@ launch_validation_app <- function(
           df_cut() %>%
             # filter(template_name == input$template_name) %>%
             dplyr::group_by(template_name, validation) %>%
-            dplyr::summarise(n = n()) %>%
+            dplyr::summarise(n = dplyr::n()) %>%
             dplyr::ungroup() %>%
             tidyr::pivot_wider(names_from = "validation", values_from = "n") %>%
             dplyr::rename(Template = template_name)
@@ -2350,7 +2351,7 @@ launch_validation_app <- function(
             df_diag_input_raw() %>%
               dplyr::mutate(validation = as.factor(validation)) %>%
               caret::downSample(x = ., y = .$validation, yname = "temp") %>%
-              select(-temp)
+              dplyr::select(-temp)
           } else if (input$diag_balance == "Upsample smaller  class") {
             df_diag_input_raw() %>%
               dplyr::mutate(validation = as.factor(validation)) %>%
@@ -2629,7 +2630,7 @@ launch_validation_app <- function(
         nrow_unsaved <- 0
 
         if (file.exists(input$output_path)) {
-          dfb <- fread(file = input$output_path) %>%
+          dfb <- data.table::fread(file = input$output_path) %>%
             as.data.frame() %>%
             dplyr::mutate(validation_time = as.character(validation_time)) %>%
             dplyr::filter(template_name == input$template_name) %>%

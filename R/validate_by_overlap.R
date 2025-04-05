@@ -23,8 +23,6 @@
 #'   files.
 #'
 #' @return A data frame with the validated detections.
-#' @import dplyr tidyr
-#' @importFrom purrr map_chr map2
 #' @export
 #' @examples
 #' \dontrun{
@@ -133,7 +131,7 @@ validate_by_overlap <- function(
     dplyr::filter(!is.na(rois))
 
   # Validate detections by checking for overlaps with ROIs
-  val_res_raw <- map2(
+  val_res_raw <- purrr::map2(
     # the process is done for each pair of detection-ROI
     ls_validation$detections, ls_validation$rois,
     function(x, y) {

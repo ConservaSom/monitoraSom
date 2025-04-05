@@ -12,10 +12,6 @@
 #'   files should be recursive or not. Defaults to FALSE.
 #'
 #' @return A tibble containing the following metadata for each template file:
-#' @import dplyr
-#' @importFrom purrr map_df safely map_chr map_dbl
-#' @importFrom tuneR readWave
-#' @importFrom stringr str_split
 #' @export
 #' @examples
 #' \dontrun{
@@ -104,7 +100,7 @@ fetch_template_metadata <- function(templates_path = NULL, recursive = FALSE) {
     }
   )
 
-  res <- purrr::map_df(template_list, ~ get_metadata_safely(.x)$result) %>%
+  res <- purrr::map_df(template_list, ~ get_metadata_safely(.x)$result) |>
     dplyr::mutate(
       template_path = template_path,
       template_file = basename(template_path),
@@ -126,32 +122,32 @@ fetch_template_metadata <- function(templates_path = NULL, recursive = FALSE) {
     dplyr::mutate(
       template_min_freq = purrr::map_dbl(
         base::strsplit(template_file, "_"),
-        ~ .x[which(grepl("kHz$", .x))] %>%
-          {
-            strsplit(., "-")[[1]][1]
-          } %>%
-          as.numeric()
+        function(x) {
+          freq_part <- x[which(grepl("kHz$", x))]
+          as.numeric(strsplit(freq_part, "-")[[1]][1])
+        }
       ),
       template_max_freq = purrr::map_dbl(
         base::strsplit(template_file, "_"),
-        ~ .x[which(grepl("kHz$", .x))] %>%
-          {
-            base::strsplit(., "-")[[1]][2]
-          } %>%
-          gsub("kHz", "", .) %>%
-          as.numeric()
+        function(x) {
+          freq_part <- x[which(grepl("kHz$", x))]
+          max_freq <- strsplit(freq_part, "-")[[1]][2]
+          as.numeric(gsub("kHz", "", max_freq))
+        }
       ),
       template_wl = purrr::map_dbl(
         base::strsplit(template_file, "_"),
-        ~ .x[which(grepl("wl$", .x))] %>%
-          gsub("wl", "", .) %>%
-          as.numeric()
+        function(x) {
+          wl_part <- x[which(grepl("wl$", x))]
+          as.numeric(gsub("wl", "", wl_part))
+        }
       ),
       template_ovlp = purrr::map_dbl(
         base::strsplit(template_file, "_"),
-        ~ .x[which(grepl("ovlp$", .x))] %>%
-          gsub("ovlp", "", .) %>%
-          as.numeric()
+        function(x) {
+          ovlp_part <- x[which(grepl("ovlp$", x))]
+          as.numeric(gsub("ovlp", "", ovlp_part))
+        }
       )
     )
 

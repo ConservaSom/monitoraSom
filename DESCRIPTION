@@ -27,6 +27,7 @@ Depends:
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: TRUE
+LazyDataCompression:xz
 Imports:
     caret,
     cowplot,
@@ -34,13 +35,10 @@ Imports:
     data.table,
     dplyr,
     DT,
-    dtw,
-    dtwclust,
     farver,
     future,
     ggplot2,
     keys,
-    lubridate,
     openxlsx,
     patchwork,
     pbapply,
@@ -55,12 +53,14 @@ Imports:
     shinyjs,
     shinyWidgets,
     slider,
-    stats,
     stringr,
     tibble,
     tidyr,
     tuneR,
     usethis,
-    utils,
     viridis
+Suggests:
+    dtw,
+    dtwclust,
+    testthat
 RoxygenNote: 7.3.2

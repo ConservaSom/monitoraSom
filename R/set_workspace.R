@@ -40,10 +40,6 @@
 #'   example data. Defaults to FALSE.
 #'
 #' @returns Multiple directories at the project path.
-#' @importFrom rstudioapi getSourceEditorContext
-#' @importFrom openxlsx write.xlsx
-#' @importFrom tuneR writeWave
-#' @importFrom usethis create_project
 #' @export
 #' @examples
 #' \dontrun{
@@ -94,10 +90,10 @@ set_workspace <- function(
     validation_diagnostics_path = "./validation_diagnostics/"
     ) {
 
-    requireNamespace("rstudioapi")
-    requireNamespace("openxlsx")
-    requireNamespace("tuneR")
-    requireNamespace("usethis")
+    # requireNamespace("rstudioapi")
+    # requireNamespace("openxlsx")
+    # requireNamespace("tuneR")
+    # requireNamespace("usethis")
 
     if (is.null(project_path)) {
         tryCatch(

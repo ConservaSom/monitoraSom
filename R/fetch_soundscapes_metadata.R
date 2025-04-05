@@ -26,10 +26,7 @@
 #' @return A data frame in the R session with the soundscapes metadata. If an
 #'   output path is provided, the function will save the metadata in a CSV file
 #'   in the provided path.
-#' @import dplyr
-#' @importFrom pbapply pblapply
-#' @importFrom parallel makePSOCKcluster detectCores
-#' @importFrom tuneR readWave
+#'
 #' @export
 #' @examples
 #' \dontrun{
@@ -125,8 +122,8 @@ fetch_soundscapes_metadata <- function(
   }
 
   if (length(ls_to_process) > 0) {
-    res <- pbapply::pblapply(ls_to_process, read_wav_fun, cl = ncores) %>%
-      dplyr::bind_rows() %>%
+    res <- pbapply::pblapply(ls_to_process, read_wav_fun, cl = ncores) |>
+      dplyr::bind_rows() |>
       dplyr::transmute(
         soundscape_path = path,
         soundscape_file = basename(path),
@@ -156,7 +153,7 @@ fetch_soundscapes_metadata <- function(
         ),
         output_file
       )
-      data.frame(missing_files = missing_soundscapes) %>%
+      data.frame(missing_files = missing_soundscapes) |>
         write.csv(log_file, row.names = FALSE)
       message(
         paste(
@@ -165,10 +162,10 @@ fetch_soundscapes_metadata <- function(
         )
       )
     }
-    res <- res %>%
+    res <- res |>
       dplyr::filter(!soundscape_path %in% missing_soundscapes)
     if (skip_processed & length(ls_to_process) > 0) {
-      res <- rbind(df_imported, res) %>%
+      res <- rbind(df_imported, res) |>
         dplyr::arrange(soundscape_path)
     }
   }

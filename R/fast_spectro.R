@@ -40,10 +40,7 @@
 #' @param ... Additional arguments to be passed internally to the
 #'   'seeave::spectro' function.
 #'
-#' @import dplyr ggplot2
-#' @importFrom viridis viridis magma inferno cividis
-#' @importFrom farver encode_native
-#' @importFrom seewave spectro reverse.gray.colors.1 reverse.gray.colors.2
+#' @import dplyr
 #' @return This function returns a ggplot2 object.
 #'
 #' @export
@@ -228,7 +225,7 @@ fast_spectro <- function(
     if (time_guide_interval == 0) default_time_interval else time_guide_interval
   )
 
-  calculate_nice_breaks <- function(min_val, max_val) {
+  calculate_breaks <- function(min_val, max_val) {
     if (is.null(min_val) || is.null(max_val) ||
       is.na(min_val) || is.na(max_val)) {
       return(NULL)
@@ -259,46 +256,44 @@ fast_spectro <- function(
   }
 
   suppressMessages(
-    ggplot() +
-      geom_rect(
+    ggplot2::ggplot() +
+      ggplot2::geom_rect(
         data = data.frame(x = NA_real_),
         aes(fill = x),
         xmin = plot_limits$xmin, xmax = plot_limits$xmax,
         ymin = plot_limits$ymin, ymax = plot_limits$ymax
       ) +
-      annotation_raster(
+      ggplot2::annotation_raster(
         nr,
         interpolate = interpolate,
         xmin = plot_limits$xmin, xmax = plot_limits$xmax,
         ymin = plot_limits$ymin, ymax = plot_limits$ymax
       ) +
-      # Major frequency guides (always present, alpha controlled)
-      geom_segment(
+      ggplot2::geom_segment(
         data = data.frame(y = freq_major, xmin = plot_limits$xmin, xmax = plot_limits$xmax),
         aes(x = xmin, xend = xmax, y = y, yend = y),
         color = theme_colors$guides,
         alpha = if (freq_guide_interval == 0) 0 else 0.4,
         size = 0.3
       ) +
-      # Major time guides
-      geom_segment(
+      ggplot2::geom_segment(
         data = data.frame(x = time_major, ymin = plot_limits$ymin, ymax = plot_limits$ymax),
         aes(x = x, xend = x, y = ymin, yend = ymax),
         color = theme_colors$guides,
         alpha = if (time_guide_interval == 0) 0 else 0.4,
         size = 0.3
       ) +
-      scale_fill_gradientn(
+      ggplot2::scale_fill_gradientn(
         colors = colormap, limits = dyn_range, na.value = "#00000000"
       ) +
-      coord_cartesian(
+      ggplot2::coord_cartesian(
         xlim = c(plot_limits$xmin, plot_limits$xmax),
         ylim = c(plot_limits$ymin, plot_limits$ymax)
       ) +
-      scale_x_continuous(
+      ggplot2::scale_x_continuous(
         expand = c(0, 0),
         breaks = function(limits) {
-          calculate_nice_breaks(limits[1], limits[2])
+          calculate_breaks(limits[1], limits[2])
         },
         labels = function(x) {
           if (length(x) == 0) {
@@ -317,10 +312,10 @@ fast_spectro <- function(
           format(round(x, decimals), nsmall = decimals)
         }
       ) +
-      scale_y_continuous(
+      ggplot2::scale_y_continuous(
         expand = c(0, 0),
         breaks = function(limits) {
-          calculate_nice_breaks(limits[1], limits[2])
+          calculate_breaks(limits[1], limits[2])
         },
         labels = function(x) {
           if (length(x) == 0) {
@@ -339,16 +334,16 @@ fast_spectro <- function(
           format(round(x, decimals), nsmall = decimals)
         }
       ) +
-      labs(x = "seconds", y = "kHz", fill = "dB") +
-      theme(
-        axis.text = element_text(color = theme_colors$text, size = 10),
-        axis.title = element_text(color = theme_colors$text, size = 12),
-        legend.text = element_text(color = theme_colors$text),
-        legend.title = element_text(color = theme_colors$text),
-        panel.background = element_rect(fill = theme_colors$background),
-        plot.background = element_rect(fill = theme_colors$background),
-        panel.grid = element_blank(),
-        legend.background = element_rect(fill = theme_colors$background)
+      ggplot2::labs(x = "seconds", y = "kHz", fill = "dB") +
+      ggplot2::theme(
+        axis.text = ggplot2::element_text(color = theme_colors$text, size = 10),
+        axis.title = ggplot2::element_text(color = theme_colors$text, size = 12),
+        legend.text = ggplot2::element_text(color = theme_colors$text),
+        legend.title = ggplot2::element_text(color = theme_colors$text),
+        panel.background = ggplot2::element_rect(fill = theme_colors$background),
+        plot.background = ggplot2::element_rect(fill = theme_colors$background),
+        panel.grid = ggplot2::element_blank(),
+        legend.background = ggplot2::element_rect(fill = theme_colors$background)
       )
   )
 }

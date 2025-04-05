@@ -21,8 +21,14 @@ template_matching(
 )
 }
 \arguments{
+\item{soundscapes_path}{Path to a directory containing the soundscapes to be
+analyzed. It defaults to "soundscapes/".}
+
 \item{recursive_soundscapes}{A logical value indicating whether to search
 soundscapes recursively. It defaults to FALSE.}
+
+\item{templates_path}{Path to a directory containing the templates to be used
+for matching. It defaults to "roi_cuts/".}
 
 \item{recursive_templates}{A logical value indicating whether to search
 templates recursively. It defaults to FALSE.}
@@ -65,12 +71,6 @@ whole matching grid.}
 
 \item{ncores}{An integer indicating the number of cores to be used for
 parallelization. It defaults to 1.}
-
-\item{path_soundscapes}{Path to a directory containing the soundscapes to be
-analyzed. It defaults to "soundscapes/".}
-
-\item{path_templates}{Path to a directory containing the templates to be used
-for matching. It defaults to "roi_cuts/".}
 }
 \value{
 A dataframe with the detected events.

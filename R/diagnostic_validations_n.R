@@ -22,7 +22,6 @@
 #' @return A list of results from the diagnostic validations, or NULL if all
 #'   validations failed.
 #' @export
-#' @import dplyr
 #'
 #' @examples
 #' \dontrun{
@@ -105,9 +104,9 @@ diagnostic_validations_n <- function(
     df_validated, diag_method = "auto", pos_prob = 0.95
     ) {
 
-  split_validations <- df_validated %>%
-    group_by(template_name) %>%
-    group_split()
+  split_validations <- df_validated |>
+    dplyr::group_by(template_name) |>
+    dplyr::group_split()
 
   res <- lapply(
     split_validations,

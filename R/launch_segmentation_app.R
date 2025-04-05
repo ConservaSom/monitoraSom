@@ -71,18 +71,8 @@
 #'
 #' @return A pop up with the rendered app.
 #' @export
-#' @import shiny dplyr ggplot2 DT shinyWidgets shinydashboard keys shinyjs
-#'   shinyBS
-#' @importFrom data.table fread fwrite
-#' @importFrom lubridate ymd_hms
-#' @importFrom tuneR readWave normalize setWavPlayer play
-#' @importFrom readxl read_excel
-#' @importFrom openxlsx write.xlsx
-#' @importFrom patchwork plot_layout
-#' @importFrom seewave ffilter duration
-#' @importFrom stringr str_replace str_remove str_pad
-#' @importFrom DT dataTableOutput renderDataTable
-#' @importFrom shinyWidgets alert
+#' @import ggplot2 patchwork
+#' @importFrom dplyr %>%
 #' @examples
 #' \dontrun{
 #'
@@ -123,6 +113,10 @@ launch_segmentation_app <- function(
     visible_bp = FALSE, play_norm = FALSE, session_notes = NULL,
     zoom_freq = c(0, 180), nav_autosave = TRUE, pitch_shift = 1
   ) {
+
+  # todo - RESOLVER O PROBLEMA DO REQUIRE
+  # require(shinyjs, exclude = "runExample")
+  # require(shinyWidgets, exclude = "alert")
 
   session_data <- list()
 
@@ -374,7 +368,9 @@ launch_segmentation_app <- function(
     }
     # Try custom file if provided
     if (!is.null(labels_file) && file.exists(labels_file)) {
-      return(tryCatch(read_xlsx(labels_file), error = function(e) default_labels))
+      return(tryCatch(
+        readxl::read_xlsx(labels_file), error = function(e) default_labels
+      ))
     }
     # Handle project path case
     if (!is.null(project_path)) {
@@ -383,10 +379,10 @@ launch_segmentation_app <- function(
         dir.create(dirname(preset_path), recursive = TRUE)
       }
       if (!file.exists(preset_path)) {
-        write.xlsx(default_labels, preset_path)
+        openxlsx::write.xlsx(default_labels, preset_path)
       }
       return(tryCatch(
-        read_xlsx(preset_path),
+        readxl::read_xlsx(preset_path),
         error = function(e) default_labels
       ))
     }
@@ -400,7 +396,7 @@ launch_segmentation_app <- function(
   session_data$sp_list <- sp_list
 
   # This function defines where embedded html wav players will look for the files
-  addResourcePath("audio", session_data$temp_path)
+  shiny::addResourcePath("audio", session_data$temp_path)
 
   # adicionar botao para deposito direto de paths nos caminhos
   hotkeys <- c(
@@ -467,7 +463,7 @@ launch_segmentation_app <- function(
           )
         }
 
-        play(rec, player = "play")
+        tuneR::play(rec, player = "play")
       },
       error = function(e) {
         message("Error in play_within_R: ", e$message)
@@ -477,10 +473,12 @@ launch_segmentation_app <- function(
     )
   }
 
-  shinyApp(
-    ui = dashboardPage(
-      header = dashboardHeader(title = "MonitoraSom", titleWidth = "400px"),
-      sidebar = dashboardSidebar(
+  shiny::shinyApp(
+    ui = shinydashboard::dashboardPage(
+      header = shinydashboard::dashboardHeader(
+        title = "MonitoraSom", titleWidth = "400px"
+      ),
+      sidebar = shinydashboard::dashboardSidebar(
         tags$head(
           tags$style(HTML(".form-group { margin-bottom: 10px !important; }")),
           # Add JavaScript for spacebar audio control
@@ -508,56 +506,56 @@ launch_segmentation_app <- function(
         ")
         ),
         width = "400px",
-        sidebarMenu(
-          menuItem(
+        shinydashboard::sidebarMenu(
+          shinydashboard::menuItem(
             "User setup",
             tabName = "user_setup_tab", startExpanded = TRUE,
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-user"),
-            textInput(
+            shiny::textInput(
               "user", "User name",
               value = session_data$user, placeholder = "Type your name here",
               width = "100%"
             ),
-            textAreaInput(
+            shiny::textAreaInput(
               inputId = "preset_path", label = "Path to preset files",
               value = session_data$preset_path,
               placeholder = "Paste or load path here",
               height = "50px", width = "100%", resize = "vertical"
             ),
-            bsTooltip("preset_path",
+            shinyBS::bsTooltip("preset_path",
               title = "Paste the path to app accessory files here.",
               placement = "right", trigger = "hover",
               options = list(delay = list(show = 1000, hide = 0))
             ),
             tags$style(".tooltip {width: 300px;}"),
-            textAreaInput("soundscapes_path", "Path to the Soundscapes",
+            shiny::textAreaInput("soundscapes_path", "Path to the Soundscapes",
               value = session_data$soundscapes_path,
               placeholder = "Paste or load path here",
               height = "50px", resize = "vertical", width = "100%"
             ),
-            textAreaInput("roi_tables_path", "Destination of ROI tables",
+            shiny::textAreaInput("roi_tables_path", "Destination of ROI tables",
               value = session_data$roi_tables_path,
               placeholder = "Paste or load path here",
               height = "50px", resize = "vertical", width = "100%"
             ),
-            textAreaInput("cuts_path", "Destination of ROI audio cuts",
+            shiny::textAreaInput("cuts_path", "Destination of ROI audio cuts",
               value = session_data$cuts_path,
               placeholder = "Paste or load path here",
               height = "50px", resize = "vertical", width = "100%"
             ),
-            actionButton(
+            shiny::actionButton(
               "user_setup_confirm", "Confirm Paths",
               icon = icon(lib = "glyphicon", "glyphicon glyphicon-check"),
               style = "color: #000000; background-color: #33b733; border-color: #288d28; width: 360px;"
             )
           ),
-          menuItem(
+          shinydashboard::menuItem(
             "Spectrogram Parameters",
             tabName = "spec_par_tab",
             icon = icon(lib = "glyphicon", "glyphicon glyphicon-cog"),
             splitLayout(
               cellWidths = c("75%", "25%"),
-              sliderInput(
+              shiny::sliderInput(
                 "label_angle", "Adjust label angle (degrees)",
                 min = 0, max = 90, step = 10, value = session_data$label_angle
               ),
@@ -565,91 +563,91 @@ launch_segmentation_app <- function(
             ),
             splitLayout(
               cellWidths = c("50%", "50%"),
-              numericInput("time_guide_interval", "Time Guide Interval (s)",
+              shiny::numericInput("time_guide_interval", "Time Guide Interval (s)",
                 value = session_data$time_guide_interval, min = 0.01, max = 60, step = 0.01
               ),
-              numericInput("freq_guide_interval", "Freq Guide Interval (kHz)",
+              shiny::numericInput("freq_guide_interval", "Freq Guide Interval (kHz)",
                 value = session_data$freq_guide_interval, min = 0.01, max = 192, step = 0.01
               )
             ),
-            sliderInput(
+            shiny::sliderInput(
               "dyn_range", "Dynamic range (dB)",
               min = session_data$dyn_range_bar[1],
               max = session_data$dyn_range_bar[2],
               step = 6, value = session_data$dyn_range,
               width = "100%", post = "dB"
             ),
-            sliderTextInput(
+            shinyWidgets::sliderTextInput(
               "wl", "Window length",
               choices = c(128, 256, 512, 1024, 2048, 4096, 8192, 16384),
               selected = session_data$wl, grid = TRUE, width = "100%"
             ),
-            sliderInput(
+            shiny::sliderInput(
               "ovlp", "Overlap (%)",
               min = 0, max = 80, value = session_data$ovlp,
               post = "%", step = 10, width = "100%"
             ),
-            sliderTextInput(
+            shinyWidgets::sliderTextInput(
               "pitch_shift", "Pitch shift (octaves) and slow down (factor)",
               choices = c(-8, -6, -4, -2, 1),
               selected = session_data$pitch_shift,
               post = " octaves", grid = TRUE, width = "100%"
             ),
-            selectInput("color_scale", "Color scale",
+            shiny::selectInput("color_scale", "Color scale",
               choices = c(
                 "viridis", "magma", "inferno", "cividis",
                 "greyscale 1", "greyscale 2"
               ),
               selected = session_data$color_scale, width = "100%"
             ),
-            radioButtons(
+            shiny::radioButtons(
               "wav_player_type", "Sound player",
               choices = c("HTML player", "External player", "R session"),
               selected = session_data$wav_player_type, inline = TRUE
             ),
-            checkboxInput(
+            shiny::checkboxInput(
               "visible_bp", "Play only the visible frequency band",
               value = session_data$visible_bp, width = "400px"
             ),
-            checkboxInput(
+            shiny::checkboxInput(
               "play_norm", "Normalize playable audio",
               value = session_data$play_norm, width = "400px"
             ),
-            textAreaInput("wav_player_path",
+            shiny::textAreaInput("wav_player_path",
               value = session_data$wav_player_path,
               label = "Path to player executable (default = 'play')",
               height = "40px", resize = "vertical"
             ),
-            actionButton(
+            shiny::actionButton(
               inputId = "default_pars",
               label = "Reset to default parameters", icon = icon("gear"),
               style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
             )
           )
         ),
-        actionButton(
+        shiny::actionButton(
           "end_session", "End Session",
           icon = icon(lib = "glyphicon", "glyphicon glyphicon-log-out"),
           style = "color: #fff; background-color: #b73333; border-color: #8d2c2c; width: 370px;"
         )
       ),
-      body = dashboardBody(
+      body = shinydashboard::dashboardBody(
 
         # Make keyboard shotcuts available
-        useKeys(),
-        keysInput("hotkeys", hotkeys),
+        keys::useKeys(),
+        keys::keysInput("hotkeys", hotkeys),
 
         # Set up shinyjs
-        useShinyjs(),
+        shinyjs::useShinyjs(),
         tags$style(type = "text/css", ".recalculating {opacity: 1.0;}"),
 
         # box(width = 12, verbatimTextOutput("checagem1")),
 
         # Spectrogram box and time zoom slider
-        box(
+        shinydashboard::box(
           width = "100%", height = "100%",
           # verbatimTextOutput("checagem1"),
-          fluidRow(
+          shiny::fluidRow(
             column(
               width = 4,
               selectizeInput(
@@ -658,30 +656,30 @@ launch_segmentation_app <- function(
                 options = list(maxOptions = 10000)
               )
             ),
-            column(
+            shiny::column(
               width = 6,
               selectizeInput(
                 "roi_table_name", "Active ROI table",
                 choices = NULL, width = "100%"
               )
             ),
-            column(
+            shiny::column(
               width = 2,
-              selectizeInput(
+              shiny::selectizeInput(
                 "sp_list", "Available species names",
                 choices = session_data$sp_list, selected = sp_list,
                 width = "100%"
               )
             )
           ),
-          fluidRow(
-            column(
+          shiny::fluidRow(
+            shiny::column(
               width = 1,
               strong("seconds", style = "text-align:right;")
             ),
-            column(
+            shiny::column(
               width = 11,
-              noUiSliderInput(
+              shinyWidgets::noUiSliderInput(
                 "zoom_time",
                 label = NULL, min = 0, max = 0.1, step = 0.05,
                 value = c(0, 0.1), width = "100%", behaviour = "drag",
@@ -689,10 +687,10 @@ launch_segmentation_app <- function(
               )
             )
           ),
-          fluidRow(
-            column(
+          shiny::fluidRow(
+            shiny::column(
               width = 1,
-              noUiSliderInput(
+              shinyWidgets::noUiSliderInput(
                 "zoom_freq", "kHz",
                 min = 0, max = 180, step = 0.1, value = session_data$zoom_freq,
                 direction = "rtl", orientation = "vertical", width = "100px",
@@ -700,69 +698,69 @@ launch_segmentation_app <- function(
                 update_on = "end"
               )
             ),
-            column(
+            shiny::column(
               width = 11,
-              plotOutput(
+              shiny::plotOutput(
                 "spectrogram_plot",
                 brush = "roi_limits", height = "500px"
               )
             )
           ),
-          fluidRow(
-            column(
+          shiny::fluidRow(
+            shiny::column(
               width = 1,
-              checkboxInput(
+              shiny::checkboxInput(
                 "nav_autosave", "Autosave",
                 value = session_data$nav_autosave
               )
             ),
-            column(
+            shiny::column(
               width = 2,
-              actionButton(
+              shiny::actionButton(
                 "prev_soundscape_noroi", HTML("Previous<br/>unsegmented"),
                 width = "100%",
                 icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-backward"),
                 style = "height:54px;"
               )
             ),
-            column(
+            shiny::column(
               width = 1,
-              actionButton(
+              shiny::actionButton(
                 "prev_soundscape", "Prev.",
                 width = "100%",
                 icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-backward"),
                 style = "height:54px;"
               )
             ),
-            column(
+            shiny::column(
               width = 1,
-              actionButton(
+              shiny::actionButton(
                 "next_soundscape", "Next",
                 width = "100%",
                 icon = icon(lib = "glyphicon", "glyphicon glyphicon-step-forward"),
                 style = "height:54px;"
               )
             ),
-            column(
+            shiny::column(
               width = 2,
-              actionButton(
+              shiny::actionButton(
                 "next_soundscape_noroi", HTML("Next<br/>unsegmented"),
                 width = "100%",
                 icon = icon(lib = "glyphicon", "glyphicon glyphicon-fast-forward"),
                 style = "height:54px; width:100%"
               )
             ),
-            column(
+            shiny::column(
               width = 2,
-              actionButton(
+              shiny::actionButton(
                 "no_soi", HTML("No signals<br/>of interest"),
                 width = "100%", icon = icon("remove"),
                 style = "height:54px;"
               )
             ),
-            column( # activate when the R session player is ready
+            shiny::column( # activate when the R session player is ready
               width = 2,
-              actionButton(
+              shiny::actionButton(
                 "play_soundscape", "Play visible",
                 width = "100%", icon = icon("play"),
                 style = "height:54px;"
@@ -771,22 +769,22 @@ launch_segmentation_app <- function(
             )
           )
         ),
-        tabBox(
+        shinydashboard::tabBox(
           width = 12, height = "900px",
           id = "tabset1",
-          tabPanel(
+          shiny::tabPanel(
             "Setup and Input",
-            fluidRow(
-              column(
+            shiny::fluidRow(
+              shiny::column(
                 width = 3,
-                selectizeInput(
+                shiny::selectizeInput(
                   "label_name", "Label",
                   choices = NULL, selected = NULL, width = "100%"
                 )
               ),
-              column(
+              shiny::column(
                 width = 3,
-                selectizeInput(
+                shiny::selectizeInput(
                   "signal_type", "Type",
                   # todo - implement custom choices based on a spreadsheet of signal types
                   choices = c(
@@ -831,103 +829,103 @@ launch_segmentation_app <- function(
                   width = "100%"
                 )
               ),
-              column(
+              shiny::column(
                 width = 2,
-                selectizeInput(
+                shiny::selectizeInput(
                   "label_certainty", "ID certainty",
                   width = "100%",
                   choices = c("certain", "uncertain"),
                   selected = "certain"
                 )
               ),
-              column(
+              shiny::column(
                 width = 1,
-                checkboxInput(
+                shiny::checkboxInput(
                   "lock_label_certainty",
                   label = icon(lib = "glyphicon", "glyphicon glyphicon-lock"),
                   value = FALSE
                 )
               ),
-              column(
+              shiny::column(
                 width = 2,
-                selectizeInput(
+                shiny::selectizeInput(
                   "signal_is_complete", "Complete",
                   width = "100%",
                   choices = c("complete", "incomplete"),
                   selected = "complete"
                 )
               ),
-              column(
+              shiny::column(
                 width = 1,
-                checkboxInput(
+                shiny::checkboxInput(
                   "lock_is_complete",
                   label = icon(lib = "glyphicon", "glyphicon glyphicon-lock"),
                   value = FALSE
                 )
               )
             ),
-            fluidRow(
-              column(
+            shiny::fluidRow(
+              shiny::column(
                 width = 11,
-                textInput(
+                shiny::textInput(
                   "label_comment", "Additional comments",
                   value = NULL, placeholder = "Type comments here",
                   width = "100%"
                 )
               ),
-              column(
+              shiny::column(
                 width = 1,
-                checkboxInput(
+                shiny::checkboxInput(
                   "lock_comment",
                   label = icon(lib = "glyphicon", "glyphicon glyphicon-lock"),
                   value = FALSE
                 )
               )
             ),
-            progressBar(
+            shinyWidgets::progressBar(
               id = "progress_bar", value = 0, total = 1,
               status = "info", display_pct = TRUE, striped = TRUE
             )
           ),
-          tabPanel(
+          shiny::tabPanel(
             "ROI table",
-            fluidRow(
-              column(
+            shiny::fluidRow(
+              shiny::column(
                 width = 3,
                 actionButton("save_roi", "Save",
                   icon = icon(lib = "glyphicon", "glyphicon glyphicon-floppy-saved"),
                   width = "100%"
                 )
               ),
-              column(
+              shiny::column(
                 width = 3,
-                actionButton(
+                shiny::actionButton(
                   "export_new_roi_table", "Export new",
                   icon = icon("save", lib = "font-awesome"),
                   style = "color: #ffffff; background-color: #000000",
                   width = "100%"
                 )
               ),
-              column(
+              shiny::column(
                 width = 3,
-                actionButton(
+                shiny::actionButton(
                   "export_selected_cut", "Export audio of selected ROI",
                   icon = icon(lib = "glyphicon", "glyphicon glyphicon-music"),
                   width = "100%"
                 )
               ),
-              column(
+              shiny::column(
                 width = 3,
-                actionButton(
+                shiny::actionButton(
                   "delete_selected_rois", "Delete selected ROI",
                   icon = icon(lib = "glyphicon", "glyphicon glyphicon-trash"),
                   width = "100%"
                 )
               )
             ),
-            DTOutput("res_table")
+            DT::DTOutput("res_table")
           ),
-          tabPanel( #
+          shiny::tabPanel( #
             "User Manual",
             p("Q - delete the last created ROI"),
             p("W - zoom in on the spectrogram time axis"),
@@ -951,15 +949,15 @@ launch_segmentation_app <- function(
     ),
     server = function(input, output, session) {
 
-      user_val <- reactiveVal(NULL)
-      soundscape_data <- reactiveVal(NULL)
-      soundscape_path_val <- reactiveVal(NULL)
-      roi_tables_data <- reactiveVal(NULL)
-      roi_tables_path_val <- reactiveVal(NULL)
-      cuts_path_val <- reactiveVal(NULL)
+      user_val <- shiny::reactiveVal(NULL)
+      soundscape_data <- shiny::reactiveVal(NULL)
+      soundscape_path_val <- shiny::reactiveVal(NULL)
+      roi_tables_data <- shiny::reactiveVal(NULL)
+      roi_tables_path_val <- shiny::reactiveVal(NULL)
+      cuts_path_val <- shiny::reactiveVal(NULL)
 
-      observeEvent(input$user_setup_confirm, {
-        req(input$user, input$soundscapes_path, input$roi_tables_path, input$cuts_path)
+      shiny::observeEvent(input$user_setup_confirm, {
+        shiny::req(input$user, input$soundscapes_path, input$roi_tables_path, input$cuts_path)
 
         user_val(input$user)
         soundscape_path_val(input$soundscapes_path)
@@ -975,10 +973,10 @@ launch_segmentation_app <- function(
             "The provided path to ROI tables does not exist"
           }
 
-          showModal(
-            modalDialog(
+          shiny::showModal(
+            shiny::modalDialog(
               title = "Setup error", error_msg,
-              footer = tagList(modalButton("OK")), easyClose = TRUE
+              footer = tagList(shiny::modalButton("OK")), easyClose = TRUE
             )
           )
           return()
@@ -998,11 +996,12 @@ launch_segmentation_app <- function(
         )
 
         if (length(list_soundscapes) == 0) {
-          showModal(modalDialog(
-            title = "Setup error",
-            "There are no readable WAV files in the provided Soundscape path",
-            footer = tagList(modalButton("OK")),
-            easyClose = TRUE
+          shiny::showModal(
+            shiny::modalDialog(
+              title = "Setup error",
+              "There are no readable WAV files in the provided Soundscape path",
+              footer = tagList(shiny::modalButton("OK")),
+              easyClose = TRUE
           ))
           return()
         }
@@ -1025,39 +1024,40 @@ launch_segmentation_app <- function(
             any(prefix == substr(roi_table_files, 1, nchar(prefix)))
           }
         )
-        updateSelectizeInput(
+        shiny::updateSelectizeInput(
           session, "soundscape_file",
           choices = soundscape_data_res$soundscape_file, server = TRUE
         )
         soundscape_data(soundscape_data_res)
-        showNotification("Setup sucessfull!", type = "message")
+        shiny::showNotification("Setup sucessfull!", type = "message")
         roi_tables_data(roi_tables)
 
         if (!dir.exists(cuts_path_val())) {
-          showModal(modalDialog(
-            title = "Setup error",
-            "The path to export audio and spectrograms from ROIs does not exist",
-            footer = tagList(modalButton("OK")),
-            easyClose = TRUE
+          shiny::showModal(
+            shiny::modalDialog(
+              title = "Setup error",
+              "The path to export audio and spectrograms from ROIs does not exist",
+              footer = tagList(shiny::modalButton("OK")),
+              easyClose = TRUE
           ))
-          disable("export_selected_cut")
+          shinyjs::disable("export_selected_cut")
         } else {
-          enable("export_selected_cut")
+          shinyjs::enable("export_selected_cut")
         }
       })
 
-      observe({
-        updateSelectizeInput(
+      shiny::observe({
+        shiny::updateSelectizeInput(
           session, "sp_list",
           choices = colnames(sp_labels), selected = sp_list,
           server = TRUE
         )
       })
 
-      observeEvent(input$sp_list, {
-        req(input$sp_list)
+      shiny::observeEvent(input$sp_list, {
+        shiny::req(input$sp_list)
         res <- sp_labels %>% pull(input$sp_list)
-        updateSelectizeInput(
+        shiny::updateSelectizeInput(
           session, "label_name",
           choices = c(NA, res),
           selected = NULL, server = TRUE,
@@ -1070,10 +1070,10 @@ launch_segmentation_app <- function(
       })
 
       # Reactive values for soundscape data
-      rec_soundscape <- reactiveVal(NULL)
-      duration_val <- reactiveVal(NULL)
-      observe({
-        req(soundscape_data(), input$soundscape_file)
+      rec_soundscape <- shiny::reactiveVal(NULL)
+      duration_val <- shiny::reactiveVal(NULL)
+      shiny::observe({
+        shiny::req(soundscape_data(), input$soundscape_file)
         wav_data <- soundscape_data()
         current_index <- which(wav_data$soundscape_file == input$soundscape_file)
         wav_path <- wav_data$soundscape_path[current_index]
@@ -1084,17 +1084,17 @@ launch_segmentation_app <- function(
           {
             wav_obj <- tuneR::readWave(wav_path)
             wav_duration <- seewave::duration(wav_obj)
-            updateNoUiSliderInput(
+            shinyWidgets::updateNoUiSliderInput(
               session,
               inputId = "zoom_time",
               range = c(0, wav_duration), value = c(0, min(wav_duration, 60))
             )
-            updateSelectizeInput(
+            shiny::updateSelectizeInput(
               session,
               inputId = "soundscape_file",
               label = sprintf("Soundscape (%d of %d)", current_index, nrow(wav_data))
             )
-            updateNoUiSliderInput(
+            shinyWidgets::updateNoUiSliderInput(
               session,
               inputId = "zoom_freq",
               range = c(0, (wav_obj@samp.rate / 2000) - 1)
@@ -1103,7 +1103,7 @@ launch_segmentation_app <- function(
             rec_soundscape(wav_obj)
           },
           error = function(e) {
-            showNotification(
+            shiny::showNotification(
               sprintf("Error reading wav file: %s", e$message),
               type = "error"
             )
@@ -1111,9 +1111,9 @@ launch_segmentation_app <- function(
         )
       })
 
-      wav_path_val <- reactiveVal(NULL)
-      observe({
-        req(soundscape_data(), rec_soundscape())
+      wav_path_val <- shiny::reactiveVal(NULL)
+      shiny::observe({
+        shiny::req(soundscape_data(), rec_soundscape())
         i <- which(soundscape_data()$soundscape_file == input$soundscape_file)
         wav_path <- soundscape_data()$soundscape_path[i]
         wav_path_val(wav_path)
@@ -1130,11 +1130,12 @@ launch_segmentation_app <- function(
                   start_time <- max(0, input$zoom_time[1])
                   end_time <- min(duration_val(), input$zoom_time[2])
                   if (start_time >= end_time) {
-                    showNotification("Invalid time range", type = "error")
+                    shiny::showNotification("Invalid time range", type = "error")
                     return()
                   }
                   res_cut <- cutw(
-                    rec_soundscape(), from = start_time, to = end_time, output = "Wave"
+                    rec_soundscape(), from = start_time, to = end_time,
+                    output = "Wave"
                   )
                   if (input$pitch_shift < 1) {
                     res_cut@samp.rate <- res_cut@samp.rate / pitch_shift
@@ -1150,7 +1151,10 @@ launch_segmentation_app <- function(
                         )
                       },
                       error = function(e) {
-                        showNotification("Error applying frequency filter", type = "error")
+                        shiny::showNotification(
+                          "Error applying frequency filter",
+                          type = "error"
+                        )
                         return()
                       }
                     )
@@ -1164,14 +1168,22 @@ launch_segmentation_app <- function(
                         )
                       },
                       error = function(e) {
-                        showNotification("Error normalizing audio", type = "error")
+                        shiny::showNotification(
+                          "Error normalizing audio",
+                          type = "error"
+                        )
                         return()
                       }
                     )
                   }
-                  seewave::savewav(res_cut, f = res_cut@samp.rate, filename = temp_file)
-                  removeUI(selector = "#visible_soundscape_clip_selector")
-                  insertUI(
+                  seewave::savewav(
+                    res_cut,
+                    f = res_cut@samp.rate, filename = temp_file
+                  )
+                  shiny::removeUI(
+                    selector = "#visible_soundscape_clip_selector"
+                  )
+                  shiny::insertUI(
                     selector = "#visible_soundscape_clip", where = "afterEnd",
                     ui = tags$audio(
                       id = "visible_soundscape_clip_selector",
@@ -1180,11 +1192,14 @@ launch_segmentation_app <- function(
                     )
                   )
                   unlink("*.wav")
-                  to_remove <- list.files(session_data$temp_path, pattern = ".wav", full.names = TRUE)
+                  to_remove <- list.files(
+                    session_data$temp_path,
+                    pattern = ".wav", full.names = TRUE
+                  )
                   file.remove(to_remove[to_remove != temp_file])
                 },
                 error = function(e) {
-                  showNotification(
+                  shiny::showNotification(
                     "Error processing audio segment. Please try again.",
                     type = "error"
                   )
@@ -1193,38 +1208,38 @@ launch_segmentation_app <- function(
               )
             }
           } else {
-            removeUI(selector = "#visible_soundscape_clip_selector")
+            shiny::removeUI(selector = "#visible_soundscape_clip_selector")
           }
         }
       })
 
-      observeEvent(input$wav_player_type, {
+      shiny::observeEvent(input$wav_player_type, {
         x <- input$wav_player_type
         if (x == "R session") {
-          updateTextInput(session, "wav_player_path", value = "play")
-          setWavPlayer("play")
+          shiny::updateTextInput(session, "wav_player_path", value = "play")
+          tuneR::setWavPlayer("play")
           # todo Adicionar aqui uma opcao para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
-          showElement("play_soundscape")
+          shinyjs::showElement("play_soundscape")
         } else if (x == "External player" & !is.null(input$wav_player_path)) {
           if (file.exists(input$wav_player_path)) {
-            setWavPlayer(input$wav_player_path)
-            showElement("play_soundscape")
+            tuneR::setWavPlayer(input$wav_player_path)
+            shinyjs::showElement("play_soundscape")
           } else {
-            updateRadioButtons(session, "wav_player_type", selected = "R session")
+            shiny::updateRadioButtons(session, "wav_player_type", selected = "R session")
           }
         }
         if (x == "HTML player") {
-          hideElement("play_soundscape")
+          shinyjs::hideElement("play_soundscape")
         }
       })
 
       # Add this at the beginning of the server function (around line 921)
-      audio_playing <- reactiveVal(FALSE)
+      audio_playing <- shiny::reactiveVal(FALSE)
 
       # Add this in the server section, near other observeEvent handlers (around
       # line 1525)
-      observeEvent(input$toggle_play, {
-        req(
+      shiny::observeEvent(input$toggle_play, {
+        shiny::req(
           rec_soundscape(),
           input$wav_player_type %in% c("R session", "External player")
         )
@@ -1258,9 +1273,9 @@ launch_segmentation_app <- function(
 
       # Filter available ROI tables based in the prefix retrieved from the
       # soundscape file names
-      alt_roitabs_meta <- reactiveVal(NULL)
-      observeEvent(input$soundscape_file, {
-        req(input$soundscape_file)
+      alt_roitabs_meta <- shiny::observeEvent(NULL)
+      shiny::observeEvent(input$soundscape_file, {
+        shiny::req(input$soundscape_file)
         roi_list <- list.files(
           roi_tables_path_val(),
           pattern = ".csv", full.names = TRUE, ignore.case = TRUE
@@ -1290,10 +1305,12 @@ launch_segmentation_app <- function(
             roi_tables_path_val(), "/", roi_table_alts$roi_table_name
           )
         }
-        alt_roitabs_meta(arrange(roi_table_alts, desc(roi_table_name)))
+        alt_roitabs_meta(
+          dplyr::arrange(roi_table_alts, dplyr::desc(roi_table_name))
+        )
 
         # Update the menu with the available ROI tables
-        updateSelectizeInput(
+        shiny::updateSelectizeInput(
           session, "roi_table_name",
           choices = roi_table_alts$roi_table_name,
           selected = roi_table_alts$roi_table_name[1],
@@ -1302,9 +1319,9 @@ launch_segmentation_app <- function(
       })
 
       # Create a reactive object with the content of the active ROI table
-      roi_values <- reactiveVal(NULL)
-      observeEvent(input$roi_table_name, {
-        req(alt_roitabs_meta(), input$roi_table_name, user_val())
+      roi_values <- shiny::reactiveVal(NULL)
+      shiny::observeEvent(input$roi_table_name, {
+        shiny::req(alt_roitabs_meta(), input$roi_table_name, user_val())
         active_roi_table_path <- alt_roitabs_meta() %>%
           dplyr::filter(roi_table_name == input$roi_table_name) %>%
           dplyr::pull(roi_table_path)
@@ -1315,7 +1332,12 @@ launch_segmentation_app <- function(
           "roi_wl", "roi_ovlp", "roi_sample_rate", "roi_pitch_shift"
         )
         create_empty_roi_df <- function() {
-          data.frame(matrix(NA, nrow = 0, ncol = length(var_names), dimnames = list(NULL, var_names)))
+          data.frame(
+            matrix(
+              NA, nrow = 0, ncol = length(var_names),
+              dimnames = list(NULL, var_names)
+            )
+          )
         }
         if (file.exists(active_roi_table_path)) {
           res_raw <- as.data.frame(
@@ -1353,50 +1375,71 @@ launch_segmentation_app <- function(
         roi_values(res)
       })
 
-      ruler <- reactiveVal(NULL)
+      ruler <- shiny::reactiveVal(NULL)
 
       # Define shared save function for buttons and hotkeys
       save_roi_table <- function() {
-        req(roi_values(), input$roi_table_name, alt_roitabs_meta())
-        if (is.null(roi_values()) || !is.data.frame(roi_values()) || nrow(roi_values()) == 0) {
-          showNotification("No ROIs to save", type = "warning")
+        shiny::req(roi_values(), input$roi_table_name, alt_roitabs_meta())
+        if (
+          is.null(roi_values()) || !is.data.frame(roi_values()) ||
+            nrow(roi_values()) == 0
+          ) {
+          shiny::showNotification("No ROIs to save", type = "warning")
           return()
         }
         current_rois <- roi_values()[roi_values()$soundscape_file == input$soundscape_file, ]
         if (nrow(current_rois) == 0) {
-          showNotification("Error: No valid ROIs for current soundscape", type = "error")
+          shiny::showNotification(
+            "Error: No valid ROIs for current soundscape",
+            type = "error"
+          )
           return()
         }
-        complete_rows <- complete.cases(current_rois[, c("roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq")])
+        complete_rows <- complete.cases(
+          current_rois[, c("roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq")]
+        )
         if (!any(complete_rows)) {
-          showNotification("Error: No complete ROIs found", type = "error")
+          shiny::showNotification(
+            "Error: No complete ROIs found",
+            type = "error"
+          )
           return()
         }
         current_rois <- current_rois[complete_rows, ]
         if (nrow(current_rois) < nrow(roi_values())) {
           roi_values(current_rois)
-          showNotification(sprintf(
+          shiny::showNotification(sprintf(
             "Removed %d mismatched or incomplete ROI(s)",
             nrow(roi_values()) - nrow(current_rois)
           ), type = "warning")
         }
-        fwrite(current_rois, file.path(roi_tables_path_val(), input$roi_table_name))
+        data.table::fwrite(current_rois, file.path(roi_tables_path_val(), input$roi_table_name))
         current_index <- which(soundscape_data()$soundscape_file == input$soundscape_file)
         progress_tracker$df$has_table[current_index] <- TRUE
         n_done <- sum(progress_tracker$df$has_table)
-        updateProgressBar(session, "progress_bar", value = n_done, total = nrow(progress_tracker$df))
-        showNotification("ROI table successfully exported", type = "message")
+        shinyWidgets::updateProgressBar(
+          session, "progress_bar",
+          value = n_done, total = nrow(progress_tracker$df)
+        )
+        shiny::showNotification(
+          "ROI table successfully exported",
+          type = "message"
+        )
         if (n_done == nrow(progress_tracker$df)) {
-          showNotification("All recordings were segmented!", type = "message")
+          shiny::showNotification(
+            "All recordings were segmented!",
+            type = "message"
+          )
         }
       }
 
       # Define shared navigation function
       navigate_soundscape <- function(direction) {
-        req(soundscape_data())
+        shiny::req(soundscape_data())
         vec_soundscapes <- soundscape_data()$soundscape_file
         current_index <- which(vec_soundscapes == input$soundscape_file)
-        if (input$nav_autosave && !all(is.na(roi_values())) && nrow(roi_values()) > 0) {
+        if (input$nav_autosave && !all(is.na(roi_values())) &&
+          nrow(roi_values()) > 0) {
           save_roi_table()
         }
         new_index <- switch(direction,
@@ -1404,7 +1447,7 @@ launch_segmentation_app <- function(
           "next" = if (current_index < length(vec_soundscapes)) current_index + 1 else current_index
         )
         if (new_index != current_index) {
-          updateSelectInput(
+          shiny::updateSelectInput(
             session, "soundscape_file",
             selected = vec_soundscapes[new_index]
           )
@@ -1413,17 +1456,22 @@ launch_segmentation_app <- function(
 
       # Define shared navigation function for unsegmented soundscapes
       navigate_unsegmented <- function(direction) {
-        req(progress_tracker$df)
+        shiny::req(progress_tracker$df)
 
         # Get unsegmented soundscapes and current position
         unsegmented_data <- progress_tracker$df %>%
-          dplyr::filter(has_table == FALSE | soundscape_file == input$soundscape_file)
+          dplyr::filter(
+            has_table == FALSE | soundscape_file == input$soundscape_file
+          )
 
         unsegmented_files <- unsegmented_data$soundscape_file
         current_index <- which(unsegmented_files == input$soundscape_file)
 
         # Handle autosave if enabled
-        if (input$nav_autosave && !all(is.na(roi_values())) && nrow(roi_values()) > 0) {
+        if (
+          input$nav_autosave && !all(is.na(roi_values())) &&
+            nrow(roi_values()) > 0
+          ) {
           save_roi_table()
         }
 
@@ -1435,7 +1483,7 @@ launch_segmentation_app <- function(
 
         # Update selection if index changed
         if (new_index != current_index) {
-          updateSelectInput(
+          shiny::updateSelectInput(
             session, "soundscape_file",
             selected = unsegmented_files[new_index]
           )
@@ -1444,16 +1492,18 @@ launch_segmentation_app <- function(
 
       # Create a single play function to handle all playback requests
       play_audio <- function() {
-        req(rec_soundscape())
+        shiny::req(rec_soundscape())
 
         # Validate time range
-        validate(need(
-          input$zoom_time[1] < input$zoom_time[2],
-          "Invalid time range selected"
-        ))
+        shiny::validate(
+          shiny::need(
+            input$zoom_time[1] < input$zoom_time[2],
+            "Invalid time range selected"
+          )
+        )
 
         if (input$wav_player_type == "HTML player") {
-          runjs("
+          shinyjs::runjs("
             var player = document.getElementById('visible_soundscape_clip_selector');
             if (player) {
               if (player.paused) {
@@ -1464,7 +1514,7 @@ launch_segmentation_app <- function(
             }
           ")
         } else if (input$wav_player_type %in% c("R session", "External player")) {
-          req(input$wav_player_path)
+          shiny::req(input$wav_player_path)
           play_within_R(
             rec_soundscape(),
             zoom_time = input$zoom_time,
@@ -1477,13 +1527,13 @@ launch_segmentation_app <- function(
         }
       }
 
-      observeEvent(input$hotkeys, {
-        req(roi_values())
+      shiny::observeEvent(input$hotkeys, {
+        shiny::req(roi_values())
         current_rois <- tibble(roi_values())
 
         if (input$hotkeys == "e") {
           # Create a new ROI entry
-          roi_i <- tibble(
+          roi_i <- tidyr::tibble(
             soundscape_path = wav_path_val(),
             soundscape_file = input$soundscape_file,
             roi_user = user_val(),
@@ -1508,7 +1558,7 @@ launch_segmentation_app <- function(
             roi_values(roi_i)
           } else {
             if (nrow(current_rois) >= 1) {
-              res <- bind_rows(current_rois, roi_i)
+              res <- dplyr::bind_rows(current_rois, roi_i)
               roi_values(res)
             }
           }
@@ -1519,7 +1569,7 @@ launch_segmentation_app <- function(
             roi_values(res)
           } else {
             # Create an empty ROI entry if no entries remain
-            roi_i_empty <- tibble::tibble(
+            roi_i_empty <- tidyr::tibble(
               soundscape_path = NA, soundscape_file = NA, roi_user = NA,
               roi_input_timestamp = NA, roi_label = NA, roi_start = NA,
               roi_end = NA, roi_min_freq = NA, roi_max_freq = NA, roi_type = NA,
@@ -1533,10 +1583,16 @@ launch_segmentation_app <- function(
 
         # these should be kept dependent on hotkey pressing
         if (input$lock_label_certainty == FALSE) {
-          updateSelectInput(session, "label_certainty", selected = "certain")
+          shiny::updateSelectInput(
+            session, "label_certainty",
+            selected = "certain"
+          )
         }
         if (input$lock_is_complete == FALSE) {
-          updateSelectInput(session, "signal_is_complete", selected = "complete")
+          shiny::updateSelectInput(
+            session, "signal_is_complete",
+            selected = "complete"
+          )
         }
         if (input$lock_comment == FALSE) {
           updateTextInput(session, "label_comment", value = NA)
@@ -1585,25 +1641,27 @@ launch_segmentation_app <- function(
             }
           }
           if (new_zoom[1] < new_zoom[2]) {
-            updateNoUiSliderInput(session, inputId = "zoom_time", value = new_zoom)
+            shinyWidgets::updateNoUiSliderInput(
+              session, inputId = "zoom_time", value = new_zoom
+            )
           }
         }
 
         if (input$hotkeys == "alt+s") {
-          req(duration_val())
-          updateNoUiSliderInput(
+          shiny::req(duration_val())
+          shinyWidgets::updateNoUiSliderInput(
             session,
             inputId = "zoom_time", value = c(0, min(60, duration_val()))
           )
         }
 
         if (input$hotkeys == "alt+w") {
-          req(duration_val(), rec_soundscape())
-          updateNoUiSliderInput(
+          shiny::req(duration_val(), rec_soundscape())
+          shinyWidgets::updateNoUiSliderInput(
             session,
             inputId = "zoom_time", value = c(0, min(60, duration_val()))
           )
-          updateNoUiSliderInput(
+          shinyWidgets::updateNoUiSliderInput(
             session,
             inputId = "zoom_freq",
             value = c(0, (rec_soundscape()@samp.rate / 2000) - 1)
@@ -1621,7 +1679,9 @@ launch_segmentation_app <- function(
           } else {
             pmin(zoom_range + step_size, duration_val())
           }
-          updateNoUiSliderInput(session, inputId = "zoom_time", value = new_zoom)
+          shinyWidgets::updateNoUiSliderInput(
+            session, inputId = "zoom_time", value = new_zoom
+          )
         }
 
         if (input$hotkeys == "a") {
@@ -1634,7 +1694,9 @@ launch_segmentation_app <- function(
           } else {
             pmax(zoom_range - step_size, 0)
           }
-          updateNoUiSliderInput(session, inputId = "zoom_time", value = new_zoom)
+          shinyWidgets::updateNoUiSliderInput(
+            session, inputId = "zoom_time", value = new_zoom
+          )
         }
 
         # todo - add delay to avoid saving rois and rendering spectrograms mid navigation
@@ -1655,22 +1717,22 @@ launch_segmentation_app <- function(
       })
 
       # Handle play button
-      observeEvent(input$play_soundscape, {
+      shiny::observeEvent(input$play_soundscape, {
         play_audio()
       })
 
-      progress_tracker <- reactiveValues(df = NULL)
-      observe({
-        req(soundscape_data())
+      progress_tracker <- shiny::reactiveValues(df = NULL)
+      shiny::observe({
+        shiny::req(soundscape_data())
         progress_tracker$df <- soundscape_data()
       })
 
-      observeEvent(input$export_new_roi_table, {
-        req(roi_values())
+      shiny::observeEvent(input$export_new_roi_table, {
+        shiny::req(roi_values())
         if (!all(is.na(roi_values())) & nrow(roi_values()) > 0) {
           filename <- file.path(
             roi_tables_path_val(),
-            str_replace(
+            stringr::str_replace(
               input$soundscape_file, ".wav|.WAV",
               paste0(
                 "_roi_", user_val(), "_", format(Sys.time(), "%Y%m%d%H%M%S.csv")
@@ -1683,38 +1745,40 @@ launch_segmentation_app <- function(
           ] <- TRUE
           n_done <- length(which(progress_tracker$df$has_table == TRUE))
           n_total <- nrow(progress_tracker$df)
-          updateProgressBar(
+          shinyWidgets::updateProgressBar(
             session = session, id = "progress_bar",
             value = n_done, total = n_total
           )
-          showNotification("New ROI table sucessfully exported", type = "message")
+          shiny::showNotification("New ROI table sucessfully exported", type = "message")
           if (n_done == n_total) {
-            showNotification("All recordings were segmented!", type = "message")
+            shiny::showNotification("All recordings were segmented!", type = "message")
           }
         }
       })
 
-      observeEvent(input$save_roi, save_roi_table())
-      observeEvent(input$prev_soundscape, navigate_soundscape("prev"))
-      observeEvent(input$next_soundscape, navigate_soundscape("next"))
-      observeEvent(input$next_soundscape_noroi, navigate_unsegmented("next"))
-      observeEvent(input$prev_soundscape_noroi, navigate_unsegmented("prev"))
+      shiny::observeEvent(input$save_roi, save_roi_table())
+      shiny::observeEvent(input$prev_soundscape, navigate_soundscape("prev"))
+      shiny::observeEvent(input$next_soundscape, navigate_soundscape("next"))
+      shiny::observeEvent(input$next_soundscape_noroi, navigate_unsegmented("next"))
+      shiny::observeEvent(input$prev_soundscape_noroi, navigate_unsegmented("prev"))
 
-      observeEvent(input$no_soi, {
-        showModal(modalDialog(
-          title = "Confirm Action",
-          "Are you sure you want to mark this recording as having no signals of interest? This action will erase all ROIs in the active soundscape.",
-          footer = tagList(
-            modalButton("Cancel"),
-            actionButton("confirm_no_soi", "Proceed",
-              style = "color: #fff; background-color: #b73333; border-color: #2e6da4"
+      shiny::observeEvent(input$no_soi, {
+        shiny::showModal(
+          shiny::modalDialog(
+            title = "Confirm Action",
+            "Are you sure you want to mark this recording as having no signals of interest? This action will erase all ROIs in the active soundscape.",
+            footer = shiny::tagList(
+              shiny::modalButton("Cancel"),
+              shiny::actionButton(
+                "confirm_no_soi", "Proceed",
+                style = "color: #fff; background-color: #b73333; border-color: #2e6da4"
+              )
             )
-          )
         ))
       })
 
-      observeEvent(input$confirm_no_soi, {
-        req(
+      shiny::observeEvent(input$confirm_no_soi, {
+        shiny::req(
           wav_path_val(), user_val(), rec_soundscape(),
           soundscape_data()
         )
@@ -1739,12 +1803,12 @@ launch_segmentation_app <- function(
         )
         roi_values(roi_i)
         save_roi_table()
-        showNotification(
+        shiny::showNotification(
           "Recording marked as having no signals of interest",
           type = "message"
         )
         navigate_soundscape("next")
-        removeModal()
+        shiny::removeModal()
       })
 
       # Spectrogram ----------------------------------------------------------------
@@ -1777,7 +1841,7 @@ launch_segmentation_app <- function(
           dom_freq = dom_freq,
           ac_stats = ac_stats[-c(1, 2)] %>%
             as.data.frame() %>%
-            transmute(t10 = time.P1, t90 = time.P2, f10 = freq.P1, f90 = freq.P2)
+            dplyr::transmute(t10 = time.P1, t90 = time.P2, f10 = freq.P1, f90 = freq.P2)
         )
       }
 
@@ -1806,8 +1870,8 @@ launch_segmentation_app <- function(
       # })
 
       # Generate spectrogram data only when core parameters change
-      spectro_soundscape_raw <- reactive({
-        req(
+      spectro_soundscape_raw <- shiny::reactive({
+        shiny::req(
           rec_soundscape(), input$wl, input$ovlp, input$color_scale,
           length(input$dyn_range) == 2, length(input$pitch_shift) == 1,
           length(input$time_guide_interval) == 1,
@@ -1825,8 +1889,8 @@ launch_segmentation_app <- function(
       })
 
       # Render the plot with all parameters
-      output$spectrogram_plot <- renderPlot(execOnResize = TRUE, {
-        req(
+      output$spectrogram_plot <- shiny::renderPlot(execOnResize = TRUE, {
+        shiny::req(
           input$zoom_freq, input$zoom_time, roi_values(),
           spectro_soundscape_raw(), rec_soundscape(), duration_val()
         )
@@ -1868,7 +1932,7 @@ launch_segmentation_app <- function(
           )
           roi_elements <- list(
             # Base ROI rectangles (always added first)
-            annotate(
+            ggplot2::annotate(
               "rect",
               alpha = 0.05,
               linewidth = 0.3,
@@ -1977,9 +2041,9 @@ launch_segmentation_app <- function(
         return(spectro_plot)
       })
 
-      output$res_table <- renderDT(
+      output$res_table <- DT::renderDT(
         {
-          req(roi_values())
+          shiny::req(roi_values())
           roi_df <- roi_values()
           if (nrow(roi_df) == 0) {
             return(data.frame())
@@ -1998,10 +2062,10 @@ launch_segmentation_app <- function(
         )
       )
 
-      observeEvent(input$res_table_cell_edit, {
-        req(roi_values(), roi_tables_path_val(), input$roi_table_name)
+      shiny::observeEvent(input$res_table_cell_edit, {
+        shiny::req(roi_values(), roi_tables_path_val(), input$roi_table_name)
         info <- input$res_table_cell_edit
-        df <- isolate(roi_values())  # Isolate to prevent reactive chain
+        df <- shiny::isolate(roi_values())  # Isolate to prevent reactive chain
 
         # Ensure we have valid edit information
         if (!is.null(info$row) && !is.null(info$col) && !is.null(info$value)) {
@@ -2025,7 +2089,7 @@ launch_segmentation_app <- function(
                 row.names = FALSE
               )
             }, error = function(e) {
-              showNotification(
+              shiny::showNotification(
                 paste("Error saving table:", e$message),
                 type = "error"
               )
@@ -2034,48 +2098,81 @@ launch_segmentation_app <- function(
         }
       })
 
-      observeEvent(input$delete_selected_rois, {
-        req(roi_values())
+      shiny::observeEvent(input$delete_selected_rois, {
+        shiny::req(roi_values())
         df <- roi_values()
         if (!is.null(input$res_table_rows_selected)) {
           df <- df[-input$res_table_rows_selected, ]
-          showNotification("Selected ROIs deleted!", type = "message")
+          shiny::showNotification("Selected ROIs deleted!", type = "message")
         }
         roi_values(df)
       })
 
-      observeEvent(input$export_selected_cut, {
-        req(roi_values(), cuts_path_val())
+      shiny::observeEvent(input$export_selected_cut, {
+        shiny::req(roi_values(), cuts_path_val())
         if (!all(is.na(roi_values())) & nrow(roi_values()) > 0) {
           df <- roi_values()
           if (!is.null(input$res_table_rows_selected)) {
             df <- df[input$res_table_rows_selected, ]
           }
           export_roi_cuts_n(df_rois = df, roi_cuts_path = cuts_path_val())
-          showNotification("Cuts sucessfully exported!", type = "message")
+          shiny::showNotification("Cuts sucessfully exported!", type = "message")
         }
       })
 
       preset_path_load <- reactive(input$preset_path_load)
 
       # todo update here
-      observeEvent(input$default_pars, {
-        req(rec_soundscape())
-        updateSliderInput(session, inputId = "dyn_range", value = session_data$dyn_range)
-        updateSliderTextInput(session, inputId = "wl", selected = session_data$wl)
-        updateSliderInput(session, inputId = "ovlp", value = session_data$ovlp)
-        updateSelectInput(session, inputId = "color_scale", selected = session_data$color_scale)
-        updateSliderInput(session, inputId = "label_angle", value = session_data$label_angle)
-        updateCheckboxInput(session, inputId = "show_label", value = session_data$show_label)
-        updateRadioButtons(session, inputId = "wav_player_type", selected = session_data$wav_player_type)
-        updateNoUiSliderInput(session, inputId = "zoom_freq", value = session_data$zoom_freq)
-        updateCheckboxInput(session, inputId = "nav_autosave", value = session_data$nav_autosave)
-        updateSliderTextInput(session, inputId = "pitch_shift", selected = session_data$pitch_shift)
-        updateSliderInput(session, inputId = "time_guide_interval", value = session_data$time_guide_interval)
-        updateSliderInput(session, inputId = "freq_guide_interval", value = session_data$freq_guide_interval)
+      shiny::observeEvent(input$default_pars, {
+        shiny::req(rec_soundscape())
+        shiny::updateSliderInput(
+          session,
+          inputId = "dyn_range", value = session_data$dyn_range
+        )
+        shinyWidgets::updateSliderTextInput(
+          session,
+          inputId = "wl", selected = session_data$wl
+        )
+        shiny::updateSliderInput(
+          session,
+          inputId = "ovlp", value = session_data$ovlp
+        )
+        shiny::updateSelectInput(
+          session,
+          inputId = "color_scale", selected = session_data$color_scale
+        )
+        shiny::updateSliderInput(
+          session,
+          inputId = "label_angle", value = session_data$label_angle
+        )
+        shiny::updateCheckboxInput(
+          session,
+          inputId = "show_label", value = session_data$show_label
+        )
+        shiny::updateRadioButtons(
+          session,
+          inputId = "wav_player_type", selected = session_data$wav_player_type
+        )
+        shinyWidgets::updateNoUiSliderInput(
+          session,
+          inputId = "zoom_freq", value = session_data$zoom_freq
+        )
+        shiny::updateCheckboxInput(
+          session,
+          inputId = "nav_autosave", value = session_data$nav_autosave
+        )
+        shinyWidgets::updateSliderTextInput(
+          session, inputId = "pitch_shift", selected = session_data$pitch_shift
+        )
+        shiny::updateSliderInput(
+          session, inputId = "time_guide_interval", value = session_data$time_guide_interval
+        )
+        shiny::updateSliderInput(
+          session, inputId = "freq_guide_interval", value = session_data$freq_guide_interval
+        )
       })
 
-      session_settings <- reactiveVal(NULL)
+      session_settings <- shiny::reactiveVal(NULL)
       observe({
         res <- list(
           user = input$user,
@@ -2101,8 +2198,8 @@ launch_segmentation_app <- function(
       })
 
       # Trigger checks for ending the session
-      observeEvent(input$end_session, {
-        req(
+      shiny::observeEvent(input$end_session, {
+        shiny::req(
           roi_tables_path_val(), roi_values(), session_settings(), input$roi_table_name
         )
         table_name <- file.path(roi_tables_path_val(), input$roi_table_name)
@@ -2140,10 +2237,10 @@ launch_segmentation_app <- function(
         } else {
           message_rois <- paste0("ROIs in the current soundscape are not stored in a file. Consider exporting a new one before leaving the session. Press ESC to get back to the session or END it in the button below.")
         }
-        showModal(
-          modalDialog(
+        shiny::showModal(
+          shiny::modalDialog(
             title = "Check out", message_rois,
-            footer = tagList(actionButton("confirm_exit", "End session")),
+            footer = shiny::tagList(shiny::actionButton("confirm_exit", "End session")),
             easyClose = TRUE
           )
         )
@@ -2166,7 +2263,7 @@ launch_segmentation_app <- function(
       }
 
       # Handle manual exit
-      observeEvent(input$confirm_exit, {
+      shiny::observeEvent(input$confirm_exit, {
         tryCatch(
           {
             safe_cleanup_temp_files(session_data$temp_path)
@@ -2183,9 +2280,9 @@ launch_segmentation_app <- function(
         safe_cleanup_temp_files(session_data$temp_path)
       })
 
-      # teste_val <- reactiveVal(NULL)
+      # teste_val <- shiny::reactiveVal(NULL)
       # output$checagem1 <- renderPrint({
-      #   req(duration_val())
+      #   shiny::req(duration_val())
       #   duration_val()
       # })
 
@@ -2249,7 +2346,7 @@ launch_segmentation_app <- function(
 
       # Apply tooltips
       for (id in names(tooltips)) {
-        addTooltip(
+        shinyBS::addTooltip(
           session,
           id = id,
           title = tooltips[[id]],

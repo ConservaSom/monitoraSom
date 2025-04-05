@@ -15,8 +15,6 @@
 #'   include true positives. Defaults to FALSE.
 #'
 #' @return A data frame containing the ROI information.
-#' @import dplyr
-#' @importFrom stringr str_split
 #' @export
 #' @examples
 #' \dontrun{
@@ -60,7 +58,7 @@ detecs_to_rois <- function(
         df_input <- df_detecs
         if (filter_tp) {
             if ("validation" %in% colnames(df_input)) {
-                df_input <- df_input %>%
+                df_input <- df_input |>
                     dplyr::filter(validation == "TP")
             } else {
                 warning(
@@ -98,7 +96,7 @@ detecs_to_rois <- function(
         )
     }
 
-    df_input_proc <- df_input %>%
+    df_input_proc <- df_input |>
         dplyr::mutate(
             soundscape_path = soundscape_path,
             soundscape_file = soundscape_file,
@@ -139,7 +137,7 @@ detecs_to_rois <- function(
             roi_ovlp = detection_ovlp,
             roi_sample_rate = detection_sample_rate,
             roi_pitch_shift = 1
-        ) %>%
+        ) |>
         dplyr::select(
             soundscape_path, soundscape_file, roi_file, roi_user,
             roi_input_timestamp, roi_label, roi_start, roi_end, roi_min_freq,
@@ -157,10 +155,10 @@ detecs_to_rois <- function(
         )
     } else {
         if (dir.exists(output_path)) {
-            df_input_proc %>%
-                dplyr::mutate(roi_path = file.path(output_path, roi_file)) %>%
-                dplyr::select(-roi_file) %>%
-                dplyr::group_split(roi_path) %>%
+            df_input_proc |>
+                dplyr::mutate(roi_path = file.path(output_path, roi_file)) |>
+                dplyr::select(-roi_file) |>
+                dplyr::group_split(roi_path) |>
                 lapply(function(x) {
                     write.csv(x, file = unique(x$roi_path), row.names = FALSE)
                 })

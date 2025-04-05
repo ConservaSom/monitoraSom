@@ -23,12 +23,6 @@
 #' @return A tibble containing either detection results or raw scores.
 #'
 #' @export
-#' @import dplyr
-#' @importFrom tuneR readWave
-#' @importFrom seewave spectro
-#' @importFrom slider slide
-#' @importFrom tibble as_tibble
-#' @importFrom tidyr replace_na
 match_i <- function(
     df_grid_i, score_method = "cor", output = "detections",
     buffer_size = "template", min_score = NULL, min_quant = NULL,
@@ -80,11 +74,10 @@ match_i <- function(
   sw_start <- sliding_window %/% 2
   sw_end <- (sliding_window - sw_start) - 1
   ind <- slider::slide(
-    1:nrow(mat_soundscape), ~.x,
-    .before = sw_start, .after = sw_end,
+    1:nrow(mat_soundscape), ~.x, .before = sw_start, .after = sw_end,
     .complete = TRUE
-  ) %>%
-    base::Filter(base::Negate(is.null), .)
+  ) |>
+    base::Filter(f = base::Negate(is.null), x = _)
 
   if (score_method == "cor") {
     score_vec <- lapply(
@@ -95,10 +88,13 @@ match_i <- function(
           method = "pearson", use = "complete.obs"
         )
       }
-    ) %>%
-      unlist() %>%
-      c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1)) %>%
-      tidyr::replace_na(min(., na.rm = TRUE))
+    )
+    score_vec <- unlist(score_vec)
+    score_vec <- c(
+      rep(min(score_vec), sw_start - 1), score_vec,
+      rep(min(score_vec), sw_end + 1)
+    )
+    score_vec <- tidyr::replace_na(score_vec, min(score_vec, na.rm = TRUE))
   } else if (score_method == "dtw") {
     if (!requireNamespace("dtw", quietly = TRUE)) {
       stop("Package 'dtw' is required for 'dtw' method. Please install it.")
@@ -118,20 +114,21 @@ match_i <- function(
           normalize = FALSE
         )
       }
-    ) %>%
-      unlist() %>%
-      {
-        1 - (. / max(.)) # 1 - dtw score to match the format of the cor score
-      } %>%
-      c(rep(min(.), sw_start - 1), ., rep(min(.), sw_end + 1)) %>%
-      tidyr::replace_na(min(., na.rm = TRUE))
+    )
+    score_vec <- unlist(score_vec)
+    # 1 - dtw score to match the format of the cor score
+    score_vec <- 1 - (score_vec / max(score_vec))
+    score_vec <- c(
+      rep(min(score_vec), sw_start - 1), score_vec, rep(min(score_vec), sw_end + 1)
+    )
+    score_vec <- tidyr::replace_na(score_vec, min(score_vec, na.rm = TRUE))
   }
 
   if (length(score_vec) > length(soundscape_spectro$time)) {
     score_vec <- head(score_vec, -1)
   }
 
-  res_raw <- as_tibble(df_grid_i)
+  res_raw <- tibble::as_tibble(df_grid_i)
   res_raw$score_sliding_window <- sliding_window
   res_raw$score_method <- score_method
   res_raw$score_vec <- list(

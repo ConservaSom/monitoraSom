@@ -12,11 +12,6 @@
 #'   path used by the segmentation app.
 #' @param overwrite If TRUE, existing files will be overwritten
 #'
-#' @import dplyr
-#' @importFrom tuneR readWave writeWave
-#' @importFrom pbapply pblapply
-#' @importFrom stringr str_replace str_pad
-#'
 #' @return A message indicating if all cuts were made successfully
 #' @export
 #' @examples
@@ -65,7 +60,7 @@ export_roi_cuts_n <- function(
   rois_list <- dplyr::mutate(
     df_rois,
     cut_name = paste(
-      str_replace(soundscape_file, "\\.wav$|\\.WAV$", ""),
+      stringr::str_replace(soundscape_file, "\\.wav$|\\.WAV$", ""),
         "_",
         stringr::str_pad(sprintf("%.3f", round(roi_start, 3)), 7, pad = "0"),
         "-",

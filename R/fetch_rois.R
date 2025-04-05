@@ -12,9 +12,8 @@
 #'
 #' @return A data frame with ROI tables
 #'
-#' @importFrom pbapply pblapply
-#' @importFrom dplyr mutate
 #' @export
+#' 
 #' @examples
 #' \dontrun{
 #'
@@ -132,7 +131,7 @@ fetch_rois <- function(rois_path = NULL, recursive = FALSE) {
   }
 
   df_rois <- do.call(
-    rbind, pblapply(ls_roi_tables, read_roi_fun)
+    rbind, pbapply::pblapply(ls_roi_tables, read_roi_fun)
   )
 
   valid_entries <- !vapply(df_rois, is.null, logical(1))

@@ -15,9 +15,13 @@ roxygen2::roxygenise(clean = TRUE)
 # para identificar caracteres não ASCII
 tools::showNonASCIIfile("R/launch_segmentation_app.R")
 
+# usethis::edit_r_environ()
+# _R_CHECK_USE_CODETOOLS_= FALSE
+# _R_CHECK_SYSTEM_CLOCK_ = 0
+
 # documentação
-document()
-document(roclets = c("rd", "collate", "namespace"))
+# document()
+# document(roclets = c("rd", "collate", "namespace"))
 
 # checagem da estrutura do pacote
 check()
@@ -58,7 +62,6 @@ use_gpl3_license()
 # use_package("future")
 # use_package("keys")
 # use_package("ggplot2")
-# use_package("lubridate")
 # use_package("parabar")
 # use_package("patchwork")
 # use_package("pbapply")
@@ -162,6 +165,38 @@ df_detecs_val_tovlp <- read.csv(
     usethis::use_data(df_detecs_val_manual, overwrite = TRUE)
     usethis::use_data(df_detecs_val_tovlp, overwrite = TRUE)
 }
+
+{
+    tools::resaveRdaFiles("data/df_detecs_val_manual.rda", compress = "xz")
+    tools::resaveRdaFiles("data/df_detecs_val_tovlp.rda", compress = "xz")
+    tools::resaveRdaFiles("data/df_detecs.rda", compress = "xz")
+    tools::resaveRdaFiles("data/df_grid.rda", compress = "xz")
+    tools::resaveRdaFiles("data/df_rois.rda", compress = "xz")
+    tools::resaveRdaFiles("data/df_scores.rda", compress = "xz")
+    tools::resaveRdaFiles("data/df_soundscapes.rda", compress = "xz")
+    tools::resaveRdaFiles("data/df_templates.rda", compress = "xz")
+    tools::resaveRdaFiles("data/ls_recordings.rda", compress = "xz")
+    tools::resaveRdaFiles("data/ls_roi_tables.rda", compress = "xz")
+    tools::resaveRdaFiles("data/ls_soundscapes.rda", compress = "xz")
+    tools::resaveRdaFiles("data/ls_templates.rda", compress = "xz")
+    tools::resaveRdaFiles("data/sp_labels.rda", compress = "xz")
+}
+
+# tools::checkRdaFiles("data/df_detecs_val_manual.rda")
+# tools::checkRdaFiles("data/df_detecs_val_tovlp.rda")
+# tools::checkRdaFiles("data/df_detecs.rda")
+# tools::checkRdaFiles("data/df_grid.rda")
+# tools::checkRdaFiles("data/df_rois.rda")
+# tools::checkRdaFiles("data/df_scores.rda")
+# tools::checkRdaFiles("data/df_soundscapes.rda")
+# tools::checkRdaFiles("data/df_templates.rda")
+# tools::checkRdaFiles("data/ls_recordings.rda")
+# tools::checkRdaFiles("data/ls_roi_tables.rda")
+# tools::checkRdaFiles("data/ls_soundscapes.rda")
+# tools::checkRdaFiles("data/ls_templates.rda")
+# tools::checkRdaFiles("data/sp_labels.rda")
+
+
 
 # Tests ------------------------------------------------------------
 
