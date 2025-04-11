@@ -1,11 +1,8 @@
 Package: monitoraSom
 Type: Package
-Title: A Complete Workflow for Automated Sound Recognition and Validation in
-    Bioacoustics
-Version: 0.3.2
-Author: Gabriel L. M. Rosa; Juan Ingrid D. Rocha; Cassio R. Simões;
-    Carlos B. de Araújo;
-Maintainer: Gabriel L. M. Rosa <gabrielrosa@conservasom.com.br>
+Title: A toolbox for automated sound detection aplied to Bioacoustics and Passive Acoustic Monitoring.
+Version: 0.3.1
+Authors@R: c(person("Gabriel", "L. M. Rosa", role = c("aut", "cre"), email = "gabrielrosa@conservasom.com.br", comment = c(ORCID = "0000-0001-5332-9713")), person("Juan P.", "Zurano", role = c("aut", "cre"), email = "", comment = c(ORCID = "0000-0003-4201-4366")), person("Ingrid M. D.", "Torres", role = c("aut"), email = "ingriddenobile@conservasom.com.br", comment = c(ORCID = "0000-0003-4336-0682")), person("Cassio R.", "Simões", role = c("aut"), email = "cassiorachid@conservasom.com.br", comment = c(ORCID = "0000-0002-1563-575X")), person("Carlos B.", "de Araújo", role = c("aut", "cre"), email = "cabarau@gmail.com", comment = c(ORCID = "0000-0002-0862-119X"), person("Luiz dos", "Anjos", role = c("aut", "fnd"), email = "lanjos@uel.br", comment = c(ORCID = "0000-0002-8680-2375")))
 Description: `monitoraSom` is an R package designed to overcome the challenges of
     automated sound recognition and validation in bioacoustics. It provides a
     complete workflow for this purpose, including tools for segmentation,
@@ -27,7 +24,7 @@ Depends:
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: TRUE
-LazyDataCompression: xz
+LazyDataCompression:xz
 Imports:
     caret,
     cowplot,

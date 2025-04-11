@@ -48,13 +48,13 @@
 #' }))
 #'
 #' # Import the soundscapes metadata
-#' df_soundscapes <- fetch_soundscapes_metadata(
+#' df_soundscapes <- fetch_soundscape_metadata(
 #'   soundscapes_path = soundscapes_path
 #' )
 #' glimpse(df_soundscapes)
 #'
 #' }
-fetch_soundscapes_metadata <- function(
+fetch_soundscape_metadata <- function(
     soundscapes_path = NULL, recursive = TRUE, output_file = NULL,
     skip_processed = TRUE, ncores = 1) {
 

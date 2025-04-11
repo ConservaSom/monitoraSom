@@ -97,7 +97,7 @@ template_matching <- function(
   df_templates <- monitoraSom::fetch_template_metadata(
     templates_path = templates_path, recursive = recursive_templates
   )
-  df_soundscapes <- monitoraSom::fetch_soundscapes_metadata(
+  df_soundscapes <- monitoraSom::fetch_soundscape_metadata(
     soundscapes_path = soundscapes_path, recursive = recursive_soundscapes,
     output_file = output_file, skip_processed = skip_processed, ncores = ncores
   )

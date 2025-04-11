@@ -13,6 +13,6 @@ df_soundscapes
 \description{
 A data frame containing the metadata of the soundscape recordings to run the
 examples of the `monitoraSom` package. The metadata was extracted from the
-soundscape recordings with the `fetch_soundscapes_metadata()` function.
+soundscape recordings with the `fetch_soundscape_metadata()` function.
 }
 \keyword{datasets}

@@ -62,7 +62,7 @@ invisible(lapply(1:length(ls_templates), function(i) {
 }))
 
 # Import the soundscapes metadata
-df_soundscapes <- fetch_soundscapes_metadata(
+df_soundscapes <- fetch_soundscape_metadata(
   soundscapes_path = soundscapes_path
 )
 
