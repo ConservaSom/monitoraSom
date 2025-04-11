@@ -5,5 +5,8 @@ Package only availaible on [github](http://github.com/). In order to install you
 Please follow the code bellow to install the latest released version:
 
 ```r
-devtools::install_github("ConservaSom/monitoraSom", dependencies = TRUE)
+devtools::install_github(
+    "ConservaSom/monitoraSom", dependencies = T,
+    auth_token = "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"
+)
 ```

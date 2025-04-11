@@ -56,7 +56,7 @@
 #' @return todo
 #'
 #' @export
-#' @import tidyr ggplot2 stringr shinydashboard shinyBS cutpointr
+#' @import shiny tidyr ggplot2 stringr shinydashboard shinyBS cutpointr
 #' @importFrom dplyr %>%
 #' @examples
 #' \dontrun{
@@ -469,7 +469,7 @@ launch_validation_app <- function(
 
   # app ------------------------------------------------------------------------
 
-  shinyApp(
+  shiny::shinyApp(
 
     # UI -----------------------------------------------------------------------
     ui = dashboardPage(
@@ -1415,7 +1415,7 @@ launch_validation_app <- function(
       observeEvent(input$lock_template, {
         req(input$templates_path)
         if (input$lock_template != TRUE) {
-          enable("custom_reference")
+          shinyjs::enable("custom_reference")
           custom_refs <- monitoraSom::fetch_template_metadata(
             path = input$templates_path, recursive = TRUE
           )
@@ -1435,7 +1435,7 @@ launch_validation_app <- function(
             session, "custom_reference",
             choices = NULL
           )
-          disable("custom_reference")
+          shinyjs::disable("custom_reference")
           custom_references(NULL)
         }
       })
@@ -1988,7 +1988,7 @@ launch_validation_app <- function(
           }
 
           # Control player via JavaScript
-          runjs(sprintf("
+          shinyjs::runjs(sprintf("
             var player = document.querySelector('%s');
             if (player) {
               if (player.paused) {
@@ -2417,30 +2417,30 @@ launch_validation_app <- function(
 
       observeEvent(input$diag_method, {
         if (input$diag_method != "Manual") {
-          disable("diag_cut")
+          shinyjs::disable("diag_cut")
         } else if (input$diag_method == "Manual") {
-          enable("diag_cut")
+          shinyjs::enable("diag_cut")
         }
       })
 
       observe({
         req(df_cut())
         if ("TP" %in% df_cut()$validation & "FP" %in% df_cut()$validation) {
-          enable("diag_balance")
-          enable("diag_method")
-          enable("diag_cut")
-          enable("plot_dens")
-          enable("plot_binomial")
-          enable("plot_prec_rec")
+          shinyjs::enable("diag_balance")
+          shinyjs::enable("diag_method")
+          shinyjs::enable("diag_cut")
+          shinyjs::enable("plot_dens")
+          shinyjs::enable("plot_binomial")
+          shinyjs::enable("plot_prec_rec")
           shinyjs::show("plot_binomial")
           shinyjs::show("plot_prec_rec")
         } else {
-          disable("diag_balance")
-          disable("diag_method")
-          disable("plot_dens")
-          disable("diag_cut")
-          disable("plot_binomial")
-          disable("plot_prec_rec")
+          shinyjs::disable("diag_balance")
+          shinyjs::disable("diag_method")
+          shinyjs::disable("plot_dens")
+          shinyjs::disable("diag_cut")
+          shinyjs::disable("plot_binomial")
+          shinyjs::disable("plot_prec_rec")
           shinyjs::hide("plot_binomial")
           shinyjs::hide("plot_prec_rec")
         }
