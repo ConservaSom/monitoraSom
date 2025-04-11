@@ -1,6 +1,6 @@
 Package: monitoraSom
 Type: Package
-Title: A toolbox for automated sound detection aplied to Bioacoustics and Passive Acoustic Monitoring.
+Title: A toolbox for automated sound detection aplied to Bioacoustics and Passive Acoustic Monitoring
 Version: 0.3.1
 Authors@R: c(person("Gabriel L. M.", "Rosa", role = c("aut", "cre"), email = "gabrielrosa@conservasom.com.br", comment = c(ORCID = "0000-0001-5332-9713")), person("Juan P.", "Zurano", role = "aut", email = "", comment = c(ORCID = "0000-0003-4201-4366")), person("Ingrid M. D.", "Torres", role = "aut", email = "ingriddenobile@conservasom.com.br", comment = c(ORCID = "0000-0003-4336-0682")), person("Cassio R.", "Simoes", role = "aut", email = "cassiorachid@conservasom.com.br", comment = c(ORCID = "0000-0002-1563-575X")), person("Carlos B.", "de Araujo", role = "aut", email = "cabarau@gmail.com", comment = c(ORCID = "0000-0002-0862-119X")), person("Luiz dos", "Anjos", role = c("aut", "fnd"), email = "lanjos@uel.br", comment = c(ORCID = "0000-0002-8680-2375")))
 Description: `monitoraSom` is an R package designed to overcome the challenges of
@@ -33,6 +33,7 @@ Imports:
     dplyr,
     DT,
     farver,
+    fftw,
     future,
     ggplot2,
     keys,

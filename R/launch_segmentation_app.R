@@ -2120,7 +2120,7 @@ launch_segmentation_app <- function(
         }
       })
 
-      preset_path_load <- reactive(input$preset_path_load)
+      preset_path_load <- shiny::reactive(input$preset_path_load)
 
       # todo update here
       shiny::observeEvent(input$default_pars, {

@@ -74,6 +74,8 @@ fast_spectro <- function(
     pitch_shift = 1, theme_mode = "light",
     time_guide_interval = 3, freq_guide_interval = 1, ...) {
 
+  requireNamespace("fftw")
+
   validate_inputs <- function() {
     if (!inherits(rec, "Wave")) {
       stop("rec must be a 'Wave' object")
