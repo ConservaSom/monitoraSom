@@ -533,7 +533,9 @@ launch_segmentation_app <- function(
               placeholder = "Paste or load path here",
               height = "50px", resize = "vertical", width = "100%"
             ),
-            shiny::textAreaInput("roi_tables_path", "Destination of ROI tables",
+            shiny::textAreaInput(
+              "roi_tables_path",
+              "Destination of ROI tables",
               value = session_data$roi_tables_path,
               placeholder = "Paste or load path here",
               height = "50px", resize = "vertical", width = "100%"
@@ -694,7 +696,8 @@ launch_segmentation_app <- function(
                 "zoom_freq", "kHz",
                 min = 0, max = 180, step = 0.1, value = session_data$zoom_freq,
                 direction = "rtl", orientation = "vertical", width = "100px",
-                height = "25vh", behaviour = "drag", format = wNumbFormat(decimals = 1),
+                height = "25vh", behaviour = "drag",
+                format = shinyWidgets::wNumbFormat(decimals = 1),
                 update_on = "end"
               )
             ),
@@ -849,7 +852,8 @@ launch_segmentation_app <- function(
               shiny::column(
                 width = 2,
                 shiny::selectizeInput(
-                  "signal_is_complete", "Complete",
+                  "signal_is_complete",
+                  "Complete",
                   width = "100%",
                   choices = c("complete", "incomplete"),
                   selected = "complete"
@@ -1273,7 +1277,7 @@ launch_segmentation_app <- function(
 
       # Filter available ROI tables based in the prefix retrieved from the
       # soundscape file names
-      alt_roitabs_meta <- shiny::observeEvent(NULL)
+      alt_roitabs_meta <- shiny::reactiveVal(NULL)
       shiny::observeEvent(input$soundscape_file, {
         shiny::req(input$soundscape_file)
         roi_list <- list.files(
@@ -1532,6 +1536,10 @@ launch_segmentation_app <- function(
         current_rois <- tibble(roi_values())
 
         if (input$hotkeys == "e") {
+          shiny::req(
+            input$roi_limits$xmin, input$roi_limits$xmax, input$roi_limits$ymin,
+            input$roi_limits$ymax
+          )
           # Create a new ROI entry
           roi_i <- tidyr::tibble(
             soundscape_path = wav_path_val(),
@@ -1554,12 +1562,14 @@ launch_segmentation_app <- function(
           )
 
           # Update roi_values based on current_rois
-          if (all(is.na(current_rois))) {
-            roi_values(roi_i)
-          } else {
-            if (nrow(current_rois) >= 1) {
-              res <- dplyr::bind_rows(current_rois, roi_i)
-              roi_values(res)
+          if (!is.null(roi_i$roi_start) && !is.null(roi_i$roi_end)) {
+            if (all(is.na(current_rois))) {
+              roi_values(roi_i)
+            } else {
+              if (nrow(current_rois) >= 1) {
+                res <- dplyr::bind_rows(current_rois, roi_i)
+                roi_values(res)
+              }
             }
           }
         } else if (input$hotkeys == "q") {
@@ -1599,6 +1609,10 @@ launch_segmentation_app <- function(
         }
 
         if (input$hotkeys == "r") {
+          shiny::req(
+            wav_path_val(), input$soundscape_file, input$roi_limits$xmin,
+            input$roi_limits$xmax, input$roi_limits$ymin, input$roi_limits$ymax
+          )
           if (is.null(ruler())) {
             res <- data.frame(
               soundscape_path = wav_path_val(),
@@ -1609,7 +1623,8 @@ launch_segmentation_app <- function(
               roi_duration = input$roi_limits$xmax - input$roi_limits$xmin,
               roi_min_freq = input$roi_limits$ymin,
               roi_max_freq = input$roi_limits$ymax,
-              roi_bandwidth = input$roi_limits$ymax - input$roi_limits$ymin
+              roi_bandwidth = input$roi_limits$ymax - input$roi_limits$ymin,
+              stringsAsFactors = FALSE
             )
             ruler(res)
           } else {
@@ -1917,14 +1932,18 @@ launch_segmentation_app <- function(
 
         # Add ROIs if available
         rois_to_plot <- roi_values() |>
-          dplyr::mutate(id = row_number()) |>
+          dplyr::mutate(id = dplyr::row_number()) |>
           dplyr::filter(
-            roi_start < input$zoom_time[2] & roi_end > input$zoom_time[1]
+            as.numeric(.data$roi_start) < input$zoom_time[2] &
+              as.numeric(.data$roi_end) > input$zoom_time[1]
           )
 
         # Prepare ROI elements if available
         if (nrow(rois_to_plot) > 0 &&
-          identical(unique(rois_to_plot$soundscape_file), input$soundscape_file)) {
+          identical(
+            unique(rois_to_plot$soundscape_file), input$soundscape_file
+          )
+        ) {
 
           selection_color <- ifelse(
             input$color_scale %in% c("greyscale 1", "greyscale 2"),
@@ -1934,15 +1953,11 @@ launch_segmentation_app <- function(
             # Base ROI rectangles (always added first)
             ggplot2::annotate(
               "rect",
-              alpha = 0.05,
-              linewidth = 0.3,
-              linetype = "dashed",
+              alpha = 0.05, linewidth = 0.3, linetype = "dashed",
               fill = rep(selection_color, nrow(rois_to_plot)),
               color = rep(selection_color, nrow(rois_to_plot)),
-              xmin = rois_to_plot$roi_start,
-              xmax = rois_to_plot$roi_end,
-              ymin = rois_to_plot$roi_min_freq,
-              ymax = rois_to_plot$roi_max_freq
+              xmin = rois_to_plot$roi_start, xmax = rois_to_plot$roi_end,
+              ymin = rois_to_plot$roi_min_freq, ymax = rois_to_plot$roi_max_freq
             )
           )
 
@@ -1952,11 +1967,8 @@ launch_segmentation_app <- function(
             roi_elements <- c(roi_elements, list(
               annotate(
                 "rect",
-                alpha = 0.2,
-                linewidth = 0.5,
-                linetype = "solid",
-                fill = selection_color,
-                color = selection_color,
+                alpha = 0.2, linewidth = 0.5, linetype = "solid",
+                fill = selection_color, color = selection_color,
                 xmin = rois_to_plot$roi_start[selected_rows],
                 xmax = rois_to_plot$roi_end[selected_rows],
                 ymin = rois_to_plot$roi_min_freq[selected_rows],
@@ -1970,14 +1982,12 @@ launch_segmentation_app <- function(
             roi_elements <- c(roi_elements, list(
               annotate(
                 "text",
-                alpha = 1,
-                vjust = "inward",
-                hjust = "inward",
-                angle = input$label_angle,
-                color = selection_color,
-                x = rois_to_plot$roi_start,
-                y = rois_to_plot$roi_max_freq,
-                label = paste0("(", rois_to_plot$id, ") ", rois_to_plot$roi_label),
+                alpha = 1, vjust = "inward", hjust = "inward",
+                angle = input$label_angle, color = selection_color,
+                x = rois_to_plot$roi_start, y = rois_to_plot$roi_max_freq,
+                label = paste0(
+                  "(", rois_to_plot$id, ") ", rois_to_plot$roi_label
+                ),
                 na.rm = TRUE
               )
             ))
