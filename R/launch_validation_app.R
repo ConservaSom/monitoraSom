@@ -38,7 +38,6 @@
 #'   slider.
 #' @param color_scale Color scale for the spectrogram.
 #' @param zoom_freq Frequency range to zoom in the spectrogram.
-#' @param nav_shuffle If TRUE, the files will be shuffled before navigation.
 #' @param subset_seed Seed for the random shuffling.
 #' @param auto_next If TRUE, the next file is automatically displayed when the
 #'   user validates a cut.
@@ -114,9 +113,9 @@ launch_validation_app <- function(
     val_subset = c("NV", "TP", "FP", "UN"), time_pads = 1, ovlp = 0, wl = 2048,
     dyn_range_bar = c(-144, 0), dyn_range_templ = c(-84, 0),
     dyn_range_detec = c(-84, 0), color_scale = "inferno", zoom_freq = c(0, 23),
-    time_guide_interval = 1, freq_guide_interval = 1, nav_shuffle = FALSE,
-    subset_seed = 123, auto_next = TRUE, nav_autosave = TRUE, overwrite = FALSE,
-    pitch_shift = 1, visible_bp = FALSE, play_norm = FALSE
+    time_guide_interval = 1, freq_guide_interval = 1, subset_seed = 123,
+    auto_next = TRUE, nav_autosave = TRUE, overwrite = FALSE, pitch_shift = 1,
+    visible_bp = FALSE, play_norm = FALSE
   ) {
 
   options(dplyr.summarise.inform = FALSE)
@@ -156,12 +155,17 @@ launch_validation_app <- function(
       {
         if (!dir.exists(project_path)) {
           dir.create(project_path)
-          warning("The validation app project directory was successfully created at '", project_path, "'")
+          warning(
+            "The validation app project directory was successfully created at '", project_path, "'"
+          )
         }
         session_data$project_path <- project_path
       },
       error = function(e) {
-        stop("Failed to create validation app project directory at '", project_path, "': ", e$message)
+        stop(
+          "Failed to create validation app project directory at '",
+          project_path, "': ", e$message
+        )
       }
     )
   }
@@ -171,13 +175,16 @@ launch_validation_app <- function(
     if (!dir.exists(preset_path)) {
       dir.create(preset_path)
       if (!dir.exists(preset_path)) {
-        stop("Error! The selected preset destination folder does not exist and could not be created.")
+        stop(
+          "Error! The selected preset destination folder does not exist and could not be created."
+        )
       }
       warning("The segmentation preset destination directory was created automatically at '", preset_path, "'")
     }
     session_data$preset_path <- preset_path
 
-    # The creation of the temp directory assumes that the preset directory exists
+    # The creation of the temp directory assumes that the preset directory
+    # exists
     temp_path <- file.path(preset_path, "temp/")
     if (!dir.exists(temp_path)) {
       dir.create(temp_path)
@@ -200,7 +207,9 @@ launch_validation_app <- function(
     session_data$validation_user <- as.character(gsub(",", "", validation_user))
   } else {
     session_data$validation_user <- NA_character_
-    warning("Warning! A value was not provided for 'validation_user' variable. Inform the correct value and confirm within the app.")
+    warning(
+      "Warning! A value was not provided for 'validation_user' variable. Inform the correct value and confirm within the app."
+    )
   }
 
   # Validate and set the templates path
@@ -208,14 +217,18 @@ launch_validation_app <- function(
     templates_path <- "templates_metadata/" # Default path
     if (dir.exists(templates_path)) {
       session_data$templates_path <- templates_path
-      warning("Warning! The path to the template wave files was not provided. Using the default path 'templates_metadata/'.")
+      warning(
+        "Warning! The path to the template wave files was not provided. Using the default path 'templates_metadata/'."
+      )
     } else {
       stop("Error! The default path 'templates_metadata/' does not exist.")
     }
   } else if (dir.exists(templates_path)) {
     session_data$templates_path <- templates_path
   } else {
-    stop("Error! The provided path to the template wave files was not found locally.")
+    stop(
+      "Error! The provided path to the template wave files was not found locally."
+    )
   }
 
   # Validate and set the soundscapes path
@@ -226,7 +239,9 @@ launch_validation_app <- function(
       stop("Error! The default path 'soundscapes/' does not exist.")
     }
   } else if (!dir.exists(soundscapes_path)) {
-    stop("Error! The provided path to the soundscape wave files was not found locally.")
+    stop(
+      "Error! The provided path to the soundscape wave files was not found locally."
+    )
   }
 
   # Validate and set the input path
@@ -236,11 +251,15 @@ launch_validation_app <- function(
   }
 
   session_data$output_path <- if (is.null(output_path)) {
-    warning("Warning! The output file was not provided. Using the input file as output.")
+    warning(
+      "Warning! The output file was not provided. Using the input file as output."
+    )
     input_path
   } else {
     if (!file.exists(output_path)) {
-      warning("Warning! The output file was not found locally. It will be created automatically.")
+      warning(
+        "Warning! The output file was not found locally. It will be created automatically."
+      )
     }
     output_path
   }
@@ -374,38 +393,71 @@ launch_validation_app <- function(
   }
   session_data$subset_seed <- subset_seed
 
-  # Function to validate logical values and assign them to session_data
-  validate_logical_and_assign <- function(value, name) {
-    if (!is.logical(value)) {
-      stop(
-        paste(
-          "Error! The value assigned to '", name,
-          "' is not logical. Set it to TRUE or FALSE.",
-          sep = ""
-      ))
-    }
-    session_data[[name]] <- value
-  }
-  validate_logical_and_assign(visible_bp, "visible_bp")
-  validate_logical_and_assign(play_norm, "play_norm")
-  validate_logical_and_assign(nav_shuffle, "nav_shuffle")
-  validate_logical_and_assign(auto_next, "auto_next")
-  validate_logical_and_assign(nav_autosave, "nav_autosave")
-  validate_logical_and_assign(overwrite, "overwrite")
+  # validate_logical_and_assign <- function(value, name) {
+  #   if (!is.logical(value)) {
+  #     stop(
+  #       paste(
+  #         "Error! The value assigned to '", name,
+  #         "' is not logical. Set it to TRUE or FALSE.", sep = ""
+  #     ))
+  #   }
+  #   session_data[[name]] <- value
+  # }
+  # validate_logical_and_assign(visible_bp, "visible_bp")
+  # validate_logical_and_assign(play_norm, "play_norm")
+  # validate_logical_and_assign(auto_next, "auto_next")
+  # validate_logical_and_assign(nav_autosave, "nav_autosave")
+  # validate_logical_and_assign(overwrite, "overwrite")
 
-  # Function to validate and set paths
+
+  if (is.logical(visible_bp)) {
+    session_data$visible_bp <- visible_bp
+  } else {
+    stop(
+      "Error! The value assigned to 'visible_bp' is not logical. Set it to TRUE or FALSE."
+    )
+  }
+  if (is.logical(play_norm)) {
+    session_data$play_norm <- play_norm
+  } else {
+    stop(
+      "Error! The value assigned to 'play_norm' is not logical. Set it to TRUE or FALSE."
+    )
+  }
+  if (is.logical(auto_next)) {
+    session_data$auto_next <- auto_next
+  } else {
+    stop(
+      "Error! The value assigned to 'auto_next' is not logical. Set it to TRUE or FALSE."
+    )
+  }
+  if (is.logical(nav_autosave)) {
+    session_data$nav_autosave <- nav_autosave
+  } else {
+    stop(
+      "Error! The value assigned to 'nav_autosave' is not logical. Set it to TRUE or FALSE."
+    )
+  }
+  if (is.logical(overwrite)) {
+    session_data$overwrite <- overwrite
+  } else {
+    stop(
+      "Error! The value assigned to 'overwrite' is not logical. Set it to TRUE or FALSE."
+    )
+  }
+
   validate_and_set_path <- function(path, default_path, session_key) {
     if (is.null(path)) {
       if (dir.exists(default_path)) {
         warning(paste("Warning! The informed '", session_key,
-          "' was not found locally. Using the default path '", default_path, "'.",
-          sep = ""
+          "' was not found locally. Using the default path '",
+          default_path, "'.", sep = ""
         ))
       } else {
         dir.create(default_path, recursive = TRUE)
         warning(paste("Warning! The informed '", session_key,
-          "' was not found locally. Using the default path '", default_path, "'.",
-          sep = ""
+          "' was not found locally. Using the default path '",
+          default_path, "'.", sep = ""
         ))
       }
       return(default_path)
@@ -464,7 +516,6 @@ launch_validation_app <- function(
 
   # This block defines where embedded html wav players will look for the files
   shiny::addResourcePath("audio", temp_path)
-  # resourcePaths()
   # todo Clear temp folder when closing the app
 
   # app ------------------------------------------------------------------------
@@ -473,13 +524,16 @@ launch_validation_app <- function(
 
     # UI -----------------------------------------------------------------------
     ui = shinydashboard::dashboardPage(
-      header = shinydashboard::dashboardHeader(title = "MonitoraSom", titleWidth = "400px"),
+      header = shinydashboard::dashboardHeader(
+        title = "MonitoraSom", titleWidth = "400px"
+      ),
 
       # Sidebar ----------------------------------------------------------------
       sidebar = shinydashboard::dashboardSidebar(
-        tags$head(tags$style(HTML(".form-group { margin-bottom: 10px !important; }"))),
+        tags$head(
+          tags$style(HTML(".form-group { margin-bottom: 10px !important; }"))
+        ),
         width = "400px",
-        # Pop up control. Credits to: soundgen::annotation_app()
         shinydashboard::sidebarMenu(
 
           # User setup ---------------------------------------------------------
@@ -545,7 +599,8 @@ launch_validation_app <- function(
                 "True positives - TP" = "TP", "False positives - FP" = "FP",
                 "Unknown - UN" = "UN", "Not validated - NV" = "NV"
               ),
-              selected = session_data$val_subset, multiple = TRUE, width = "100%"
+              selected = session_data$val_subset, multiple = TRUE,
+              width = "100%"
             ),
             # convert in an interval
             shiny::sliderInput(
@@ -556,7 +611,9 @@ launch_validation_app <- function(
             # top n detections
             shiny::splitLayout(
               cellWidths = c("50%", "50%"),
-              shiny::textInput("top_n_detecs", "Top detections", value = 0, width = "100%"),
+              shiny::textInput(
+                "top_n_detecs", "Top detections", value = 0, width = "100%"
+              ),
               shiny::checkboxInput(
                 "top_by_file", "Search top scores within soundscape files",
                 value = FALSE, width = "100%"
@@ -589,7 +646,9 @@ launch_validation_app <- function(
             ),
             shiny::actionButton(
               "confirm_session_setup", "Confirm validation setup",
-              icon = shiny::icon(lib = "glyphicon", "glyphicon glyphicon-check"),
+              icon = shiny::icon(
+                lib = "glyphicon", "glyphicon glyphicon-check"
+              ),
               style = "color: #000000; background-color: #33b733; border-color: #288d28; width: 360px;"
             )
           ),
@@ -603,10 +662,12 @@ launch_validation_app <- function(
             shiny::splitLayout(
               cellWidths = c("50%", "50%"),
               numericInput("time_guide_interval", "Time Guide Interval (s)",
-                value = session_data$time_guide_interval, min = 0.01, max = 60, step = 0.01
+                value = session_data$time_guide_interval, min = 0.01, max = 60,
+                step = 0.01
               ),
               numericInput("freq_guide_interval", "Freq Guide Interval (kHz)",
-                value = session_data$freq_guide_interval, min = 0.01, max = 192, step = 0.01
+                value = session_data$freq_guide_interval, min = 0.01, max = 192,
+                step = 0.01
               )
             ),
             shiny::sliderInput(
@@ -647,7 +708,8 @@ launch_validation_app <- function(
             shiny::selectInput(
               "color_scale", "Color:",
               choices = c(
-                "viridis", "magma", "inferno", "cividis", "greyscale 1", "greyscale 2"
+                "viridis", "magma", "inferno", "cividis", "greyscale 1",
+                "greyscale 2"
               ),
               width = "100%", selected = session_data$color_scale
             ),
@@ -661,8 +723,8 @@ launch_validation_app <- function(
             ),
             shiny::radioButtons(
               "wav_player_type", "Sound player",
-              choices = c("HTML player", "R session", "External player"), inline = TRUE,
-              selected = session_data$wav_player_type
+              choices = c("HTML player", "R session", "External player"),
+              inline = TRUE, selected = session_data$wav_player_type
             ),
             shiny::textAreaInput(
               "wav_player_path",
@@ -672,7 +734,8 @@ launch_validation_app <- function(
             ),
             shiny::actionButton(
               inputId = "get_templ_pars",
-              label = "Get current template parameters", icon = shiny::icon("gear"),
+              label = "Get current template parameters",
+              icon = shiny::icon("gear"),
               style = "color: #fff; background-color: #337ab7; border-color: #2e6da4; width: 360px;"
             ),
             shiny::actionButton(
@@ -715,7 +778,7 @@ launch_validation_app <- function(
             width = 1,
             shinyWidgets::noUiSliderInput(
               "zoom_freq", "Frequency zoom",
-              min = 0, max = 192, # todo Increase to work with bats
+              min = 0, max = 192, # todo Check new max value for bats
               step = 0.1, direction = "rtl",
               orientation = "vertical", width = "100px", height = "425px",
               value = session_data$zoom_freq
@@ -763,7 +826,6 @@ launch_validation_app <- function(
 
         # Input box ------------------------------------------------------------
 
-        # todo - reorganize the ui within this box
         shinydashboard::box(
           width = 12,
           shiny::column(
@@ -815,7 +877,9 @@ launch_validation_app <- function(
           ),
           shiny::column(
             width = 1,
-            shiny::selectInput("detec", "Detection ID", choices = NULL, width = "100%")
+            shiny::selectInput(
+              "detec", "Detection ID", choices = NULL, width = "100%"
+            )
           ),
           shiny::column(
             width = 1,
@@ -927,7 +991,9 @@ launch_validation_app <- function(
               ),
               tags$div(id = "soundscape_player")
             ),
-            shinyjs::hidden(plotOutput("SoundscapeSpectrogram", height = "350px"))
+            shinyjs::hidden(
+              plotOutput("SoundscapeSpectrogram", height = "350px")
+              )
           ),
 
           # Export Detection -----------------------------------------------------
@@ -991,19 +1057,31 @@ launch_validation_app <- function(
                 selected = "None", width = "100%"
               ),
             ),
-            shiny::column(width = 4, shiny::selectInput(
-              "diag_method", "Cutpoint detection method",
-              choices = c("Manual", "Error = 0.05", "Error = 0.1"),
-              width = "100%"
-            )),
-            shiny::column(width = 4, shiny::sliderInput(
-              "diag_cut", "Cutpoint threshold",
-              min = 0, max = 1, step = 0.001, value = 0.2, width = "100%"
-            )),
-            shiny::column(width = 4, shiny::plotOutput("plot_dens", height = "340px")),
-            shiny::column(width = 4, shiny::plotOutput("plot_binomial", height = "340px")),
+            shiny::column(
+              width = 4,
+              shiny::selectInput(
+                "diag_method", "Cutpoint detection method",
+                choices = c("Manual", "Error = 0.05", "Error = 0.1"),
+                width = "100%"
+              )
+            ),
+            shiny::column(
+              width = 4,
+              shiny::sliderInput(
+                "diag_cut", "Cutpoint threshold",
+                min = 0, max = 1, step = 0.001, value = 0.2, width = "100%"
+              )
+            ),
+            shiny::column(
+              width = 4, shiny::plotOutput("plot_dens", height = "340px")
+            ),
+            shiny::column(
+              width = 4, shiny::plotOutput("plot_binomial", height = "340px")
+            ),
             # column(width = 3, plotOutput("plot_roc", height = "340px")),
-            shiny::column(width = 4, shiny::plotOutput("plot_prec_rec", height = "340px")),
+            shiny::column(
+              width = 4, shiny::plotOutput("plot_prec_rec", height = "340px")
+            ),
             shiny::tableOutput("cut_i_tab")
           )
         )
@@ -1108,7 +1186,9 @@ launch_validation_app <- function(
                 shiny::icon("warning"),
                 "Risk of overwriting previous validations!"
               ),
-              tags$p("Make sure the Overwrite check is not enabled to protect your data.")
+              tags$p(
+                "Make sure the Overwrite check is not enabled to protect your data."
+              )
             ),
             easyClose = TRUE,
             footer = modalButton("I Understand")
@@ -1121,7 +1201,9 @@ launch_validation_app <- function(
                 shiny::icon("info-circle"),
                 "You are creating a new output file."
               ),
-              tags$p("If the output file already exists, it may be overwritten. Consider backing up existing data.")
+              tags$p(
+                "If the output file already exists, it may be overwritten. Consider backing up existing data."
+              )
             ),
             easyClose = TRUE,
             footer = modalButton("Proceed")
@@ -1151,18 +1233,23 @@ launch_validation_app <- function(
             df_ref_templates(df_templates)
 
             res <- data.table::fread(
-              input$input_path, data.table = FALSE, header = TRUE
-              ) %>%
+              input$input_path,
+              data.table = FALSE, header = TRUE
+            ) %>%
               dplyr::mutate(
                 soundscape_path = as.character(NA),
                 template_path = as.character(NA)
               ) %>%
-              dplyr::rows_update(df_templates, by = "template_file", unmatched = "ignore") %>%
-              dplyr::rows_update(df_soundscapes, by = "soundscape_file", unmatched = "ignore")
+              dplyr::rows_update(
+                df_templates, by = "template_file", unmatched = "ignore"
+              ) %>%
+              dplyr::rows_update(df_soundscapes,
+                by = "soundscape_file", unmatched = "ignore"
+              )
 
             var_names <- c(
-              "detection_id", "validation_user", "validation_time", "validation",
-              "validation_note"
+              "detection_id", "validation_user", "validation_time",
+              "validation", "validation_note"
             )
 
             # Add variables for review inputs if needed
@@ -1377,7 +1464,7 @@ launch_validation_app <- function(
             session, "detec",
             selected = df_cut()$detection_id[det_counter()]
           )
-        } else if (det_counter() == 1) { # cuidado com isso com os outros updates
+        } else if (det_counter() == 1) {
           det_counter(1)
           shiny::updateSelectInput(
             session, "detec",
@@ -1433,7 +1520,10 @@ launch_validation_app <- function(
               selected = input$custom_reference
             )
           } else {
-            showNotification("No template files found in the specified path", type = "warning")
+            shiny::showNotification(
+              "No template files found in the specified path",
+              type = "warning"
+            )
           }
         } else {
           shiny::updateSelectInput(
@@ -1468,11 +1558,16 @@ launch_validation_app <- function(
           rec_template(NULL)
           shiny::showNotification("Template file not found", type = "warning")
         } else {
-          template_duration <- template_data$template_end - template_data$template_start
+          template_duration <- template_data$template_end -
+            template_data$template_start
           rec_start <- max(0, template_data$template_start - zoom_pad())
           pre_silence <- max(0, -(template_data$template_start - zoom_pad()))
-          rec_end <- min(template_duration, template_data$template_end + zoom_pad())
-          pos_silence <- max(0, (template_data$template_end + zoom_pad()) - template_duration)
+          rec_end <- min(
+            template_duration, template_data$template_end + zoom_pad()
+          )
+          pos_silence <- max(
+            0, (template_data$template_end + zoom_pad()) - template_duration
+          )
 
           if (length(wav_path) == 1) {
             res <- tuneR::readWave(
@@ -1536,11 +1631,14 @@ launch_validation_app <- function(
         shiny::req(df_template())
         if (is.null(rec_template())) {
           ggplot2::ggplot() +
-            ggplot2::annotate("label", x = 1, y = 1, label = "Template not available") +
+            ggplot2::annotate(
+              "label", x = 1, y = 1, label = "Template not available"
+            ) +
             ggplot2::theme_void()
         } else {
           box_color <- ifelse(
-            input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
+            input$color_scale %in%
+              c("greyscale 1", "greyscale 2"), "black", "white"
           )
           temp_rec <- rec_template()
           fast_spectro(
@@ -1715,7 +1813,10 @@ launch_validation_app <- function(
         }
 
         # Rendering the detection HTML player
-        if (file.exists(det_i()$soundscape_path) & input$wav_player_type == "HTML player") {
+        if (
+          file.exists(det_i()$soundscape_path) &
+          input$wav_player_type == "HTML player"
+        ) {
           # file.remove("temp/detection_clip.wav")
           temp_file <- gsub("\\\\", "/", tempfile(
             pattern = "detection_", tmpdir = session_data$temp_path,
@@ -1923,8 +2024,8 @@ launch_validation_app <- function(
             ) +
             ggplot2::annotate(
               "rect",
-              alpha = 0, linewidth = 1, linetype = "dashed", color = "#000000",
-              fill = "#000000", color = "#000000",
+              alpha = 0, linewidth = 1, linetype = "dashed",
+              color = "#000000", fill = "#000000", color = "#000000",
               xmin = inactive_detecs$detection_start,
               xmax = inactive_detecs$detection_end,
               ymin = inactive_detecs$template_min_freq,
@@ -1953,18 +2054,20 @@ launch_validation_app <- function(
         }
       })
 
-      # in case no wav player is defined, it wil'l use "play", which requires SoX to be instaled in the OS
+      # in case no wav player is defined, it wil'l use "play", which requires
+      # SoX to be instaled in the OS
       shiny::observeEvent(input$wav_player_type, {
         x <- input$wav_player_type
         if (x == "R session") {
           shiny::updateTextInput(session, "wav_player_path", value = "play")
           tuneR::setWavPlayer("play")
-          # todo Adicionar aqui uma opção para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
+          # todo Adicionar aqui uma opção para detectar o OS e substituir o
+          # caminho default para o SoX
+          # (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
           shinyjs::showElement("play_detec")
           if (!is.na(df_template()$template_path) | file.exists(df_template()$template_path)) {
             shinyjs::showElement("play_template")
           }
-          # if (input$show_soundscape == TRUE) shinyjs::showElement("play_soundscape")
         } else if (x == "External player" & !is.null(input$wav_player_path)) {
           if (file.exists(input$wav_player_path)) {
             tuneR::setWavPlayer(input$wav_player_path)
@@ -1972,9 +2075,11 @@ launch_validation_app <- function(
             if (!is.na(df_template()$template_path) | file.exists(df_template()$template_path)) {
               shinyjs::showElement("play_template")
             }
-            # if (input$show_soundscape == TRUE) shinyjs::showElement("play_soundscape")
           } else {
-            shiny::updateRadioButtons(session, "wav_player_type", selected = "R session")
+            shiny::updateRadioButtons(
+              session, "wav_player_type",
+              selected = "R session"
+            )
           }
         }
         if (x == "HTML player") {
@@ -2115,15 +2220,20 @@ launch_validation_app <- function(
       shiny::observeEvent(input$button_fp, validation_input("FP"))
 
       # Auto navigation as reaction to validation buttons
-      shiny::observeEvent(list(input$button_tp, input$button_un, input$button_fp), {
-        shiny::req(df_cut(), det_counter(), input$auto_next == TRUE)
-        if (nrow(df_cut()) > det_counter() & det_counter() >= 1) {
-          det_counter(det_counter() + 1)
-          shiny::updateSelectInput(session, "detec",
-            selected = df_cut()$detection_id[det_counter()]
-          )
+      shiny::observeEvent(
+        list(input$button_tp, input$button_un, input$button_fp),
+        {
+          shiny::req(df_cut(), det_counter(), input$auto_next == TRUE)
+          if (nrow(df_cut()) > det_counter() & det_counter() >= 1) {
+            det_counter(det_counter() + 1)
+            shiny::updateSelectInput(
+              session,
+              "detec",
+              selected = df_cut()$detection_id[det_counter()]
+            )
+          }
         }
-      })
+      )
 
       # Update of reactive objects with the value of the
       shiny::observeEvent(input$hotkeys, {
@@ -2190,7 +2300,8 @@ launch_validation_app <- function(
         return(res)
       }
 
-      # Observe the object validation_input() while controlling overwrite and autosave reactions
+      # Observe the object validation_input() while controlling overwrite and
+      # autosave reactions
       shiny::observeEvent(validation_input(), {
         shiny::req(input$validation_user, det_i(), df_cut(), df_output())
 
@@ -2206,11 +2317,23 @@ launch_validation_app <- function(
           )
 
         if (input$overwrite == TRUE) {
-          if (res_A$validation_user == det_i()$validation_user || is.na(det_i()$validation_user)) {
+          if (
+            res_A$validation_user == det_i()$validation_user ||
+              is.na(det_i()$validation_user)
+            ) {
             det_i(res_A)
             df_cut(
-              dplyr::rows_update(df_cut(), res_A, by = "detection_id", unmatched = "ignore"))
-            df_output(dplyr::rows_update(df_output(), res_A, by = "detection_id", unmatched = "ignore"))
+              dplyr::rows_update(df_cut(), res_A,
+                by = "detection_id",
+                unmatched = "ignore"
+              )
+            )
+            df_output(
+              dplyr::rows_update(df_output(), res_A,
+                by = "detection_id",
+                unmatched = "ignore"
+              )
+            )
             validation_input(NULL) # reset after value is passed on forward
             if (input$lock_detec_note == FALSE) {
               shiny::updateTextInput(session, "detec_note", value = NA)
@@ -2246,12 +2369,15 @@ launch_validation_app <- function(
 
         if (input$nav_autosave == TRUE) {
           data.table::fwrite(
-            x = df_output(), file = input$output_path, na = NA, row.names = FALSE
+            x = df_output(), file = input$output_path, na = NA,
+            row.names = FALSE
           )
           shiny::showNotification("Detections successfully exported")
           shinyWidgets::updateProgressBar(
             session = session, id = "prog_bar_full",
-            value = length(which(df_output()$validation %in% c("TP", "FP", "UN"))),
+            value = length(
+              which(df_output()$validation %in% c("TP", "FP", "UN"))
+            ),
             total = nrow(df_output())
           )
           shinyWidgets::updateProgressBar(
@@ -2274,7 +2400,9 @@ launch_validation_app <- function(
         shiny::showNotification("Detections successfully exported")
         shinyWidgets::updateProgressBar(
           session = session, id = "prog_bar_full",
-          value = length(which(df_output()$validation %in% c("TP", "FP", "UN"))),
+          value = length(
+            which(df_output()$validation %in% c("TP", "FP", "UN"))
+          ),
           total = nrow(df_output())
         )
         shinyWidgets::updateProgressBar(
@@ -2288,7 +2416,9 @@ launch_validation_app <- function(
 
       # Set up the reaction of the export hotkey
       shiny::observeEvent(input$hotkeys, {
-        shiny::req(df_output(), df_cut(), input$output_path, input$hotkeys == "s")
+        shiny::req(
+          df_output(), df_cut(), input$output_path, input$hotkeys == "s"
+        )
         data.table::fwrite(
           x = df_output(), file = input$output_path, na = NA, row.names = FALSE
         )
@@ -2326,8 +2456,8 @@ launch_validation_app <- function(
           shiny::req(df_cut())
           df_cut() %>%
             dplyr::select(
-              template_name, soundscape_file, detection_id,
-              detection_start, detection_end, template_min_freq, template_max_freq,
+              template_name, soundscape_file, detection_id, detection_start,
+              detection_end, template_min_freq, template_max_freq,
               peak_score, validation_user, validation_time, validation,
               validation_note
             ) %>%
@@ -2340,14 +2470,17 @@ launch_validation_app <- function(
                 "Time Stamp", "Validation", "Note"
               )
             ) %>%
-            DT::formatRound(c("detection_start", "detection_end", "peak_score"), 3) %>%
+            DT::formatRound(
+              c("detection_start", "detection_end", "peak_score"), 3
+            ) %>%
             DT::formatRound(c("template_min_freq", "template_max_freq"), 1)
         },
         server = TRUE,
         options = list(lengthChange = FALSE)
       )
 
-      # Catch row selection in the interactive detection table to update the active detection
+      # Catch row selection in the interactive detection table to update the
+      # active detection
       shiny::observeEvent(input$res_table_rows_selected, {
         shiny::req(input$res_table_rows_selected)
         i <- df_cut()$detection_id[input$res_table_rows_selected]
@@ -2437,13 +2570,16 @@ launch_validation_app <- function(
             }
             val_res <- monitoraSom::diagnostic_validations_i(
               val_i = df_diag_input(),
-              diag_method = diag_method, pos_prob = pos_prob, diag_cut = custom_cut
+              diag_method = diag_method, pos_prob = pos_prob,
+              diag_cut = custom_cut
             )
             if (
               val_res$score_cut < 1 & val_res$score_cut > 0 &
                 input$diag_method != "Manual"
             ) {
-              shiny::updateSliderInput(session, "diag_cut", value = val_res$score_cut)
+              shiny::updateSliderInput(
+                session, "diag_cut", value = val_res$score_cut
+              )
             }
             mod_plot_react(val_res$mod_plot)
             cut_full_tab(val_res$diag_out)
@@ -2566,12 +2702,18 @@ launch_validation_app <- function(
       })
       shiny::observe({
         shiny::req(wav_default_filename())
-        shiny::updateTextInput(session, "wav_cut_name", value = wav_default_filename())
+        shiny::updateTextInput(
+          session, "wav_cut_name",
+          value = wav_default_filename()
+        )
       })
       # Reset the wav file name
       shiny::observeEvent(input$reset_wav_cut_name, {
         shiny::req(wav_filename(), det_i())
-        shiny::updateTextInput(session, "wav_cut_name", value = wav_default_filename())
+        shiny::updateTextInput(
+          session, "wav_cut_name",
+          value = wav_default_filename()
+        )
         wav_filename(wav_default_filename())
       })
       shiny::observeEvent(input$wav_cut_name, {
