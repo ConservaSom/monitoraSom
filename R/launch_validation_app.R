@@ -1102,22 +1102,19 @@ launch_validation_app <- function(
 
 
       shiny::observeEvent(input$user_setup_confirm, {
-        # Initial input validation
         shiny::req(
           input$input_path, input$output_path, input$soundscapes_path,
           input$templates_path, input$validation_user
         )
 
-        # Validate paths and files
         validation_errors <- character()
 
-        # Check input file
         if (!file.exists(input$input_path)) {
           validation_errors <- c(validation_errors, "Input file does not exist")
         } else {
           tryCatch(
             {
-              test_read <- data.table::fread(input$input_path, nrows = 1)
+              first_read <- data.table::fread(input$input_path, nrows = 1)
             },
             error = function(e) {
               validation_errors <<- c(
@@ -1128,7 +1125,6 @@ launch_validation_app <- function(
           )
         }
 
-        # Check directories
         paths_to_check <- list(
           "Soundscapes directory" = input$soundscapes_path,
           "Templates directory" = input$templates_path
@@ -1141,13 +1137,16 @@ launch_validation_app <- function(
               validation_errors,
               sprintf("%s does not exist", path_name)
             )
-          } else if (length(list.files(path,
-            pattern = ".wav$",
-            recursive = TRUE, ignore.case = TRUE
-          )) == 0) {
+          } else if (
+            length(
+              fs::dir_ls(
+                path = path, pattern = "(?i).wav$", recurse = TRUE,
+                type = "file"
+              )
+            ) == 0
+          ) {
             validation_errors <- c(
-              validation_errors,
-              sprintf("No WAV files found in %s", path_name)
+              validation_errors, sprintf("No WAV files found in %s", path_name)
             )
           }
         }
@@ -1156,8 +1155,7 @@ launch_validation_app <- function(
         output_dir <- dirname(input$output_path)
         if (!dir.exists(output_dir)) {
           validation_errors <- c(
-            validation_errors,
-            "Output directory does not exist"
+            validation_errors, "Output directory does not exist"
           )
         }
 
@@ -1167,9 +1165,7 @@ launch_validation_app <- function(
             title = "Setup Validation Errors",
             tags$div(
               tags$p("Please correct the following errors:"),
-              tags$ul(
-                lapply(validation_errors, function(error) tags$li(error))
-              )
+              tags$ul(lapply(validation_errors, function(error) tags$li(error)))
             ),
             easyClose = TRUE,
             footer = modalButton("OK")
@@ -1214,19 +1210,25 @@ launch_validation_app <- function(
         tryCatch(
           {
             df_soundscapes <- data.frame(
-              soundscape_path = list.files(
-                input$soundscapes_path,
-                pattern = ".wav$", recursive = TRUE, full.names = TRUE,
-                ignore.case = TRUE
+              soundscape_path = as.character(
+                unname(
+                  fs::dir_ls(
+                    input$soundscapes_path, pattern = "(?i).wav$",
+                    recurse = TRUE, type = "file"
+                  )
+                )
               )
             ) %>%
               dplyr::mutate(soundscape_file = basename(soundscape_path))
 
             df_templates <- data.frame(
-              template_path = list.files(
-                input$templates_path,
-                pattern = ".wav$", recursive = TRUE, full.names = TRUE,
-                ignore.case = TRUE
+              template_path = as.character(
+                unname(
+                  fs::dir_ls(
+                    input$templates_path, pattern = "(?i).wav$", recurse = TRUE,
+                    type = "file"
+                  )
+                )
               )
             ) %>%
               dplyr::mutate(template_file = basename(template_path))
@@ -1615,9 +1617,9 @@ launch_validation_app <- function(
                 )
               )
               unlink("template_.*.wav")
-              template_list <- list.files(
-                session_data$temp_path,
-                pattern = "template_.*.wav", full.names = TRUE
+              template_list <- fs::dir_ls(
+                path = session_data$temp_path, pattern = "template_.*.wav",
+                type = "file"
               )
               file.remove(template_list[template_list != temp_file])
             } else {
@@ -1850,9 +1852,9 @@ launch_validation_app <- function(
             )
           )
           unlink("detection_.*.wav")
-          list.files(
-            session_data$temp_path,
-            pattern = "detection_.*.wav", full.names = TRUE
+          fs::dir_ls(
+            path = session_data$temp_path, pattern = "detection_.*.wav",
+            type = "file"
           ) %>%
             .[. != temp_file] %>%
             file.remove()
@@ -1971,9 +1973,9 @@ launch_validation_app <- function(
                   )
                 )
                 unlink("soundscape_.*.wav")
-                list.files(
-                  session_data$temp_path,
-                  pattern = "soundscape_.*.wav", full.names = TRUE
+                fs::dir_ls(
+                  path = session_data$temp_path, pattern = "soundscape_.*.wav",
+                  type = "file"
                 ) %>%
                   .[. != temp_file] %>%
                   file.remove()

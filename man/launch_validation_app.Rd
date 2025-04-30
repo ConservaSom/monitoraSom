@@ -27,7 +27,6 @@ launch_validation_app(
   zoom_freq = c(0, 23),
   time_guide_interval = 1,
   freq_guide_interval = 1,
-  nav_shuffle = FALSE,
   subset_seed = 123,
   auto_next = TRUE,
   nav_autosave = TRUE,
@@ -95,8 +94,6 @@ between time guides in the spectrogram.}
 
 \item{freq_guide_interval}{A numeric value indicating the interval in kHz
 between frequency guides in the spectrogram.}
-
-\item{nav_shuffle}{If TRUE, the files will be shuffled before navigation.}
 
 \item{subset_seed}{Seed for the random shuffling.}
 

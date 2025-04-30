@@ -986,13 +986,14 @@ launch_segmentation_app <- function(
           return()
         }
 
-        list_soundscapes <- list.files(
+        # todo - replace a full list of files by df_soundscapes
+        list_soundscapes <- fs::dir_ls(
           soundscape_path_val(),
-          pattern = ".wav", full.names = TRUE, ignore.case = TRUE
+          pattern = "(?i).wav$", recurse = TRUE, type = "file"
         )
-        roi_tables_raw <- list.files(
+        roi_tables_raw <- fs::dir_ls(
           roi_tables_path_val(),
-          pattern = ".csv", full.names = TRUE, ignore.case = TRUE
+          pattern = "(?i).csv$", recurse = TRUE, type = "file"
         )
         roi_tables <- data.frame(
           roi_table_name = basename(roi_tables_raw),
@@ -1018,9 +1019,9 @@ launch_segmentation_app <- function(
           ".wav|.WAV", "", soundscape_data_res$soundscape_file
         )
         soundscape_data_res$n_char <- nchar(soundscape_data_res$roi_table_prefix)
-        roi_table_files <- list.files(
+        roi_table_files <- fs::dir_ls(
           roi_tables_path_val(),
-          pattern = ".csv", full.names = FALSE, ignore.case = TRUE
+          pattern = "(?i).csv$", recurse = TRUE, type = "file"
         )
         soundscape_data_res$has_table <- sapply(
           soundscape_data_res$roi_table_prefix,
@@ -1196,9 +1197,8 @@ launch_segmentation_app <- function(
                     )
                   )
                   unlink("*.wav")
-                  to_remove <- list.files(
-                    session_data$temp_path,
-                    pattern = ".wav", full.names = TRUE
+                  to_remove <- fs::dir_ls(
+                    session_data$temp_path, pattern = "(?i).wav$", type = "file"
                   )
                   file.remove(to_remove[to_remove != temp_file])
                 },
@@ -1280,9 +1280,9 @@ launch_segmentation_app <- function(
       alt_roitabs_meta <- shiny::reactiveVal(NULL)
       shiny::observeEvent(input$soundscape_file, {
         shiny::req(input$soundscape_file)
-        roi_list <- list.files(
+        roi_list <- fs::dir_ls(
           roi_tables_path_val(),
-          pattern = ".csv", full.names = TRUE, ignore.case = TRUE
+          pattern = "(?i).csv$", recurse = TRUE, type = "file"
         )
         roi_tables <- data.frame(
           roi_table_name = basename(roi_list), roi_table_path = roi_list
@@ -2214,9 +2214,9 @@ launch_segmentation_app <- function(
         )
         table_name <- file.path(roi_tables_path_val(), input$roi_table_name)
         if (file.exists(table_name)) {
-          roi_tables <- list.files(
+          roi_tables <- fs::dir_ls(
             roi_tables_path_val(),
-            pattern = ".csv", full.names = TRUE, ignore.case = TRUE
+            pattern = "(?i).csv$", recurse = TRUE, type = "file"
           ) %>%
             data.frame(
               roi_table_name = basename(.), roi_table_path = .
@@ -2261,8 +2261,8 @@ launch_segmentation_app <- function(
         if (is.null(temp_path) || !dir.exists(temp_path)) {
           return(invisible(NULL))
         }
-        temp_files <- list.files(
-          path = temp_path, pattern = "\\.wav$", full.names = TRUE
+        temp_files <- fs::dir_ls(
+          path = temp_path, pattern = "(?i).wav$", recurse = TRUE, type = "file"
         )
         for (file in temp_files) {
           if (!identical(file, current_file) && file.exists(file)) {

@@ -196,8 +196,41 @@ df_detecs_val_tovlp <- read.csv(
 # tools::checkRdaFiles("data/ls_templates.rda")
 # tools::checkRdaFiles("data/sp_labels.rda")
 
+# Para descrever os datasets
 
+library(monitoraSom)
+
+data(df_detecs_val_manual)
+data(df_detecs_val_tovlp)
+data(df_detecs)
+data(df_grid)
+data(df_rois)
+data(df_scores)
+data(df_soundscapes)
+data(df_templates)
+data(ls_recordings)
+data(ls_roi_tables)
+data(ls_soundscapes)
+data(ls_templates)
+data(sp_labels)
+
+str(df_detecs_val_manual)
+str(df_detecs_val_tovlp)
+str(df_detecs)
+str(df_grid)
+str(df_rois)
+str(df_scores)
+str(df_soundscapes)
+str(df_templates)
+str(ls_recordings)
+str(ls_roi_tables)
+str(ls_soundscapes)
+str(ls_templates)
+str(sp_labels)
 
 # Tests ------------------------------------------------------------
 
 use_test()
+
+
+

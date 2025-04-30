@@ -13,7 +13,7 @@
 #' @return A data frame with ROI tables
 #'
 #' @export
-#' 
+#'
 #' @examples
 #' \dontrun{
 #'
@@ -84,11 +84,9 @@ fetch_rois <- function(rois_path = NULL, recursive = FALSE) {
   )
 
   ls_roi_tables <- normalizePath(
-    list.files(
+    fs::dir_ls(
       rois_path,
-      pattern = "_roi_.*\\.csv$",
-      recursive = recursive,
-      full.names = TRUE
+      pattern = "_roi_.*\\.csv$", recurse = TRUE, type = "file"
     ),
     mustWork = FALSE
   )

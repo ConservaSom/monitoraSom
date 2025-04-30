@@ -56,9 +56,9 @@ fetch_template_metadata <- function(templates_path = NULL, recursive = FALSE) {
     templates_path
   }
 
-  template_list <- list.files(
-    templates_path, pattern = ".wav", full.names = TRUE, ignore.case = TRUE,
-    recursive = recursive
+  template_list <- fs::dir_ls(
+    templates_path,
+    pattern = "(?i).wav$", recurse = TRUE, type = "file"
   )
 
   if (length(template_list) == 0) {

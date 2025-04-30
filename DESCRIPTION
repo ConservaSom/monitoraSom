@@ -34,6 +34,7 @@ Imports:
     DT,
     farver,
     fftw,
+    fs,
     future,
     ggplot2,
     keys,
