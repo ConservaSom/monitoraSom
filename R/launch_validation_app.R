@@ -1137,17 +1137,23 @@ launch_validation_app <- function(
               validation_errors,
               sprintf("%s does not exist", path_name)
             )
-          } else if (
-            length(
-              fs::dir_ls(
-                path = path, pattern = "(?i).wav$", recurse = TRUE,
-                type = "file"
-              )
-            ) == 0
-          ) {
-            validation_errors <- c(
-              validation_errors, sprintf("No WAV files found in %s", path_name)
+          } else {
+            has_wav <- FALSE
+            fs::dir_walk(
+              path = path, type = "file",
+              fun = function(x) {
+                if (grepl("(?i).wav$", x)) {
+                  has_wav <<- TRUE
+                  return(FALSE)
+                }
+              }
             )
+            if (!has_wav) {
+              validation_errors <- c(
+                validation_errors,
+                sprintf("No WAV files found in %s", path_name)
+              )
+            }
           }
         }
 
