@@ -1026,7 +1026,7 @@ launch_segmentation_app <- function(
         soundscape_data_res$has_table <- sapply(
           soundscape_data_res$roi_table_prefix,
           function(prefix) {
-            any(prefix == substr(roi_table_files, 1, nchar(prefix)))
+            any(grepl(paste0(prefix, ".*\\.csv$"), basename(roi_table_files)))
           }
         )
         shiny::updateSelectizeInput(

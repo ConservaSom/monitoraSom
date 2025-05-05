@@ -1,0 +1,10 @@
+"","soundscape_path","soundscape_file","roi_user","roi_input_timestamp","roi_label","roi_start","roi_end","roi_min_freq","roi_max_freq","roi_type","roi_label_confidence","roi_is_complete","roi_comment","roi_wl","roi_ovlp","roi_sample_rate","roi_pitch_shift"
+"1","./recordings/Bcu_2.wav","Bcu_2.wav","User","26/02/2025 11:12","Basileuterus culicivorus",4.443568672,4.80782992,2.9,9.763573417,"bird - song","certain","complete","Substructure C",1024,70,24000,1
+"2","./recordings/Bcu_2.wav","Bcu_2.wav","User","26/02/2025 11:12","Basileuterus culicivorus",14.39305584,14.79400528,2.975339021,9.554145503,"bird - song","certain","complete","Substructure C",1024,70,24000,1
+"3","./recordings/Bcu_2.wav","Bcu_2.wav","User","26/02/2025 11:12","Basileuterus culicivorus",24.07114174,24.46160883,2.877633974,9.635566375,"bird - song","certain","complete","Substructure C",1024,70,24000,1
+"4","./recordings/Bcu_2.wav","Bcu_2.wav","User","26/02/2025 11:16","Basileuterus culicivorus",4.050740201,4.402052427,3.53551457,5.961856564,"bird - song","certain","complete","Substructure B",1024,70,24000,1
+"5","./recordings/Bcu_2.wav","Bcu_2.wav","User","26/02/2025 11:16","Basileuterus culicivorus",14.0271027,14.35847144,3.405241174,5.652457249,"bird - song","certain","complete","Substructure B",1024,70,24000,1
+"6","./recordings/Bcu_2.wav","Bcu_2.wav","User","26/02/2025 11:16","Basileuterus culicivorus",23.6917574,24.04613786,3.551798744,5.603604726,"bird - song","certain","complete","Substructure B",1024,70,24000,1
+"7","./recordings/Bcu_2.wav","Bcu_2.wav","User","26/02/2025 11:17","Basileuterus culicivorus",3.762487892,4.018685017,3.551798868,5.587320676,"bird - song","certain","complete","Substructure A",1024,70,24000,1
+"8","./recordings/Bcu_2.wav","Bcu_2.wav","User","26/02/2025 11:17","Basileuterus culicivorus",13.63124049,13.99022329,3.486662171,5.359342233,"bird - song","certain","complete","Substructure A",1024,70,24000,1
+"9","./recordings/Bcu_2.wav","Bcu_2.wav","User","26/02/2025 11:17","Basileuterus culicivorus",23.39238318,23.66545557,3.600651392,5.001090395,"bird - song","certain","complete","Substructure A",1024,70,24000,1

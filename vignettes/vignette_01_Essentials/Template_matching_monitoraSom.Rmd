@@ -10,51 +10,58 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<!-- todo - While flexible, the a posteriori approach does not account for false negatives and can be prone to observer biases, thus we recommend reserving it for exploratory analyses or validation under severely limited data availability (see Supplementary Material S1 for best practices). -->
+
+<!-- todo - Additionally, processing and analyzing large datasets may require greater computational resources (e.g., RAM or parallel processing capabilities), especially during the template matching step (see Supplementary Material S1 for best practices). -->
+
+<!-- todo - If preferred, most settings can be set as arguments in the launch function, optimizing time efficiency and ensuring consistency across segmentation sessions (more details available in Supplementary Material S1).  -->
+
+<!-- todo - More details about hotkeys, buttons and their functionalities are available in the Supplementary Material S1. -->
+
+<!-- todo -  Also, all filters except `min_score`, which defines an absolute cutpoint, return at least one detection per template-soundscape combination. See the Supplementary Material S1 for more details on filtering detections. -->
+
 # Overview
 We here provide an overview of the R package **monitoraSom**. The package is designed to facilitate passive acoustic monitoring (PAM) and bioacoustic analyses, by providing tools for processing, analyzing, and visualizing sounds for ecological studies. It includes functions for efficiently segmenting audio recordings, extracting acoustic features, building spectrograms and waveforms, and performing batch processing of large datasets. These capabilities make monitoraSom particularly useful for sound ecologists.
 
-In this vignette we present a full workflow for a template matching analysis, with the purpose of demonstrating how to detect as specific acoustic signal within a set of soundscape recordings. The work flow presented here begins at  structuring a working directory locally, to ensure that all files are easily accessible. We here use high fidelity of recordings of *Basileuterus culicivorus* to create acoustic templates, that will be used as reference sounds in a template matching analysis. The template matching builds cross correlation analysis to search for moments in which  the sounds in a set of soundscapes are similar to that of a template. The validation  *a posteriori* can help establish a minimum correlation threshold that will most like it contain a target vocalization. The validated (true) detections can than be exported for ecological analysis such occupancy models, or used ion the description of vocal diel cycles. The workflow described in this vignette provides a tool for population level bioacoustic studies.
+In this vignette we present a full workflow for a template matching analysis, with the purpose of demonstrating how to detect a specific acoustic signal within a set of soundscape recordings. The workflow presented here begins at  structuring a working directory locally, to ensure that all files are easily accessible. We here use high fidelity of recordings of *Basileuterus culicivorus* to create acoustic templates, that will be used as reference sounds in a template matching analysis. The template matching builds cross correlation analysis to search for moments in which the sounds in a set of soundscapes are similar to that of a template. The validation *a posteriori* can help establish a minimum correlation threshold that will most likely contain a target vocalization. The detections validated as true occurrences (true positives) can than be exported for ecological analysis, such as occupancy models, or used on the description of vocal diel cycles. The workflow described in this vignette provides a tool for population level bioacoustic studies.
 
 # Setting R environment
 
 ## *Working directory structure*
-To start using the package in R, you first need to load the libraries into your R environment. In this vignette we use packages monitoraSom and dplyr. Once we executed the function 'library()', the tools from monitoraSom and dplyr will be available for use in your R session. These tools will allow handling acoustic monitoring data effectively, and performing data wrangling tasks. The packages can be loaded with following command:
+Once the `monitoraSom` package is installed, you can load the libraries into your R environment. In this vignette we use packages `monitoraSom` and `dplyr`. Once we executed the function 'library()', the tools from `monitoraSom` and `dplyr` will be available for use in your R session. These tools will allow handling acoustic monitoring data effectively, and performing data wrangling tasks. The packages can be loaded with following command:
 
 ```{r, warning=FALSE, message=FALSE}
 library(monitoraSom)
 library(dplyr)
 library(bench)
-library(purrr)
-library(ggplot2)
 ```
 
 ## *Folder structure*
-monitoraSom is designed to handle large-scale passive acoustic data, in which the files must be systematically stored to be easily accessible. The files are organized within a working directory, so our first task is to set a local folder as the working directory. To examine your current working directory use the following command:
+monitoraSom is designed to handle large-scale passive acoustic data, in which the files must be systematically stored to be easily accessible and avoid problems during the analysis. The files are organized within a working directory, so our first task is to set a local folder as the working directory. To examine your current working directory use the following command:
 
 ```{r}
 current_dir <- getwd()
 current_dir
 ```
 
-And if you need to change it, you can use the setwd() function directly:
+If you are running this script from a rmarkdown file in the RStudio IDE, the current working directory is the folder of the rmarkdown file. But, if you need to change it, you can use the setwd() function directly.
 
-```{r}
+```{r, eval = FALSE}
 setwd("path/to/your/working/directory")
 ```
 
-Alternatively, you can use the following command to get the directory of the current file and set it as the working directory:
+Alternatively, you can use the following command to get the directory of the current file and set it right away as the working directory:
 
 ```{r}
-project_path <- dirname(rstudioapi::getSourceEditorContext()$path)
-setwd(project_path)
+current_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
+setwd(current_dir)
 ```
 
-
-Withing the working directory, monitoraSom is based on a simple folder structure, that will handle multiple files types, from sound files and data tables. You can set all the directories manually, but the easiest way to set monitoraSom's directory structure is by using the `set_workspace()` function. The function will automatically create all necessary directories using a standard structure. If you chose to include the demo data as used here, you can set the parameter `example_data = TRUE`. This will copy all the essential files from this demo into the working directory. Notice that some of the directories that are not required in this example, and can be set to NULL.
+Withing the working directory, monitoraSom is based on a folder structure that will handle multiple files types, from sound files and data tables. You can set all the directories manually, but the easiest way to set monitoraSom's directory structure is by using the `set_workspace()` function. The function will automatically create all necessary directories using a standard structure. If you chose to include the demo data as used here, you can set the parameter `example_data = TRUE`. This will copy all the essential files from this demo into the working directory. Notice that some of the directories that are not required in this example, and can be set to NULL.
 
 ```{r}
 set_workspace(
-  project_path = project_path, example_data = TRUE,
+  project_path = current_dir, example_data = TRUE,
   app_presets_path = "./app_presets/",
   soundscapes_path = "./soundscapes/",
   soundscapes_metadata_path = NA,
@@ -75,74 +82,86 @@ set_workspace(
 
 # Launching the segmentation app
 
-Now that the directories are in place, let's launch the segmentation app with a minimal setup. A basic app launch must specify the paths to the project folder, soundscape folder, ROI tables folder, and the user. You might take note of your ideal settings, and establish the paths directly on the launch_segmentation_app(). Once the app is open, it will require path confirmation before it can run correctly. Make sure to check the  paths on the left before you press the 'confirm path' button (red in figure 1) to build the spectrogram of the first file.
+There is not a single way to use the segmentation app, as it is designed to be a multipurpose tool that can be used for multiple objectives. it can be used as a quick visualiziation tool to quickly inspect recordings, to list species present in sound files, to evaluate species repertoire, to measure specific behavioral aspects of the call, etc.
+
+Now that the directories are in place, let's launch the segmentation app with a minimal setup. The essential parameters to launch the app are the paths to the project folder (`project_path`), the path to the soundscapes folder (`soundscapes_path`), the path where to store the ROI tables folder (`roi_tables_path`), and the user identification (in this case set as `user`). You might take note of your ideal settings, and establish the paths directly on the launch_segmentation_app(). The app will be launched by executing the command below.
 
 ```{r eval = F}
 launch_segmentation_app(
-    project_path = ".",
-    user = "User Name",
-    soundscapes_path = "./010_soundscapes/",
-    roi_tables_path = "./030_roi_tables/"
+    project_path = ".", user = "User Name",
+    soundscapes_path = "./soundscapes/",
+    roi_tables_path = "./roi_tables/"
 )
 ```
 
-![The segmentation app highlinging the confirmation button, necessary to build the first sonogram, and the spectrogram parameters menu.](./images/Simple_App.png){ width=95%}
+Note that, once the app is open, it will be rendered in a pop-up window. Check if the window dimensions are appropriate for your screen size. If not, you can resize the window by dragging the edges of the window. If the window is too small, or the resolution of the screed is too low, the app interface elements might not display properly. If the app is rendered corrently, make sure to check the paths on the sidebar before you press the 'confirm path' button (red in figure 1) to render the spectrogram of the first file. For your convenience, the sidebar can be hidden, providing a larger workspace for ROI selection.
 
+![The segmentation app highlinging the confirmation button, necessary to build the first spectrogram, and the spectrogram parameters menu.](./images/Simple_App.png){ width=95%}
 
-In the Spectrogram Parameters menu (highlighted with a red rectangle in Figure 1), you can access spectrogram configurations. These can be controlled by using the sliding bars on the left. When launching the segmentation app you can specify the parameters for the spectrogram  directly on the function arguments. You can also reset to defaults using the "Reset to default parameters" button, located at the bottom of the spectrogram settings (Figure 2).
+In the Spectrogram Parameters menu (highlighted with a red rectangle in Figure 1), you can access spectrogram parameters to adjust the display of the spectrogram. These parameters can be controlled within the app for immediate use or preset on the function arguments, before launching the app. Within the menu you can also reset to values passed to the launch function using the "Reset to default parameters" button, located at the bottom of the spectrogram settings tab in the sidebar (Figure 2). Remember to take note of your favorite settings before closing the app to pass them as a new default to the launch function.
 
-Now that sonogram parameters are set you can visually search for a signal of interest in the spectrogram, use play button (spacebar) to listen to it, and select a region of interest (ROI) using the mouse. Once you press 'E' on the keyboard, you store the selection's metadata on the ROI table. Several parameters are kept at this point. Of course the minimum and maximum frequency of the ROI, as well as its initial and end time. Below the spectrogram you can select the species label from a specific list of taxa. The list of taxa can be found at the sub folder /app_presets, as a csv file. There are multiple species list, from multiple authorities, and each can be put in a separate column on the csv file. In our example we include the list of the Brazilian and Argentinean birds by CBRO (2021) and Aves Argentinas, as well as the list of amphibians from Brazilian Herpethological Society (2021) and the bats of Brazil from CLMB (2020). You can also select call type, from a wide range of repertoire components from a bat feeding buzz, to a frog advertisement call and a bird song-duet.
-Ensure that metadata is as complete as possible, including information on label's certainty. Label quality is crucial, as misidentifications might be difficult to detect over time. Uncertain entries should be clearly marked, allowing specialists to revisit them as needed.
-Animal voices are structured across multiple hierarchical levels. For instance, birds produce groups of notes that together form its song phrases. A bird recording that captures repeated phrases contains the highest level of vocal organization, and here is classified as a 'complete' recording. It is essential to highlight when labels captures multiple phrases. A complete voice recording preserves the highest organizational level of vocalizations—such as the full sequence of frog calls, bird phrases or a bat pass. Complete calls can provide all relevant parameters, including singing rate.
+Now that spectrogram parameters are set, you can visually search for a signal of interest in the spectrogram, use play button (spacebar) to listen to it, and select a region of interest (ROI) using the mouse. Once you press 'E' on the keyboard, the selection's metadata will be stored as one row on the ROI table of the current soundscape. Several parameters of the ROI are stored at this point, includuing the minimum and maximum frequency, as well as its start and end within the soundscape recording. However, there are other data that can be added to the ROI before it is stored. These data include several relevant information on the label of the ROI, such as the species, call type, and the certainty of the label. The input fields to add this information to a ROI are available in a panel below the spectrogram. You select the species label from a specific list of taxa, which can be found at the `"/app_presets"` folder, as a XLSX file. Out of the box, `monitoraSom` offers multiple species lists, from multiple authorities, stored as columns in the XLSX file. Our example includes the list of the Brazilian birds from CBRO (2021) and Argentinean birds by Aves Argentinas. Other lists are also available, such as the list of amphibians from Brazilian Herpethological Society (2021) and the bats of Brazil from CLMB (2020). Among the input to the current ROI, you can also select the signal type from a wide range of preloaded repertoire components from a bat feeding buzz, to a frog advertisement call or a bird song-duet. Ensure that the metadata is as complete as possible, including information on label's certainty, which is crucial for quality control. Misidentifications might be difficult to spot at other steps of the workflow. Therefore, entries with uncertain identification should be clearly identifias as such, allowing specialists to review it as needed.
 
+In this example we preloaded the ROI tables with all songs of *B. culicivorus* present in the soundscape recordings. It is good practice to identify and label all occurrences of the target species. The songs of *B. culicivorus*, such as many animal voices are structured across multiple hierarchical levels. For instance, birds can produce groups of notes (units of acoustic events) that together form song phrases. A bird recording that captures repeated phrases contains the highest level of vocal organization, and can be considered a 'complete' recording. Therefore, at which hierarchical levels the segmentation is performed depends on the objective of the analysis. In this example, we will segment the complete songs of *B. culicivorus* into substructures A, B, and C, which are consistent across multiple songs.
+
+Lets launch the app again, with a more complete setup, but instead of segmenting soundscape recordings, now we will segment focal recordings from the target species. Observe the structure of the song of *B. culicivorus* in the spectrogram, and how consistent the substructures are across multiple songs. Avoid excluding the preloaded ROIs from this example, to ensure the consistency of the next steps.
 
 ```{r eval = F}
 launch_segmentation_app(
   project_path = ".", user = "User Name",
-  soundscapes_path = "./010_soundscapes/",
-  roi_tables_path = "./030_roi_tables/", time_guide_interval = 10,
-  freq_guide_interval = 1, dyn_range = c(-60, -24), wl = 1024, ovlp = 70,
-  color_scale = "greyscale 1", zoom_freq = c(2.9, 10.1)
+  soundscapes_path = "./recordings/",
+  roi_tables_path = "./roi_tables/",
+  time_guide_interval = 10, freq_guide_interval = 1,
+  dyn_range = c(-60, -24), wl = 1024, ovlp = 70,
+  zoom_freq = c(2.9, 10.1), color_scale = "greyscale 1"
 )
 ```
 
 ![The segmentation app highligting the selection of the structure 'C' of *B. culicivorus* song.](./images/Complete_App.png){ width=95%}
 
-## *A typical segmentation will happen as follows:*
+Lets review how the segmentation process works:
 
-1. *Lauching the app.* Launch the app and click the "Confirm paths" button. If the paths are correct, the spectrogram of the first soundscape will be displayed.
-2. *Navigating files.* Zoom in the spectrogram using the W and S keys, or by clicking and dragging the time and frequency sliders until the desired time and frequency range is selected.  The window will affect data retrieval, so it is important to maintain window dimensions throughout an analysis. Proceed if you are satisfied with the spectrogram window settings.
-3.*Searching for signals.* Search for a signal of interest in the spectrogram and make and insert the metadata into the ROI are about to create. Make the metadata as complete as possible.
-4. *drawing a ROI.* Click and drag the mouse to draw a box around the signal of interest and press the E key to store a ROI for the current soundscape. The metadata used in the first ROI can be reused for the next.
-5. *follow the workflow.* Repeat steps 3 and 4 for each signal of interest in the spectrogram until the objective result is achieved. The process can be highly efficient if you inspect on species art a time.
-6. *Navigate soundscapes.* Navigate between the soundscapes using the Z and C keys, repeating the steps above until all the soundscapes are segmented. If the autosave option is enabled, the ROI tables will be saved automatically as CSV files in the `roi_tables` path, otherwise you will need to save the tables manually before changing files to avoid losing data.
+1. *Lauching the app.* Launch the app with the `launch_segmentation_app()` function passing the correct paths to the `project_path`, `soundscapes_path`, and `roi_tables_path` arguments.
+2. *Confirm paths.* Click the "Confirm paths" button. If the paths are correct, the spectrogram of the first soundscape will be displayed.
+3. *Navigating files.* Zoom in the frequency range using the W and S keys, or by clicking and dragging the time and frequency sliders until the desired range is selected. The visible frequency band of the spectrogram affects data retrieval, so it is important to be consistent throughout an analysis. Proceed if you are satisfied with the spectrogram window settings.
+4. *Searching for signals.* Search for a signal of interest in the spectrogram, and fill the metadata of the ROI you are about to create as completely as possible.
+5. *Drawing a ROI.* Click and drag the mouse to draw a rectangular selection around the signal of interest in the spectrogram. Press the `E` key to store this selection as a ROI in the current ROI table. The metadata fields you previously filled will be automatically applied to any new ROIs you create, so you don't need to re-enter this information for each selection, unless you want to change some of the information.
+6. *Follow the workflow.* Repeat steps 3 and 4 for each signal of interest in the spectrogram until the objective of the segmentation is achieved (all ROIs from the current soundscape can be reviewed in the ROI table tab below the spectrogram). This process is desinged to be highly efficient if you segment signals from one species at a time.
+7. *Navigate soundscapes.* Navigate between the recordings using the `Z` and `C` keys, repeating the steps above until all the soundscapes are segmented. If the autosave option is enabled, the ROI tables will be saved automatically as CSV files in the path passed to the `roi_tables_path` argument, otherwise it will be necessary to save it manually before changing files to avoid data loss (ROI data is not stored within the R session). Navigation between soundscapes is also possible by using the soundscape dropdown menu on top of the spectrogram.
 
 # Building templates
 ## *Manual template extraction*
-For your convenience you might hide the spectrogram menu, providing a larger workspace for ROI selection. On the ROI table tab you have further information on each ROI on the recording, and you may swuich the recording from the soundscape dropdown menu. If multiple songs of the species are captured, one might use R to extract basic parameters such as emission rate, and song inspection is classified as complete. In our case multiple substructures of the song of *Basileuterus culicivorus* are being selected to be used as templates in a template matching analysis, so that in the same sound recording substrutures can be selected, as in the blue retangle is selecting a second ROI from the file, that consist of another substructure (substrucure A).
+
+In cases such as this, with multiple songs of the target species, one might use R to extract basic parameters for further analysis, but it is also possible to use the segmentation app to extract the templates interactively. We will first demostrate the method to extract the templates mannualy from within the segmentation app using the button 'export audio files' (see the figure below). but there is also a dedicated function (more suited for large scale use cases) that we will demonstrate later.
+
+In our case multiple substructures of the song of *B. culicivorus* were selected for use as templates. Visualizing the spectrogram and ROIs within the app can be helpful to pick the right substructures and perform more direct quality control over template extraction process. Once the ROIs are selected in the ROI table tab, the user can export all the ROIs as templates at once for later use.
 
 ![The segmentation app highligting a complete recording, which include multiple songs of *B. culicivorus*.](./images/ROI_App.png){width=95%}
 
-In this example we focus into the segmentation process for template extraction,  to be used as a template in a large scale template matching analysis. In fact, the segmentation app can be used for multiple objectives, and from quickly inspecting recordings to obtain a list species list of a sound file, to evaluating species repertoire or measuring specific behavioral aspects of the call.
+Check the `roi_cuts` folder to see the templates extracted from the soundscape recordings.
 
-Now let's import the ROI tables back into R. The `fetch_rois` function will return a dataframe that aggregates all the ROIs in the `roi_tables` directory.
+## *Automatic audio extraction*
+
+Although we use a small set of soundscape recordings in this example, the segmentation process for template extraction demostrated is the same as the one used for large scale template matching analysis. Lets see how to do it using the `export_roi_cuts_n()` function. But first, we need to import the ROI tables back into R. The `fetch_rois` function will return a dataframe that aggregates all the ROIs in the `roi_tables` directory.
 
 ```{r}
-df_rois <- fetch_rois(rois_path = "./030_roi_tables/")
+df_rois <- fetch_rois(rois_path = "./roi_tables/")
 glimpse(df_rois)
 ```
 
-Let's check the number of ROIs per Substructure colected during the segmentation process. We have colected three substructures for each song (3), of three different songs (3), from two distinct sound recordings (2), totaling 18 templates.
+Using the `export_roi_cuts_n()` functon requires a roi table with the cuts (or templates) that will be exported, which get using the `fetch_rois()` function. Lets quickly check what are the recordings represented in the `df_rois` dataframe.
+
+```{r}
+count(df_rois, soundscape_file)
+```
+
+We can promptly see that it includes both the ROIs from the soundscape recordings and the ROIs from the focal recordings. We have colected three substructures for each song (3), of three different songs (3), from two distinct sound recordings (2), totaling 18 templates. We also have 53 ROIs from the soundscape recordings, which have no information about the substructure in the `roi_comment` column. It is important to note that filtering the desired ROIs is necessary to avoid exporting all ROIs from this dataframe. Lets check the number of ROIs per Substructure colected during the segmentation process to see if we can use this information to guide the filtering process.
 
 ```{r}
 count(df_rois, roi_comment)
 ```
 
-## *Automatic audio extraction*
-
-Let's extract the templates from the soundscapes. There are two ways to do this. It can be done mannualy frpm he segmentation app using the button 'export audio files', as shown above, mbut we can also extract the templates automatically, based on a set of ROI tables, using the `export_roi_cuts_n()` function.
-
-Using the `export_roi_cuts_n()` functon, requires a roi table with the cuts (or templates) that will be exported. In the example below, we show that this uses df_rois, wihch is the output of the `fetch_rois()` function. It is important to note that filtering the desired ROIs is necessary to avoid exporting all ROIs from this dataframe. The filtering strategy is open to the user's creativity to allow for different ways to filter the ROIs. In the example below, we filter the ROIs that have the word Substructure C in the content of the `roi_comment` column.
+Yes, we can easily identify that ROIs from soundscape recordings have no information about the substructure in the `roi_comment` column. We can use this information to filter the ROIs that will be exported as templates. The filtering strategy is open to the user's creativity. In the example below, we filter the ROIs that have the word Substructure C in the content of the `roi_comment` column. This will ensure at a single step that ROIs from soundscape recordings are not included, and only the templates of the  substructure are exported.
 
 ```{r, warning=FALSE, message=FALSE}
 df_rois_filtered <- df_rois %>%
@@ -150,30 +169,32 @@ df_rois_filtered <- df_rois %>%
 glimpse(df_rois_filtered)
 ```
 
-Now we can export the templates using the `export_roi_cuts_n()` function. Although templates can be created manually on segmentation app, using the `export_roi_cuts_n()`  is the most straightforward way to export the templates. The file name contain all the necessary information for an standalone template, making it easily used the subsequent steps of the analysis. Nevertheless, storing metadata in file names has some drawbacks, which will be addressed in future versions of monitoraSom.
+Now we can export the templates using the `export_roi_cuts_n()` function. Note that we have routed the output to the `./templates` directory.
 
 ```{r, warning=FALSE, message=FALSE}
 export_roi_cuts_n(
-    rois_n = df_rois_filtered,
-    path = "./templates",
+    df_rois = df_rois_filtered,
+    roi_cuts_path = "./templates",
     overwrite = TRUE
 )
 ```
 
+Although templates can be created manually from within the segmentation app, using the `export_roi_cuts_n()` is the most straightforward way to export the templates. The file name contain all the necessary information for an standalone template, making it easily used downstream in the analysis. Nevertheless, storing metadata in file names has some drawbacks, which will be addressed in future versions of monitoraSom.
+
 # Template matching
-Template matching is a technique used in passive acoustic monitoring (PAM) to detect specific sound patterns within large audio datasets by correlating recordings with target acoustic templates. When the structure of a template closely matches a segment of the soundscape, high correlation values indicate a high probability of the target species' presence. The validation app can be used to assess results, refine the model’s accuracy, and export data for further ecological analysis. While not as precise as human audio inspection, template matching is highly efficient for large-scale sound analysis, making it a valuable tool for bioacoustic research. To run a template matching analysis, two distinct datasets are required: environmental sound recordings typically obtained in large quantities (the soundscapes) and a template, which is usually a high-fidelity recording of the target species used as a reference for detection.
+
+Template matching is a technique used in passive acoustic monitoring (PAM) to detect specific sound patterns within large audio datasets by correlating recordings with acoustic templates containing the target species' sounds. When the structure of a template closely matches a segment of the soundscape, high correlation values (i.e. a correlation peak) indicate what could be likely an occurrence of the target species' acoustic signal. Then, the validation app can be used to assess results, refine the detection accuracy, and export data for further ecological analysis. While not as precise as human audio inspection, template matching is highly efficient for large-scale sound analysis, making it a valuable tool for bioacoustic research.
+
+To run a template matching analysis, two distinct datasets are required: environmental sound recordings typically obtained in large quantities (the soundscapes) and at least one template, which is usually a valid high-fidelity recording of the target species used as a reference for detection.
 
 Let's start by gathering the metadata of the soundscapes.
 
 ```{r, warning=FALSE, message=FALSE}
-df_soundscapes <- fetch_soundscapes_metadata(
-soundscapes_path = "./soundscapes",
-recursive = TRUE,
-ncores = 1
-	)
+df_soundscapes <- fetch_soundscape_metadata(
+  soundscapes_path = "./soundscapes", recursive = TRUE, ncores = 1
+)
 glimpse(df_soundscapes)
 ```
-
 
 And now lets select the searching template files of *Basileuterus culicivorus*, as gathered in the first part of this exercise.
 
@@ -185,45 +206,98 @@ df_templates <- fetch_template_metadata(
 glimpse(df_templates)
 ```
 
-Crossing both data frames allows defining a searching grid, a map of the correlations to be performed during a cross correlation analysis. At this stage, users can filter specific combinations of templates and soundscapes to optimize the analysis or align with experimental design criteria. The resulting dataframe will contain a row for each soundscape and template combination, ensuring a structured that will allow running the template matching efficiently.
+By combining both data frames, we create a comprehensive map of correlations to be performed during the cross-correlation analysis.
 
 ```{r, warning=FALSE, message=FALSE}
 df_grid <- fetch_match_grid(
     soundscape_data = df_soundscapes,
     template_data = df_templates
 )
-
+glimpse(df_grid)
 ```
 
-Now, it's time to start running the template matching analysis. This process involves performing a large series of correlations by "sliding" the template across the entire set of soundscapes (cross correlations), as defined in the grid. As this is the most time-consuming step of the analysis, users should evaluate whether their hardware can efficiently handle the computation before proceeding. In this example, we run a small test using 12 soundscapes and 6 templates, which gives us a grid of 72 correlations. It took approximately 17 seconds to be completed using 6 cores of a M2 Apple processor. However, processing time can vary significantly depending on the computer's specifications. The results will be saved in a csv file, within the folder detections. This file will be opened using the validation App, so that we can evaluate model’s accuracy.
+At this stage, users can filter specific template-soundscape combinations to optimize processing or meet experimental design requirements. This is one of the most important checkpoints of the workflow, as it allows the user to have granular control over the analysis. The resulting data frame has one row per template-soundscape pair along with their metadata, which includes the template spectrogram parameters that will be used to perform the cross-correlation analysis.
 
+Lets make a quick check to ensure that the template and soundscape sample rates are compatible.
+```{r}
+# check the sample rates
+df_grid %>%
+  select(soundscape_sample_rate, template_sample_rate) %>%
+  distinct()
+```
 
+Lets also check that the overlap and window length are appropriate for the analysis. We expetc template overlap to be 70% and window length to be 1024.
+```{r}
+# check the overlap
+unique(df_grid$template_ovlp)
+# check the window length
+unique(df_grid$template_wl)
+```
+
+Now that the grid is defined and the sample rates are compatible, it's time to start running the template matching analysis. This process involves performing a large series of correlations by "sliding" the template across the time axis of the entire set of soundscapes (cross correlations), as defined in the grid. Cross-correlation is a fundamental technique in signal processing that measures similarity between signals as a function of time lag.
+
+Because this is the most time-consuming step of the analysis, users should evaluate whether their hardware can efficiently handle the computation before proceeding. In this example, we run a small test using 12 soundscapes and 6 templates, which gives us a grid of 72 correlations. It took approximately 17 seconds to be completed using 6 cores of a M2 Apple processor, or 65 seconds using 6 cores of an Intel i7-10700 (4.800GHz) processor in Ubuntu 24.04. However, processing time can vary significantly depending on the computer's specifications. The results will be saved in a csv file, within the folder detections. This file will be opened using the validation App, so that we can evaluate model’s accuracy.
+
+Lets make a time check to see how long it takes to run the template matching analysis with 6 cores. Attention, check if you have 6 cores available in your computer before running the analysis. If you have less, you can change the number of cores to the number of cores available in your computer.
 ```{r, warning=FALSE, message=FALSE}
-df_raw_scores <- match_n(
-  df_grid = df_grid,
-  ncores = 6,
-	output = "detections",
-  output_file = "detections/detec_corr_result.csv",
-buffer_size = "template"
-	)
+# check the number of cores available
+print(paste("The number of available cores is:", parallel::detectCores()))
+
+# If the parallelization is working, this elapsed time...
+df_detections <- match_n(
+  df_grid = df_grid, output = "detections", ncores = 6,
+  output_file = "detections/detec_corr_result.csv"
+)
+
+# ...should be faster than this
+df_detections <- match_n(
+  df_grid = df_grid, output = "detections", ncores = 1
+)
+```
+
+If both are the same parallelization is not working properly. There can be several reasons for this, as the same paralleliztion strategies behave differently across operating systems (MacOS, Windows, or Linux) and IDEs, such as RStudio or VSCode.
+
+With or without parallelization, the results should be the same. Lets check it.
+```{r}
+glimpse(df_detections)
 ```
 
 # Validation App and TM evaluation
 
-The main objective of the validation process is to determine the optimal correlation threshold for efficient detection. The correlation value directly influences the number of true positives and false positives in the results. While a higher correlation threshold tends to reduce false positives by ensuring that only strong matches are retained, it also reduces the number of true positives as the model becomes more selective. On the other hand, a lower correlation threshold increases recall by capturing more true positives, but at the cost of a lower precision, as it leads to a higher number of false positives. The ideal threshold strikes a balance between precision and recall, ensuring sufficient data for ecological analysis while maintaining the quality of the results.
+The main objective of the validation process is to determine the optimal correlation threshold for efficient detection. The correlation threshold value directly influences the number of true positives and false positives in the results. While a higher correlation threshold tends to reduce false positives by ensuring that only strong matches are retained, it also reduces the number of true positives as the model becomes more selective. On the other hand, a lower correlation threshold increases recall by capturing more true positives, but at the cost of a lower precision, as it leads to a higher number of false positives above the threshold. The ideal threshold strikes a balance between precision and recall, ensuring sufficient data for ecological analysis while maintaining the quality of the results.
+
+Before launching the app, lets make a copy for validating detections within the validation app.
+```{r}
+original_file <- "detections/detec_corr_result.csv"
+validation_file <- "detections/detec_corr_result_validation.csv"
+# check if original file exists and copy doesn't exist yet
+if (
+  file.exists(original_file) &&
+    !file.exists(validation_file)
+  ) {
+  # save a backup copy of the detections file
+  file.copy(from = original_file, to = validation_file)
+} else if (!file.exists(original_file)) {
+  stop("The file 'detections/detec_corr_result.csv' does not exist.")
+} else {
+  message("Validation copy already exists, skipping copy.")
+}
+```
+
+<!-- !parou aqui -->
+
+By using the Validation App, the user can easily classify detections as either a true positive or a false positive. Similar to the Segmentation App, the Validation App requires specific inputs to function properly. The project path is typically set to the working directory, and the user's name must be provided. Additionally, the paths to the template and soundscape files should be specified. The input path should point to the output file from the match_n() function, *i.e.*, "detections/detec_corr_result.csv." It might be important to save the output file with a different name than the input file to preserve data and avoid rerunning the template matching process. Once the folder structure is informed, the user must check the information and confirm the paths by clicking the 'confirm path' button. The user must than confirm the validation setup in the session setup menu. Within this menu, the user can select the correlation score interval or determine a number of the top scores to be validated. Additionally, the 'Order by' dropdown menu allows the user to control the order in which the detections are presented.
 
 ```{r eval = F}
 launch_validation_app(
-project_path = ".",
-validation_user = "Rosa G. L. M.",
-templates_path = "templates/",
-soundscapes_path = "soundscapes/",
-input_path = "detections/detec_corr_result.csv",
-output_path ="detections/detec_corr_result_val.csv"
+  project_path = ".",
+  validation_user = "Rosa G. L. M.",
+  templates_path = "templates/",
+  soundscapes_path = "soundscapes/",
+  input_path = "detections/detec_corr_result.csv",
+  output_path ="detections/detec_corr_result_val.csv"
 	)
 ```
-
-By using the Validation App, the user can easily classify detections as either a true positive or a false positive. Similar to the Segmentation App, the Validation App requires specific inputs to function properly. The project path is typically set to the working directory, and the user's name must be provided. Additionally, the paths to the template and soundscape files should be specified. The input path should point to the output file from the match_n() function, *i.e.*, "detections/detec_corr_result.csv." It might be important to save the output file with a different name than the input file to preserve data and avoid rerunning the template matching process. Once the folder structure is informed, the user must check the information and confirm the paths by clicking the 'confirm path' button. The user must than confirm the validation setup in the session setup menu. Within this menu, the user can select the correlation score interval or determine a number of the top scores to be validated. Additionally, the 'Order by' dropdown menu allows the user to control the order in which the detections are presented.
 
 The app presents two spectrograms to facilitate the validation process. The spectrogram parameters can be adjusted through the spectrogram menu. The left spectrogram displays the detection from the soundscape file, while the right shows the template used in the correlation. The user can easily classify the detection as false (Q), positive (E), or unknown (W). If the Autosave and Autonavigate boxes are checked, the validation process becomes very efficient, automatically saving the classifications and navigating to the next detection. Additionally, the user can listen to either the detection or the template to assist in classification. As the validation process progresses, the detection table is updated with the  true or falses. The resulting data is used in a diagnostic analysis model employing a binomial regression. The diagnosis evaluates how the probability of a true positive changes in relation to the correlation score. The validation app is typically set to assess correlation values with a precision of 95% (5% error), helping choosing a correlation threshold that will optimize the model's accuracy. Density plots of correlation values for both false positives and true positives can assist in defining an optimal threshold value.
 

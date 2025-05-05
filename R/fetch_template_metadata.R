@@ -102,7 +102,7 @@ fetch_template_metadata <- function(templates_path = NULL, recursive = FALSE) {
 
   res <- purrr::map_df(template_list, ~ get_metadata_safely(.x)$result) |>
     dplyr::mutate(
-      template_path = template_path,
+      template_path = as.character(template_path),
       template_file = basename(template_path),
       template_name = basename(template_path),
       template_label = gsub(
