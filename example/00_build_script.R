@@ -39,7 +39,7 @@ utils::packageVersion("monitoraSom")
 use_version()
 
 # licença
-use_gpl3_license()
+# use_gpl3_license()
 
 # adicionar pacotes
 # check()

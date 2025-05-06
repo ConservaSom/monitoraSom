@@ -10,7 +10,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-<!-- todo - While flexible, the a posteriori approach does not account for false negatives and can be prone to observer biases, thus we recommend reserving it for exploratory analyses or validation under severely limited data availability (see Supplementary Material S1 for best practices). -->
+
 
 <!-- todo - Additionally, processing and analyzing large datasets may require greater computational resources (e.g., RAM or parallel processing capabilities), especially during the template matching step (see Supplementary Material S1 for best practices). -->
 
@@ -33,7 +33,7 @@ Once the `monitoraSom` package is installed, you can load the libraries into you
 ```{r, warning=FALSE, message=FALSE}
 library(monitoraSom)
 library(dplyr)
-library(bench)
+library(patchwork)
 ```
 
 ## *Folder structure*
@@ -75,8 +75,8 @@ set_workspace(
   detections_path = "./detections/",
   detection_cuts_path = NA,
   detection_spectrograms_path = NA,
-  validation_outputs_path = NA,
-  validation_diagnostics_path = NA
+  validation_outputs_path = "./validation_outputs/",
+  validation_diagnostics_path = "./validation_diagnostics/"
 )
 ```
 
@@ -234,59 +234,48 @@ unique(df_grid$template_ovlp)
 unique(df_grid$template_wl)
 ```
 
-Now that the grid is defined and the sample rates are compatible, it's time to start running the template matching analysis. This process involves performing a large series of correlations by "sliding" the template across the time axis of the entire set of soundscapes (cross correlations), as defined in the grid. Cross-correlation is a fundamental technique in signal processing that measures similarity between signals as a function of time lag.
+Now that we have defined the grid and confirmed sample rate compatibility, we can proceed with the template matching analysis. This process performs cross-correlation by systematically sliding each template across the time axis of the soundscapes, as specified in our grid. Cross-correlation is a powerful signal processing technique that quantifies the similarity between two signals (in this case, the template and sections of the soundscape) at different time offsets. The resulting correlation values indicate how well the template matches the soundscape at each position, allowing us to identify potential occurrences of the target species' vocalizations.
 
-Because this is the most time-consuming step of the analysis, users should evaluate whether their hardware can efficiently handle the computation before proceeding. In this example, we run a small test using 12 soundscapes and 6 templates, which gives us a grid of 72 correlations. It took approximately 17 seconds to be completed using 6 cores of a M2 Apple processor, or 65 seconds using 6 cores of an Intel i7-10700 (4.800GHz) processor in Ubuntu 24.04. However, processing time can vary significantly depending on the computer's specifications. The results will be saved in a csv file, within the folder detections. This file will be opened using the validation App, so that we can evaluate model’s accuracy.
+Because this is the most time-consuming step of the analysis, users should evaluate whether our hardware can efficiently handle the computation before proceeding. In this example, we run a small test using 12 soundscapes and 6 templates, which gives us a grid of 72 template matching operations. It took approximately 17 seconds to be completed using 6 cores of a M2 Apple processor, or 65 seconds using 6 cores of an Intel i7-10700 (4.800GHz) processor in Ubuntu 24.04. However, processing time can vary significantly depending on the computer's specifications. The results will be saved in a CSV file, within the `"detections"` folder.
 
-Lets make a time check to see how long it takes to run the template matching analysis with 6 cores. Attention, check if you have 6 cores available in your computer before running the analysis. If you have less, you can change the number of cores to the number of cores available in your computer.
+Lets make a time check to see how long it takes to run the template matching analysis with 6 cores. Attention, check if you have 6 cores available in your computer before running the analysis. If you have less, you can change the number of cores. Avoid using all cores, as it might slow down the analysis.
 ```{r, warning=FALSE, message=FALSE}
 # check the number of cores available
-print(paste("The number of available cores is:", parallel::detectCores()))
+# parallel::detectCores()
 
 # If the parallelization is working, this elapsed time...
 df_detections <- match_n(
   df_grid = df_grid, output = "detections", ncores = 6,
-  output_file = "detections/detec_corr_result.csv"
+  output_file = "detections/df_detecs.csv"
 )
-
-# ...should be faster than this
-df_detections <- match_n(
-  df_grid = df_grid, output = "detections", ncores = 1
-)
-```
-
-If both are the same parallelization is not working properly. There can be several reasons for this, as the same paralleliztion strategies behave differently across operating systems (MacOS, Windows, or Linux) and IDEs, such as RStudio or VSCode.
-
-With or without parallelization, the results should be the same. Lets check it.
-```{r}
 glimpse(df_detections)
 ```
 
-# Validation App and TM evaluation
+If results with parallel processing and single core processing are not significantly different, parallelization is not working properly. There can be several reasons for this, as parallelization is dealt differently across operating systems (MacOS, Windows, or Linux) and IDEs (RStudio, VSCode, etc.).
+
+# Validation and template matching evaluation
 
 The main objective of the validation process is to determine the optimal correlation threshold for efficient detection. The correlation threshold value directly influences the number of true positives and false positives in the results. While a higher correlation threshold tends to reduce false positives by ensuring that only strong matches are retained, it also reduces the number of true positives as the model becomes more selective. On the other hand, a lower correlation threshold increases recall by capturing more true positives, but at the cost of a lower precision, as it leads to a higher number of false positives above the threshold. The ideal threshold strikes a balance between precision and recall, ensuring sufficient data for ecological analysis while maintaining the quality of the results.
 
-Before launching the app, lets make a copy for validating detections within the validation app.
+
+The file we will passs to the argument `input_path` should be the output of the `match_n()` function, *i.e.*, "detections/df_detecs.csv". However, it might be important to save the output file with a different name than the input file to preserve data and avoid rerunning the template matching process. With the steps below, we will make a copy of the detections file and use it as the input for the validation app.
 ```{r}
-original_file <- "detections/detec_corr_result.csv"
-validation_file <- "detections/detec_corr_result_validation.csv"
+original_file <- "detections/df_detecs.csv"
+validation_file <- "validation_outputs/df_detecs_val_manual.csv"
 # check if original file exists and copy doesn't exist yet
 if (
-  file.exists(original_file) &&
-    !file.exists(validation_file)
+  file.exists(original_file) && !file.exists(validation_file)
   ) {
   # save a backup copy of the detections file
   file.copy(from = original_file, to = validation_file)
 } else if (!file.exists(original_file)) {
-  stop("The file 'detections/detec_corr_result.csv' does not exist.")
+  stop("The file 'detections/df_detecs.csv' does not exist.")
 } else {
   message("Validation copy already exists, skipping copy.")
 }
 ```
 
-<!-- !parou aqui -->
-
-By using the Validation App, the user can easily classify detections as either a true positive or a false positive. Similar to the Segmentation App, the Validation App requires specific inputs to function properly. The project path is typically set to the working directory, and the user's name must be provided. Additionally, the paths to the template and soundscape files should be specified. The input path should point to the output file from the match_n() function, *i.e.*, "detections/detec_corr_result.csv." It might be important to save the output file with a different name than the input file to preserve data and avoid rerunning the template matching process. Once the folder structure is informed, the user must check the information and confirm the paths by clicking the 'confirm path' button. The user must than confirm the validation setup in the session setup menu. Within this menu, the user can select the correlation score interval or determine a number of the top scores to be validated. Additionally, the 'Order by' dropdown menu allows the user to control the order in which the detections are presented.
+Now we can launch the validation app. Notice that we are using the validation copy as the input file and also as the output file. This is a good practice to avoid overwriting the original data and to ensure we can validate the same data across multiple sessions.
 
 ```{r eval = F}
 launch_validation_app(
@@ -294,14 +283,91 @@ launch_validation_app(
   validation_user = "Rosa G. L. M.",
   templates_path = "templates/",
   soundscapes_path = "soundscapes/",
-  input_path = "detections/detec_corr_result.csv",
-  output_path ="detections/detec_corr_result_val.csv"
-	)
+  input_path = "validation_outputs/df_detecs_val_manual.csv",
+  output_path = "validation_outputs/df_detecs_val_manual.csv",
+  dyn_range_templ = c(-42, 0), dyn_range_detec = c(-90, -48),
+  wl = 512, ovlp = 70, time_pads = 0.5,
+  nav_autosave = TRUE, overwrite = TRUE, auto_next = TRUE
+)
 ```
 
-The app presents two spectrograms to facilitate the validation process. The spectrogram parameters can be adjusted through the spectrogram menu. The left spectrogram displays the detection from the soundscape file, while the right shows the template used in the correlation. The user can easily classify the detection as false (Q), positive (E), or unknown (W). If the Autosave and Autonavigate boxes are checked, the validation process becomes very efficient, automatically saving the classifications and navigating to the next detection. Additionally, the user can listen to either the detection or the template to assist in classification. As the validation process progresses, the detection table is updated with the  true or falses. The resulting data is used in a diagnostic analysis model employing a binomial regression. The diagnosis evaluates how the probability of a true positive changes in relation to the correlation score. The validation app is typically set to assess correlation values with a precision of 95% (5% error), helping choosing a correlation threshold that will optimize the model's accuracy. Density plots of correlation values for both false positives and true positives can assist in defining an optimal threshold value.
+![The validation app](./images/validaSom.png){width=100%}
 
-## *A typical template matching analysis is made by the following steps:*
+Once we launch the Validation App, we can validate the detections as true or false positives and set a correlation threshold that balances precision and recall. Similar to the Segmentation App, the Validation App requires specific inputs to function properly. The project path is typically set to the working directory, and the user's name must be provided. Additionally, the paths to the template and soundscape files should be specified. Within the app, the user must check the information and confirm the paths by clicking the 'confirm path' button. The user must then advance to the session setup tab, also in the sidebar menu, to confirm the validation setup. Within this menu, the user can select which template to validate, the correlation score interval or determine a number of the top scores to be validated. Additionally, the 'Order by' dropdown menu allows the user to control the order in which the detections are presented.
+
+The app presents two spectrograms to facilitate the validation process. The spectrogram parameters can be adjusted through the spectrogram menu. The left spectrogram displays the detection from the soundscape file, while the right shows the template used in the correlation. The user can easily classify the detection as false (Q), positive (E), or unknown (W). If the Autosave and Autonavigate boxes are checked, the validation process becomes very efficient, automatically saving the classifications and navigating to the next detection. Additionally, the user can listen to either the detection or the template to assist the validation process. As the validation process advances, the detection table is updated with the validation inputs, and the resulting data is used in a diagnostic analysis model employing a binomial regression. The validation app is typically set to assess correlation values with a precision of 95% (5% error). Along with the binomial regression plot, users can also see the density plots of correlation values for both false positives and true positives, and the precison vs recall plot. All these plots are updated in real time, allowing the user to evaluate the outcomes of the validation in real time.
+
+It should be noted though that the only output of the validation app are the validation iputs routed to the CSV file passed to the `input_path` argument. The diagsnotics data and plots are only displayed in the app, but can be coimputed with the `diagnostic_validations_n()` function.
+
+```{r}
+# import the validated detections
+df_detecs_val_manual <- read.csv("validation_outputs/df_detecs_val_manual.csv")
+# compute the diagnostics
+ls_validations <- diagnostic_validations_n(
+  df_validated = df_detecs_val_manual,
+  diag_method = "auto", pos_prob = 0.9
+)
+```
+
+Lets extract and plot the diagnostics for the first template. The `ls_validations` object is a list in which each element is a list of diagnostics for a given template.
+
+```{r, fig.width=10, fig.height=8}
+# extract the diagnostics for the first template
+diags_template01 <- ls_validations[[1]]
+# plot the diagnostics
+diags_template01$mod_plot +
+  diags_template01$precrec_plot +
+  diags_template01$f1_plot +
+  diags_template01$plot_dens
+```
+
+Before extracting the final set of validations based on the correlation thresohold, let's try another type of validation and compare the results. The alternative to the validation app is to use the `validate_by_overlap()` function, which allows the user to validate the detections automatically based on the overlap between the detections and ROI tables of the soundscape recordings produced within the segmentation app.
+
+Before proceeding, we need to import the ROIs.
+```{r}
+# import the ROIs
+df_rois <- fetch_rois(rois_path = "./roi_tables/")
+glimpse(df_rois)
+```
+
+Now we can validate the detections by overlap with the ROIs. Detections that overlap with at least one ROI in the time window are validated as true positives, and all other detections are validated as false positives.
+```{r}
+df_detecs_val_tovlp <- validate_by_overlap(
+  df_detecs = df_detecs, df_rois = df_rois, validation_user = "User Name",
+  output_path = "validation_outputs/df_detecs_val_tovlp.csv"
+)
+glimpse(df_detecs_val_tovlp)
+```
+
+But if we count the number of detections by validation outcome, we see that there is a third outcome, which is the FN ou false negatives. False negatives, in this case, are ROIs that were missed by the template matching process, i.e. ROIs that do not overlap with any detection.
+```{r}
+count(df_detecs_val_tovlp, validation)
+```
+
+If we perform the validation diagsnotics again, we see that the FN do interfere with the evaluation of the template matching process.
+```{r}
+# compute the diagnostics
+ls_validations_tovlp <- diagnostic_validations_n(
+  df_validated = df_detecs_val_tovlp,
+  diag_method = "auto", pos_prob = 0.5
+)
+# get the results for the first template
+diags_template01_tovlp <- ls_validations_tovlp[[1]]
+# plot the diagnostics
+diags_template01_tovlp$mod_plot +
+  diags_template01_tovlp$precrec_plot +
+  diags_template01_tovlp$f1_plot +
+  diags_template01_tovlp$plot_dens
+```
+
+<!-- todo PAREI AQUI -->
+We notice that although the diagsnotics of the
+
+While flexible, the validation by overlap with the validation app does not account for false negatives and although it is optimized for large scale use, users can still introduce errors due to observer biases. Thus, we recommend reserving it for exploratory analyses or validation under severely limited data availability.
+
+## Summary
+
+*A typical template matching analysis is made by the following steps:*
 
 1. *Data Collection.* Gather a large dataset of audio recordings, typically from soundscapes that include the target species' calls or sounds.
 
@@ -327,4 +393,4 @@ The app presents two spectrograms to facilitate the validation process. The spec
 
 
 
-![The validation app](./images/validaSom.png){width=100%}
+
