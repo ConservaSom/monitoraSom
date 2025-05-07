@@ -2,7 +2,7 @@
 ^\.Rproj\.user$
 ^.Rhistory$
 ^example$
-^vignettes$
+^\example\vignette_01_Essentials$
 ^\.vscode$
 ^LICENSE\.md$
 NoSync_extras&tests/

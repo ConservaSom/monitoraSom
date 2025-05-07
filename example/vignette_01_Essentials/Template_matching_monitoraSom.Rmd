@@ -278,6 +278,7 @@ if (
 Now we can launch the validation app. Notice that we are using the validation copy as the input file and also as the output file. This is a good practice to avoid overwriting the original data and to ensure we can validate the same data across multiple sessions.
 
 ```{r eval = F}
+library(monitoraSom)
 launch_validation_app(
   project_path = ".",
   validation_user = "Rosa G. L. M.",
@@ -361,6 +362,7 @@ diags_template01_tovlp$mod_plot +
 ```
 
 <!-- todo PAREI AQUI -->
+
 We notice that although the diagsnotics of the
 
 While flexible, the validation by overlap with the validation app does not account for false negatives and although it is optimized for large scale use, users can still introduce errors due to observer biases. Thus, we recommend reserving it for exploratory analyses or validation under severely limited data availability.

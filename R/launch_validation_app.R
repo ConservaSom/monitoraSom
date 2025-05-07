@@ -1139,7 +1139,8 @@ launch_validation_app <- function(
             )
           } else {
             has_wav <- length(fs::dir_ls(
-              path, regexp = "(?i)\\.wav$", type = "file"
+              path, regexp = "(?i)\\.wav$", type = "file",
+              recurse = TRUE
             )) > 0
             if (!has_wav) {
               validation_errors <- c(
