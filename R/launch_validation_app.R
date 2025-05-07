@@ -1209,17 +1209,6 @@ launch_validation_app <- function(
         # Safe data loading
         tryCatch(
           {
-            df_soundscapes <- data.frame(
-              soundscape_path = as.character(
-                unname(
-                  fs::dir_ls(
-                    input$soundscapes_path, pattern = "(?i).wav$",
-                    recurse = TRUE, type = "file"
-                  )
-                )
-              )
-            ) %>%
-              dplyr::mutate(soundscape_file = basename(soundscape_path))
 
             df_templates <- data.frame(
               template_path = as.character(
@@ -1235,19 +1224,8 @@ launch_validation_app <- function(
             df_ref_templates(df_templates)
 
             res <- data.table::fread(
-              input$input_path,
-              data.table = FALSE, header = TRUE
-            ) %>%
-              dplyr::mutate(
-                soundscape_path = as.character(NA),
-                template_path = as.character(NA)
-              ) %>%
-              dplyr::rows_update(
-                df_templates, by = "template_file", unmatched = "ignore"
-              ) %>%
-              dplyr::rows_update(df_soundscapes,
-                by = "soundscape_file", unmatched = "ignore"
-              )
+              input$input_path, data.table = FALSE, header = TRUE
+            )
 
             var_names <- c(
               "detection_id", "validation_user", "validation_time",
