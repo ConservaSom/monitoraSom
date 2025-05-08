@@ -1137,17 +1137,6 @@ launch_validation_app <- function(
               validation_errors,
               sprintf("%s does not exist", path_name)
             )
-          } else {
-            has_wav <- length(fs::dir_ls(
-              path, regexp = "(?i)\\.wav$", type = "file",
-              recurse = TRUE
-            )) > 0
-            if (!has_wav) {
-              validation_errors <- c(
-                validation_errors,
-                sprintf("No WAV files found in %s", path_name)
-              )
-            }
           }
         }
 
@@ -1209,6 +1198,10 @@ launch_validation_app <- function(
         # Safe data loading
         tryCatch(
           {
+            res <- data.table::fread(
+              input$input_path,
+              data.table = FALSE, header = TRUE
+            )
 
             df_templates <- data.frame(
               template_path = as.character(
@@ -1223,9 +1216,6 @@ launch_validation_app <- function(
               dplyr::mutate(template_file = basename(template_path))
             df_ref_templates(df_templates)
 
-            res <- data.table::fread(
-              input$input_path, data.table = FALSE, header = TRUE
-            )
 
             var_names <- c(
               "detection_id", "validation_user", "validation_time",
@@ -1489,7 +1479,7 @@ launch_validation_app <- function(
         if (input$lock_template != TRUE) {
           shinyjs::enable("custom_reference")
           custom_refs <- monitoraSom::fetch_template_metadata(
-            path = input$templates_path, recursive = TRUE
+            templates_path = input$templates_path, recursive = TRUE
           )
           # Add validation to ensure custom_refs is not empty
           if (nrow(custom_refs) > 0) {
