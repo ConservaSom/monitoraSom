@@ -496,6 +496,13 @@ launch_validation_app <- function(
     return(res)
   }
 
+  wav_exists <- function(path) {
+    wav_files <- fs::dir_ls(
+      path = path, pattern = "(?i).wav$", type = "file", recurse = TRUE
+    )
+    length(wav_files) > 0
+  }
+
   # hotkeys --------------------------------------------------------------------
 
   hotkeys <- c(
@@ -1102,19 +1109,22 @@ launch_validation_app <- function(
 
 
       shiny::observeEvent(input$user_setup_confirm, {
+        # Initial input validation
         shiny::req(
           input$input_path, input$output_path, input$soundscapes_path,
           input$templates_path, input$validation_user
         )
 
+        # Validate paths and files
         validation_errors <- character()
 
+        # Check input file
         if (!file.exists(input$input_path)) {
           validation_errors <- c(validation_errors, "Input file does not exist")
         } else {
           tryCatch(
             {
-              first_read <- data.table::fread(input$input_path, nrows = 1)
+              test_read <- data.table::fread(input$input_path, nrows = 1)
             },
             error = function(e) {
               validation_errors <<- c(
@@ -1125,26 +1135,33 @@ launch_validation_app <- function(
           )
         }
 
+        # Check directories
         paths_to_check <- list(
           "Soundscapes directory" = input$soundscapes_path,
           "Templates directory" = input$templates_path
         )
 
         for (path_name in names(paths_to_check)) {
-          path <- paths_to_check[[path_name]]
-          if (!dir.exists(path)) {
-            validation_errors <- c(
-              validation_errors,
-              sprintf("%s does not exist", path_name)
-            )
-          }
+            path <- paths_to_check[[path_name]]
+            if (!dir.exists(path)) {
+                validation_errors <- c(
+                    validation_errors,
+                    sprintf("%s does not exist", path_name)
+                )
+            } else if (!wav_exists(path)) {
+                validation_errors <- c(
+                    validation_errors,
+                    sprintf("No WAV files found in %s", path_name)
+                )
+            }
         }
 
         # Check output path
         output_dir <- dirname(input$output_path)
         if (!dir.exists(output_dir)) {
           validation_errors <- c(
-            validation_errors, "Output directory does not exist"
+            validation_errors,
+            "Output directory does not exist"
           )
         }
 
@@ -1154,7 +1171,9 @@ launch_validation_app <- function(
             title = "Setup Validation Errors",
             tags$div(
               tags$p("Please correct the following errors:"),
-              tags$ul(lapply(validation_errors, function(error) tags$li(error)))
+              tags$ul(
+                lapply(validation_errors, function(error) tags$li(error))
+              )
             ),
             easyClose = TRUE,
             footer = modalButton("OK")
@@ -1198,24 +1217,39 @@ launch_validation_app <- function(
         # Safe data loading
         tryCatch(
           {
-            res <- data.table::fread(
-              input$input_path,
-              data.table = FALSE, header = TRUE
-            )
+            df_soundscapes <- data.frame(
+              soundscape_path = as.character(fs::dir_ls(
+                input$soundscapes_path,
+                pattern = "(?i).wav$", recurse = TRUE,
+                type = "file"
+              ))
+            ) %>%
+              dplyr::mutate(soundscape_file = basename(soundscape_path))
 
             df_templates <- data.frame(
-              template_path = as.character(
-                unname(
-                  fs::dir_ls(
-                    input$templates_path, pattern = "(?i).wav$", recurse = TRUE,
-                    type = "file"
-                  )
-                )
-              )
+              template_path = as.character(fs::dir_ls(
+                input$templates_path,
+                pattern = "(?i).wav$", recurse = TRUE,
+                type = "file"
+              ))
             ) %>%
               dplyr::mutate(template_file = basename(template_path))
             df_ref_templates(df_templates)
 
+            res <- data.table::fread(
+              input$input_path,
+              data.table = FALSE, header = TRUE
+            ) %>%
+              dplyr::mutate(
+                soundscape_path = as.character(NA),
+                template_path = as.character(NA)
+              ) %>%
+              dplyr::rows_update(
+                df_templates, by = "template_file", unmatched = "ignore"
+              ) %>%
+              dplyr::rows_update(df_soundscapes,
+                by = "soundscape_file", unmatched = "ignore"
+              )
 
             var_names <- c(
               "detection_id", "validation_user", "validation_time",
@@ -1585,10 +1619,10 @@ launch_validation_app <- function(
                 )
               )
               unlink("template_.*.wav")
-              template_list <- fs::dir_ls(
-                path = session_data$temp_path, pattern = "template_.*.wav",
-                type = "file"
-              )
+              template_list <- as.character(fs::dir_ls(
+                session_data$temp_path,
+                pattern = "template_.*.wav", type = "file"
+              ))
               file.remove(template_list[template_list != temp_file])
             } else {
               shiny::removeUI(selector = "#template_player_selector")
@@ -1599,109 +1633,52 @@ launch_validation_app <- function(
 
       spectro_template <- shiny::reactive({
         shiny::req(df_template())
-
         if (is.null(rec_template())) {
-          return(
-            ggplot2::ggplot() +
-              ggplot2::annotate(
-                "label",
-                x = 1,
-                y = 1,
-                label = "The WAV file is not available"
-              ) +
-              ggplot2::theme_void()
-          )
-        }
-
-        # Verificamos se o objeto de áudio está pronto para processamento
-        temp_rec <- rec_template()
-        if (is.null(temp_rec) || length(temp_rec@left) == 0) {
-          return(
-            ggplot2::ggplot() +
-              ggplot2::annotate(
-                "label",
-                x = 1,
-                y = 1,
-                label = "The WAV file is not ready for processing"
-              ) +
-              ggplot2::theme_void()
-          )
-        }
-
-        tryCatch(
-          {
-            shiny::req(
-              input$wl,
-              input$ovlp,
-              input$zoom_freq,
-              input$dyn_range_templ,
-              input$time_guide_interval,
-              input$freq_guide_interval,
-              input$color_scale,
-              input$pitch_shift
-            )
-
-            box_color <- ifelse(
-              input$color_scale %in% c("greyscale 1", "greyscale 2"),
-              "black",
-              "white"
-            )
-
-            fast_spectro(
-              rec = temp_rec,
-              f = temp_rec@samp.rate,
-              wl = input$wl,
-              ovlp = input$ovlp,
-              flim = c(input$zoom_freq[1], input$zoom_freq[2]),
-              dyn_range = c(input$dyn_range_templ[1], input$dyn_range_templ[2]),
-              time_guide_interval = input$time_guide_interval,
-              freq_guide_interval = input$freq_guide_interval,
-              color_scale = input$color_scale,
-              pitch_shift = input$pitch_shift
+          ggplot2::ggplot() +
+            ggplot2::annotate(
+              "label", x = 1, y = 1, label = "Template not available"
             ) +
-              ggplot2::labs(title = "Template spectrogram") +
-              ggplot2::annotate(
-                "label",
-                label = paste0("Template: '", df_template()$template_name, "'"),
-                x = -Inf,
-                y = Inf,
-                hjust = 0,
-                vjust = 1,
-                color = "white",
-                fill = "black"
-              ) +
-              ggplot2::annotate(
-                "rect",
-                xmin = ifelse(zoom_pad() == 0, 0, zoom_pad()),
-                xmax = ifelse(
-                  zoom_pad() == 0,
-                  seewave::duration(rec_template()),
-                  seewave::duration(rec_template()) - zoom_pad()
-                ),
-                ymin = df_template()$template_min_freq,
-                ymax = df_template()$template_max_freq,
-                linetype = "dashed",
-                alpha = 0,
-                color = box_color,
-                fill = box_color
-              ) +
-              ggplot2::theme(legend.position = "none")
-          },
-          error = function(e) {
-            ggplot2::ggplot() +
-              ggplot2::annotate(
-                "label", x = 1, y = 1,
-                label = paste0(
-                  "Error generating the template spectrogram:\n", e$message
-                )
-              ) +
-              ggplot2::theme_void()
-          }
-        )
+            ggplot2::theme_void()
+        } else {
+          box_color <- ifelse(
+            input$color_scale %in%
+              c("greyscale 1", "greyscale 2"), "black", "white"
+          )
+          temp_rec <- rec_template()
+          fast_spectro(
+            rec = temp_rec, f = temp_rec@samp.rate, wl = input$wl,
+            ovlp = input$ovlp, flim = c(input$zoom_freq[1], input$zoom_freq[2]),
+            dyn_range = c(input$dyn_range_templ[1], input$dyn_range_templ[2]),
+            time_guide_interval = input$time_guide_interval,
+            freq_guide_interval = input$freq_guide_interval,
+            color_scale = input$color_scale, pitch_shift = input$pitch_shift
+          ) +
+            ggplot2::labs(title = "Template spectrogram") +
+            ggplot2::annotate(
+              "label",
+              label = paste0("Template: '", df_template()$template_name, "'"),
+              x = -Inf, y = Inf, hjust = 0, vjust = 1,
+              color = "white", fill = "black"
+            ) +
+            ggplot2::annotate(
+              "rect",
+              xmin = ifelse(zoom_pad() == 0, 0, zoom_pad()),
+              xmax = ifelse(
+                zoom_pad() == 0, seewave::duration(rec_template()),
+                seewave::duration(rec_template()) - zoom_pad()
+              ),
+              ymin = df_template()$template_min_freq,
+              ymax = df_template()$template_max_freq,
+              linetype = "dashed", alpha = 0,
+              color = box_color, fill = box_color
+            ) +
+            ggplot2::theme(legend.position = "none")
+        }
       })
 
-      # Simplificamos o renderPlot para usar apenas o resultado do reactive
+      # render the template spectrogram in the interface
       output$TemplateSpectrogram <- renderPlot({
+        shiny::req(df_template())
         spectro_template()
       })
 
@@ -1877,10 +1854,10 @@ launch_validation_app <- function(
             )
           )
           unlink("detection_.*.wav")
-          fs::dir_ls(
-            path = session_data$temp_path, pattern = "detection_.*.wav",
-            type = "file"
-          ) %>%
+          as.character(fs::dir_ls(
+            session_data$temp_path,
+            pattern = "detection_.*.wav", type = "file"
+          )) %>%
             .[. != temp_file] %>%
             file.remove()
         } else {
@@ -1890,116 +1867,75 @@ launch_validation_app <- function(
 
       spectro_detection <- shiny::reactive({
         shiny::req(rec_detection(), det_i(), det_sel())
-
-        if (is.null(rec_detection()) || length(rec_detection()@left) == 0) {
-          return(
-            ggplot2::ggplot() +
-              ggplot2::annotate(
-                "label", x = 1, y = 1, label = "Audio data not ready"
-              ) +
-              ggplot2::theme_void()
-          )
-        }
-        if (is.null(det_i()) || length(det_i()) == 0) {
-          return(
-            ggplot2::ggplot() +
-              ggplot2::annotate(
-                "label", x = 1, y = 1, label = "Detection info not ready"
-              ) +
-              ggplot2::theme_void()
-          )
-        }
-        if (is.null(det_sel()) || length(det_sel()) < 2) {
-          return(
-            ggplot2::ggplot() +
-              ggplot2::annotate(
-                "label", x = 1, y = 1, label = "Selection not ready"
-              ) +
-              ggplot2::theme_void()
-          )
-        }
-
-        tryCatch(
-          {
-            shiny::req(
-              input$wl, input$ovlp, input$zoom_freq, input$dyn_range_detec,
-              input$time_guide_interval, input$freq_guide_interval,
-              input$color_scale, input$pitch_shift, input$output_path
-            )
-
-            box_color <- ifelse(
-              input$color_scale %in% c("greyscale 1", "greyscale 2"),
-              "black", "white"
-            )
-
-            fast_spectro(
-              rec = rec_detection(), f = det_i()$detection_sample_rate,
-              wl = input$wl, ovlp = input$ovlp,
-              flim = c(input$zoom_freq[1], input$zoom_freq[2]),
-              dyn_range = c(input$dyn_range_detec[1], input$dyn_range_detec[2]),
-              time_guide_interval = input$time_guide_interval,
-              freq_guide_interval = input$freq_guide_interval,
-              color_scale = input$color_scale, pitch_shift = input$pitch_shift,
-              norm = FALSE
-            ) +
-              ggplot2::labs(title = "Detection spectrogram") +
-              ggplot2::annotate(
-                "label",
-                label = paste0(
-                  det_i()$soundscape_file, "\n",
-                  "Detection ID: '", det_i()$detection_id, "' in '",
-                  basename(input$output_path), "'"
-                ),
-                x = -Inf, y = Inf, hjust = 0, vjust = 1,
-                color = "white", fill = "black"
-              ) +
-              ggplot2::annotate(
-                "rect", xmin = det_sel()[1], xmax = det_sel()[2],
-                ymin = det_i()$template_min_freq,
-                ymax = det_i()$template_max_freq, linetype = "dashed",
-                color = box_color, alpha = 0
-              ) +
-              ggplot2::annotate(
-                "label", x = Inf, y = input$zoom_freq[2], vjust = 1, hjust = 1,
-                label = if (!(det_i()$validation %in% c("TP", "FP", "UN"))) {
-                  "Not validated"
-                } else if (det_i()$validation == "TP") {
-                  "True Positive"
-                } else if (det_i()$validation == "FP") {
-                  "False Positive"
-                } else if (det_i()$validation == "UN") {
-                  "Unknown"
-                },
-                fill = if (!(det_i()$validation %in% c("TP", "FP", "UN"))) {
-                  "white"
-                } else if (det_i()$validation == "TP") {
-                  "#6ae46a"
-                } else if (det_i()$validation == "FP") {
-                  "#ff7e7e"
-                } else if (det_i()$validation == "UN") {
-                  "#ffba52"
-                },
-                fontface = "bold"
-              ) +
-              ggplot2::annotate(
-                "label", x = Inf, y = -Inf, vjust = 0, hjust = 1,
-                fontface = "bold", label = paste0("Score: ", round(det_i()$peak_score, 3))
-              ) +
-              theme(legend.position = "none")
-          },
-          error = function(e) {
-            ggplot2::ggplot() +
-              ggplot2::annotate(
-                "label", x = 1, y = 1,
-                label = paste0("Error generating spectrogram:\n", e$message)
-              ) +
-              ggplot2::theme_void()
-          }
+        box_color <- ifelse(
+          input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
         )
+        # efficient_spectro(
+        fast_spectro(
+          rec = rec_detection(), f = det_i()$detection_sample_rate,
+          wl = input$wl, ovlp = input$ovlp,
+          flim = c(input$zoom_freq[1], input$zoom_freq[2]),
+          dyn_range = c(input$dyn_range_detec[1], input$dyn_range_detec[2]),
+          time_guide_interval = input$time_guide_interval,
+          freq_guide_interval = input$freq_guide_interval,
+          color_scale = input$color_scale, pitch_shift = input$pitch_shift,
+          norm = FALSE
+        ) +
+          ggplot2::labs(title = "Detection spectrogram") +
+          ggplot2::annotate(
+            "label",
+            label = paste0(
+              det_i()$soundscape_file, "\n",
+              "Detection ID: '", det_i()$detection_id, "' in '",
+              basename(input$output_path), "'"
+            ),
+            x = -Inf, y = Inf, hjust = 0, vjust = 1,
+            color = "white", fill = "black"
+          ) +
+          ggplot2::annotate(
+            "rect",
+            xmin = det_sel()[1], xmax = det_sel()[2],
+            ymin = det_i()$template_min_freq,
+            ymax = det_i()$template_max_freq,
+            linetype = "dashed", color = box_color, alpha = 0
+          ) +
+          ggplot2::annotate(
+            "label",
+            x = Inf, y = input$zoom_freq[2], vjust = 1, hjust = 1,
+            label = if (!(det_i()$validation %in% c("TP", "FP", "UN"))) {
+              "Not validated"
+            } else if (det_i()$validation == "TP") {
+              "True Positive"
+            } else if (det_i()$validation == "FP") {
+              "False Positive"
+            } else if (det_i()$validation == "UN") {
+              "Unknown"
+            },
+            fill = if (!(det_i()$validation %in% c("TP", "FP", "UN"))) {
+              "white"
+            } else if (det_i()$validation == "TP") {
+              "#6ae46a"
+            } else if (det_i()$validation == "FP") {
+              "#ff7e7e"
+            } else if (det_i()$validation == "UN") {
+              "#ffba52"
+            },
+            fontface = "bold"
+          ) +
+          ggplot2::annotate(
+            "label",
+            x = Inf, y = -Inf, vjust = 0, hjust = 1,
+            fontface = "bold",
+            label = paste0(
+              "Score: ", round(det_i()$peak_score, 3)
+            )
+          ) +
+          theme(legend.position = "none")
       })
 
-      # Render the detection spectrogram in the interface
+      # render the detections spectrogram in the interface
       output$DetectionSpectrogram <- renderPlot({
+        shiny::req(rec_detection(), det_i(), spectro_detection())
         spectro_detection()
       })
 
@@ -2039,10 +1975,10 @@ launch_validation_app <- function(
                   )
                 )
                 unlink("soundscape_.*.wav")
-                fs::dir_ls(
-                  path = session_data$temp_path, pattern = "soundscape_.*.wav",
-                  type = "file"
-                ) %>%
+                as.character(fs::dir_ls(
+                  session_data$temp_path,
+                  pattern = "soundscape_.*.wav", type = "file"
+                )) %>%
                   .[. != temp_file] %>%
                   file.remove()
               } else if (input$wav_player_type != "HTML player") {
