@@ -44,13 +44,20 @@
 #' @param nav_autosave If TRUE, the current validation is saved when the user
 #'   navigates to another file.
 #' @param overwrite If TRUE, the output file is overwritten.
-#' @param pitch_shift Pitch shift for the audio cuts.
 #' @param visible_bp If TRUE, the bandpass filter is visible in the spectrogram.
 #' @param play_norm If TRUE, the played audio is normalized.
 #' @param time_guide_interval A numeric value indicating the interval in seconds
 #'   between time guides in the spectrogram.
 #' @param freq_guide_interval A numeric value indicating the interval in kHz
 #'   between frequency guides in the spectrogram.
+#' @param path_update Logical. Controls how soundscape and template file paths are handled.
+#'   If FALSE (default), uses the paths stored in the input file without modification.
+#'   If TRUE, scans the provided soundscape and template directories to update paths.
+#'   Setting to TRUE is useful when files have moved but kept the same names.
+#'   WARNING: Do not use TRUE if you have soundscape and template files with identical
+#'   names in different directories, as this may cause incorrect path assignments and
+#'   crash the app.
+#' @param pitch_shift Pitch shift for the audio cuts.
 #'
 #' @return todo
 #'
@@ -114,8 +121,9 @@ launch_validation_app <- function(
     dyn_range_bar = c(-144, 0), dyn_range_templ = c(-84, 0),
     dyn_range_detec = c(-84, 0), color_scale = "inferno", zoom_freq = c(0, 23),
     time_guide_interval = 1, freq_guide_interval = 1, subset_seed = 123,
-    auto_next = TRUE, nav_autosave = TRUE, overwrite = FALSE, pitch_shift = 1,
-    visible_bp = FALSE, play_norm = FALSE
+    auto_next = TRUE, nav_autosave = TRUE, overwrite = FALSE,
+    visible_bp = FALSE, play_norm = FALSE, path_update = FALSE,
+    pitch_shift = 1
   ) {
 
   options(dplyr.summarise.inform = FALSE)
@@ -443,6 +451,13 @@ launch_validation_app <- function(
   } else {
     stop(
       "Error! The value assigned to 'overwrite' is not logical. Set it to TRUE or FALSE."
+    )
+  }
+  if (is.logical(path_update)) {
+    session_data$path_update <- path_update
+  } else {
+    stop(
+      "Error! The value assigned to 'path_update' is not logical. Set it to TRUE or FALSE."
     )
   }
 
@@ -909,6 +924,10 @@ launch_validation_app <- function(
               shiny::checkboxInput(
                 "nav_autosave", HTML("<b>Autosave</b>"),
                 value = session_data$nav_autosave
+              ),
+              shiny::checkboxInput(
+                "path_update", HTML("<b>Update paths</b>"),
+                value = session_data$path_update
               )
             )
           ),
@@ -1217,14 +1236,16 @@ launch_validation_app <- function(
         # Safe data loading
         tryCatch(
           {
-            df_soundscapes <- data.frame(
-              soundscape_path = as.character(fs::dir_ls(
-                input$soundscapes_path,
-                pattern = "(?i).wav$", recurse = TRUE,
-                type = "file"
-              ))
-            ) %>%
-              dplyr::mutate(soundscape_file = basename(soundscape_path))
+            if (input$path_update == TRUE) {
+              df_soundscapes <- data.frame(
+                soundscape_path = as.character(fs::dir_ls(
+                  input$soundscapes_path,
+                  pattern = "(?i).wav$", recurse = TRUE,
+                  type = "file"
+                ))
+              ) %>%
+                dplyr::mutate(soundscape_file = basename(soundscape_path))
+            }
 
             df_templates <- data.frame(
               template_path = as.character(fs::dir_ls(
@@ -1239,17 +1260,21 @@ launch_validation_app <- function(
             res <- data.table::fread(
               input$input_path,
               data.table = FALSE, header = TRUE
-            ) %>%
-              dplyr::mutate(
-                soundscape_path = as.character(NA),
-                template_path = as.character(NA)
-              ) %>%
-              dplyr::rows_update(
-                df_templates, by = "template_file", unmatched = "ignore"
-              ) %>%
-              dplyr::rows_update(df_soundscapes,
-                by = "soundscape_file", unmatched = "ignore"
-              )
+            )
+
+            if (input$path_update == TRUE) {
+              res <- res %>%
+                dplyr::mutate(
+                  soundscape_path = as.character(NA),
+                  template_path = as.character(NA)
+                ) %>%
+                dplyr::rows_update(
+                  df_templates, by = "template_file", unmatched = "ignore"
+                ) %>%
+                dplyr::rows_update(
+                  df_soundscapes, by = "soundscape_file", unmatched = "ignore"
+                )
+            }
 
             var_names <- c(
               "detection_id", "validation_user", "validation_time",
