@@ -161,7 +161,7 @@ diagnostic_validations_i <- function(
     geom_vline(xintercept = score_cut, color = "red", linetype = 2) +
     labs(
       title = "Binomial regression",
-      y = "Probability of validations as TP", x = "Correlation"
+      y = "Probability of validations as TP", x = "Peak score"
     ) +
     theme_bw()
 

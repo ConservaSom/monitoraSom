@@ -10,16 +10,6 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-
-
-<!-- todo - Additionally, processing and analyzing large datasets may require greater computational resources (e.g., RAM or parallel processing capabilities), especially during the template matching step (see Supplementary Material S1 for best practices). -->
-
-<!-- todo - If preferred, most settings can be set as arguments in the launch function, optimizing time efficiency and ensuring consistency across segmentation sessions (more details available in Supplementary Material S1).  -->
-
-<!-- todo - More details about hotkeys, buttons and their functionalities are available in the Supplementary Material S1. -->
-
-<!-- todo -  Also, all filters except `min_score`, which defines an absolute cutpoint, return at least one detection per template-soundscape combination. See the Supplementary Material S1 for more details on filtering detections. -->
-
 # Overview
 We here provide an overview of the R package **monitoraSom**. The package is designed to facilitate passive acoustic monitoring (PAM) and bioacoustic analyses, by providing tools for processing, analyzing, and visualizing sounds for ecological studies. It includes functions for efficiently segmenting audio recordings, extracting acoustic features, building spectrograms and waveforms, and performing batch processing of large datasets. These capabilities make monitoraSom particularly useful for sound ecologists.
 
@@ -244,11 +234,10 @@ Lets make a time check to see how long it takes to run the template matching ana
 # parallel::detectCores()
 
 # If the parallelization is working, this elapsed time...
-df_detections <- match_n(
+match_n(
   df_grid = df_grid, output = "detections", ncores = 6,
   output_file = "detections/df_detecs.csv"
 )
-glimpse(df_detections)
 ```
 
 If results with parallel processing and single core processing are not significantly different, parallelization is not working properly. There can be several reasons for this, as parallelization is dealt differently across operating systems (MacOS, Windows, or Linux) and IDEs (RStudio, VSCode, etc.).
@@ -257,6 +246,7 @@ If results with parallel processing and single core processing are not significa
 
 The main objective of the validation process is to determine the optimal correlation threshold for efficient detection. The correlation threshold value directly influences the number of true positives and false positives in the results. While a higher correlation threshold tends to reduce false positives by ensuring that only strong matches are retained, it also reduces the number of true positives as the model becomes more selective. On the other hand, a lower correlation threshold increases recall by capturing more true positives, but at the cost of a lower precision, as it leads to a higher number of false positives above the threshold. The ideal threshold strikes a balance between precision and recall, ensuring sufficient data for ecological analysis while maintaining the quality of the results.
 
+We will first demonstrate the validation process using the validation app, within which the user can validate the detections manually. Because validation takes place with data produced after the template matching process, this validation is referred to as **a posteriori** validation.
 
 The file we will passs to the argument `input_path` should be the output of the `match_n()` function, *i.e.*, "detections/df_detecs.csv". However, it might be important to save the output file with a different name than the input file to preserve data and avoid rerunning the template matching process. With the steps below, we will make a copy of the detections file and use it as the input for the validation app.
 ```{r}
@@ -278,7 +268,6 @@ if (
 Now we can launch the validation app. Notice that we are using the validation copy as the input file and also as the output file. This is a good practice to avoid overwriting the original data and to ensure we can validate the same data across multiple sessions.
 
 ```{r eval = F}
-library(monitoraSom)
 launch_validation_app(
   project_path = ".",
   validation_user = "Rosa G. L. M.",
@@ -287,14 +276,14 @@ launch_validation_app(
   input_path = "validation_outputs/df_detecs_val_manual.csv",
   output_path = "validation_outputs/df_detecs_val_manual.csv",
   dyn_range_templ = c(-42, 0), dyn_range_detec = c(-90, -48),
-  wl = 512, ovlp = 70, time_pads = 0.5,
-  nav_autosave = TRUE, overwrite = TRUE, auto_next = TRUE
+  wl = 512, ovlp = 70, time_pads = 0.5, nav_autosave = TRUE, overwrite = TRUE,
+  auto_next = TRUE, path_update = FALSE
 )
 ```
 
 ![The validation app](./images/validaSom.png){width=100%}
 
-Once we launch the Validation App, we can validate the detections as true or false positives and set a correlation threshold that balances precision and recall. Similar to the Segmentation App, the Validation App requires specific inputs to function properly. The project path is typically set to the working directory, and the user's name must be provided. Additionally, the paths to the template and soundscape files should be specified. Within the app, the user must check the information and confirm the paths by clicking the 'confirm path' button. The user must then advance to the session setup tab, also in the sidebar menu, to confirm the validation setup. Within this menu, the user can select which template to validate, the correlation score interval or determine a number of the top scores to be validated. Additionally, the 'Order by' dropdown menu allows the user to control the order in which the detections are presented.
+Once we launch the Validation App, we can validate the detections as true or false positives and set a correlation threshold that balances precision and recall. Similar to the Segmentation App, the Validation App requires specific inputs to function properly. The project path is typically set to the working directory, and the user's name must be provided. Additionally, the paths to the template and soundscape files should be specified. Within the app, the user must check the information and confirm the paths by clicking the 'confirm path' button. The user must then advance to the session setup tab, also in the sidebar menu, to confirm the validation setup. Within this menu, the user can select which template to validate, the correlation score interval or determine a number of the top scores to be validated. Additionally, the 'Order by' dropdown menu allows the user to control the order in which the detections are presented for validation.
 
 The app presents two spectrograms to facilitate the validation process. The spectrogram parameters can be adjusted through the spectrogram menu. The left spectrogram displays the detection from the soundscape file, while the right shows the template used in the correlation. The user can easily classify the detection as false (Q), positive (E), or unknown (W). If the Autosave and Autonavigate boxes are checked, the validation process becomes very efficient, automatically saving the classifications and navigating to the next detection. Additionally, the user can listen to either the detection or the template to assist the validation process. As the validation process advances, the detection table is updated with the validation inputs, and the resulting data is used in a diagnostic analysis model employing a binomial regression. The validation app is typically set to assess correlation values with a precision of 95% (5% error). Along with the binomial regression plot, users can also see the density plots of correlation values for both false positives and true positives, and the precison vs recall plot. All these plots are updated in real time, allowing the user to evaluate the outcomes of the validation in real time.
 
@@ -302,7 +291,9 @@ It should be noted though that the only output of the validation app are the val
 
 ```{r}
 # import the validated detections
-df_detecs_val_manual <- read.csv("validation_outputs/df_detecs_val_manual.csv")
+df_detecs_val_manual <- read.csv(
+  "validation_outputs/df_detecs_val_manual.csv", row.names = 1
+)
 # compute the diagnostics
 ls_validations <- diagnostic_validations_n(
   df_validated = df_detecs_val_manual,
@@ -316,13 +307,16 @@ Lets extract and plot the diagnostics for the first template. The `ls_validation
 # extract the diagnostics for the first template
 diags_template01 <- ls_validations[[1]]
 # plot the diagnostics
+x11()
 diags_template01$mod_plot +
   diags_template01$precrec_plot +
   diags_template01$f1_plot +
   diags_template01$plot_dens
 ```
 
-Before extracting the final set of validations based on the correlation thresohold, let's try another type of validation and compare the results. The alternative to the validation app is to use the `validate_by_overlap()` function, which allows the user to validate the detections automatically based on the overlap between the detections and ROI tables of the soundscape recordings produced within the segmentation app.
+We can see that the top-left panel shows the plot of the binomial model used to estimate the score threshold with a minimum precision of 95% (5% error). It shows that we were able to estimate the score threshold with a minimum precision of 95% (5% error), and altrhough no false positives were found, we missed a lot of true positives (i.e. we have a lot of false negatives). The top-right panel shows the precision-recall plot, which shows the precision and recall of the template matching process at different correlation thresholds. We can see in this case that we can reach a recall slightly above 50% with full precision, yet to increase the recall, we would need to accept a lower precisions. The bottom-left panel shows the F1 score plot, which shows the F1 score of the template matching process at different correlation thresholds. The F1 score is the harmonic mean of the precision and recall, and it is a good indicator of the overall performance of the template matching process. Yet, because we will prioritize precision over recall, the most adequate threshold is the one that maximizes the precision. The bottom-right panel shows the density plot of the correlation values for both false positives and true positives. The extensive tail of the false positives distribution shows that the template matching process is very good at detecting the target species, but it is not perfect.
+
+Before extracting the final set of validations based on the correlation thresohold, let's try another type of validation and compare the results. The alternative to the validation app is to use the `validate_by_overlap()` function, which allows the user to validate the detections automatically based on the overlap between the detections and ROI tables of the soundscape recordings produced within the segmentation app. This validation method is referred to as **a priori** validation, as it is based on data previously available, namely the segmentation data from the soundscape recordings.
 
 Before proceeding, we need to import the ROIs.
 ```{r}
@@ -345,15 +339,16 @@ But if we count the number of detections by validation outcome, we see that ther
 count(df_detecs_val_tovlp, validation)
 ```
 
-If we perform the validation diagsnotics again, we see that the FN do interfere with the evaluation of the template matching process.
+If we perform the validation diagnostics again, we see that the taking FN into account does interfere with the performance metrics of the template matching process.
 ```{r}
 # compute the diagnostics
 ls_validations_tovlp <- diagnostic_validations_n(
   df_validated = df_detecs_val_tovlp,
-  diag_method = "auto", pos_prob = 0.5
+  diag_method = "auto", pos_prob = 0.85
 )
 # get the results for the first template
 diags_template01_tovlp <- ls_validations_tovlp[[1]]
+X11()
 # plot the diagnostics
 diags_template01_tovlp$mod_plot +
   diags_template01_tovlp$precrec_plot +
@@ -361,11 +356,21 @@ diags_template01_tovlp$mod_plot +
   diags_template01_tovlp$plot_dens
 ```
 
-<!-- todo PAREI AQUI -->
+A more close look into the diagnostics of the second round of validation shows a few important patterns. First, we had to lower the precison thresohold to 0.85 to stay within the testable range of the binomial model. We also see that show that precisio starts to drop near a recall of 25%, wich is much sooner than the 50% recall we had with the a posteriori validation. We see that compromises between precision and recall are similar to the a posteriori validation. However, the F1 score range is lower, which show a less consistent detection performance. The density plot of the TP and FP distributions shows a less clear separation between the two distributions. The soundscpes, templates and detections are the same as in the a posteriori validation, so what changed is the validation method. Because the validation by overlap does not account for false negatives, we see that athough the template is useful, maybe we should keep looking for a better template.
 
-We notice that although the diagsnotics of the
+As rule of thumb, we recommend using the validation app for exploratory analyses, and the validation by overlap for large scale use cases. When compating templates, users should look for templates with a clearly defined prodabiblity of classification as true in the binomial model, which sustain a high precision and recall at the same time, with high F1 scores at the selected precision threshold and a clear separation between the TP and FP distributions. Sometimes it is not easy to find a template that satisfies all these criteria, which is why we recommend to always evaluate a set of different templates under varying settings.
 
-While flexible, the validation by overlap with the validation app does not account for false negatives and although it is optimized for large scale use, users can still introduce errors due to observer biases. Thus, we recommend reserving it for exploratory analyses or validation under severely limited data availability.
+For now we are satisfied with the results, so we can export the final set of validations based on the correlation threshold.
+```{r}
+# first we retrieve the threshold determined by the diagnostics
+selected_thres <- ls_validations_tovlp[[1]]$score_cut
+# Then we simply filter the detections based on the threshold
+df_detecs_val_final <- df_detecs_val_manual %>%
+  filter(peak_score >= selected_thres) %>%
+  glimpse()
+```
+
+The final step is to prepare the detections for ecological analysis.
 
 ## Summary
 

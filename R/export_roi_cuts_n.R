@@ -109,7 +109,7 @@ export_roi_cuts_n <- function(
     })
   )
 
-  if (all(results)) {
+  if (all(unlist(results))) {
     message("All cuts were made successfully")
   } else {
     message("Some cuts were not made. Check the output for more information")
