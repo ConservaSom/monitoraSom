@@ -513,7 +513,10 @@ launch_validation_app <- function(
 
   wav_exists <- function(path) {
     wav_files <- fs::dir_ls(
-      path = path, pattern = "(?i).wav$", type = "file", recurse = TRUE
+      path = path,
+      regexp = "(?i)*.wav",
+      recurse = TRUE,
+      type = "file"
     )
     length(wav_files) > 0
   }
@@ -1250,7 +1253,8 @@ launch_validation_app <- function(
             df_templates <- data.frame(
               template_path = as.character(fs::dir_ls(
                 input$templates_path,
-                pattern = "(?i).wav$", recurse = TRUE,
+                regexp = "(?i).wav$",
+                recurse = TRUE,
                 type = "file"
               ))
             ) %>%
@@ -1644,10 +1648,12 @@ launch_validation_app <- function(
                 )
               )
               unlink("template_.*.wav")
-              template_list <- as.character(fs::dir_ls(
+              template_list <- fs::dir_ls(
                 session_data$temp_path,
-                pattern = "template_.*.wav", type = "file"
-              ))
+                regexp = "template_.*.wav",
+                recurse = TRUE,
+                type = "file"
+              )
               file.remove(template_list[template_list != temp_file])
             } else {
               shiny::removeUI(selector = "#template_player_selector")
@@ -1657,7 +1663,18 @@ launch_validation_app <- function(
       })
 
       spectro_template <- shiny::reactive({
-        shiny::req(df_template())
+        shiny::req(
+          df_template(),
+          rec_template(),
+          input$wl,
+          input$ovlp,
+          input$zoom_freq,
+          input$dyn_range_templ,
+          input$time_guide_interval,
+          input$freq_guide_interval,
+          input$color_scale,
+          input$pitch_shift
+        )
         if (is.null(rec_template())) {
           ggplot2::ggplot() +
             ggplot2::annotate(
@@ -1704,7 +1721,19 @@ launch_validation_app <- function(
       # render the template spectrogram in the interface
       output$TemplateSpectrogram <- renderPlot({
         shiny::req(df_template())
-        spectro_template()
+        tryCatch(
+          {
+            spectro_template()
+          },
+          error = function(e) {
+            ggplot2::ggplot() +
+              ggplot2::annotate(
+                "label", x = 1, y = 1,
+                label = paste("Error rendering spectrogram:", e$message)
+              ) +
+              ggplot2::theme_void()
+          }
+        )
       })
 
 
@@ -1879,10 +1908,12 @@ launch_validation_app <- function(
             )
           )
           unlink("detection_.*.wav")
-          as.character(fs::dir_ls(
+          fs::dir_ls(
             session_data$temp_path,
-            pattern = "detection_.*.wav", type = "file"
-          )) %>%
+            regexp = "detection_.*.wav",
+            recurse = TRUE,
+            type = "file"
+          ) %>%
             .[. != temp_file] %>%
             file.remove()
         } else {
@@ -1891,7 +1922,18 @@ launch_validation_app <- function(
       })
 
       spectro_detection <- shiny::reactive({
-        shiny::req(rec_detection(), det_i(), det_sel())
+        shiny::req(
+          rec_detection(),
+          det_i(),
+          det_sel(),
+          input$color_scale,
+          input$zoom_freq,
+          input$dyn_range_detec,
+          input$time_guide_interval,
+          input$freq_guide_interval,
+          input$color_scale,
+          input$pitch_shift
+        )
         box_color <- ifelse(
           input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
         )
@@ -1960,8 +2002,20 @@ launch_validation_app <- function(
 
       # render the detections spectrogram in the interface
       output$DetectionSpectrogram <- renderPlot({
-        shiny::req(rec_detection(), det_i(), spectro_detection())
-        spectro_detection()
+        shiny::req(rec_detection(), det_i())
+        tryCatch(
+          {
+            spectro_detection()
+          },
+          error = function(e) {
+            ggplot2::ggplot() +
+              ggplot2::annotate(
+                "label", x = 1, y = 1,
+                label = paste("Error rendering spectrogram:", e$message)
+              ) +
+              ggplot2::theme_void()
+          }
+        )
       })
 
       # Reactive object to store info about the active soundscape
@@ -2000,10 +2054,12 @@ launch_validation_app <- function(
                   )
                 )
                 unlink("soundscape_.*.wav")
-                as.character(fs::dir_ls(
+                fs::dir_ls(
                   session_data$temp_path,
-                  pattern = "soundscape_.*.wav", type = "file"
-                )) %>%
+                  regexp = "soundscape_.*.wav",
+                  recurse = TRUE,
+                  type = "file"
+                ) %>%
                   .[. != temp_file] %>%
                   file.remove()
               } else if (input$wav_player_type != "HTML player") {
