@@ -41,7 +41,7 @@
 #'
 #' # Lets use some data wrangling to separate the rois into those from focal
 #' # recordings, destined to be used as templates, which could be later exported
-#' # with the `export_roi_cuts_n()` function...
+#' # with the `export_roi_cuts()` function...
 #' df_rois_templates <- df_rois %>%
 #'   filter(grepl("recordings", soundscape_path))
 #' glimpse(df_rois_templates)

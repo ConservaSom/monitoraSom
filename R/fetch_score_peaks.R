@@ -2,14 +2,14 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#'   This function is wrapper of 'fetch_score_peaks_i' for detection of peaks in
+#'   This function is wrapper of 'fetch_score_peaks' for detection of peaks in
 #'   score vectors from matches between multiple templates and soundscapes, i.e.
-#'   the `scores` output of 'match_n'.
+#'   the `scores` output of 'run_matching'.
 #'
-#' @param df_scores A tibble containing the `scores` output of 'match_n' or a
+#' @param df_scores A tibble containing the `scores` output of 'run_matching' or a
 #'   filtered subset of it with at least two rows that is already within the
 #'   environement of the current R session. Alternatively, a path to a folder
-#'   containing the output of 'match_n' as .rds files for importing multiple
+#'   containing the output of 'run_matching' as .rds files for importing multiple
 #'   match objects from outside the current R session.
 #' @param buffer_size A numeric value specifying the number of frames of the
 #'   buffer within which overlap between detections is avoided. Defaults to
@@ -44,19 +44,18 @@
 #' library(monitoraSom)
 #' library(dplyr)
 #'
-#' # Load the scores (output of `match_n()`)
+#' # Load the scores (output of `run_matching()`)
 #' data(df_scores)
 #'
 #' # Get detections from raw scores
-#' df_detecs <- fetch_score_peaks_n(df_scores = df_scores)
+#' df_detecs <- fetch_score_peaks(df_scores = df_scores)
 #' glimpse(df_detecs)
 #'
 #' }
-fetch_score_peaks_n <- function(
-    df_scores, buffer_size = "template", min_score = NULL,
-    min_quant = NULL, top_n = NULL, output_file = NULL, ncores = 1) {
-
-
+fetch_score_peaks <- function(
+  df_scores, buffer_size = "template", min_score = NULL, min_quant = NULL,
+  top_n = NULL, output_file = NULL, ncores = 1
+) {
   # Check if input is a character path or a tibble
   if (is.character(df_scores)) {
     if (!file.exists(df_scores)) {
@@ -81,11 +80,8 @@ fetch_score_peaks_n <- function(
     split_data,
     function(subset) {
       fetch_score_peaks_i(
-        df_scores_i = subset,
-        buffer_size = buffer_size,
-        min_score = min_score,
-        min_quant = min_quant,
-        top_n = top_n
+        df_scores_i = subset, buffer_size = buffer_size, min_score = min_score,
+        min_quant = min_quant, top_n = top_n
       )
     },
     cl = ncores
@@ -103,7 +99,11 @@ fetch_score_peaks_n <- function(
     # Validate directory exists
     output_dir <- dirname(output_file)
     if (!dir.exists(output_dir)) {
-      stop("The directory '", output_dir, "' to save the detections does not exist")
+      stop(
+        "The directory '",
+        output_dir,
+        "' to save the detections does not exist"
+      )
     }
 
     # Save to CSV

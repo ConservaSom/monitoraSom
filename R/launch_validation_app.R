@@ -44,20 +44,13 @@
 #' @param nav_autosave If TRUE, the current validation is saved when the user
 #'   navigates to another file.
 #' @param overwrite If TRUE, the output file is overwritten.
+#' @param pitch_shift Pitch shift for the audio cuts.
 #' @param visible_bp If TRUE, the bandpass filter is visible in the spectrogram.
 #' @param play_norm If TRUE, the played audio is normalized.
 #' @param time_guide_interval A numeric value indicating the interval in seconds
 #'   between time guides in the spectrogram.
 #' @param freq_guide_interval A numeric value indicating the interval in kHz
 #'   between frequency guides in the spectrogram.
-#' @param path_update Logical. Controls how soundscape and template file paths are handled.
-#'   If FALSE (default), uses the paths stored in the input file without modification.
-#'   If TRUE, scans the provided soundscape and template directories to update paths.
-#'   Setting to TRUE is useful when files have moved but kept the same names.
-#'   WARNING: Do not use TRUE if you have soundscape and template files with identical
-#'   names in different directories, as this may cause incorrect path assignments and
-#'   crash the app.
-#' @param pitch_shift Pitch shift for the audio cuts.
 #'
 #' @return todo
 #'
@@ -121,9 +114,8 @@ launch_validation_app <- function(
     dyn_range_bar = c(-144, 0), dyn_range_templ = c(-84, 0),
     dyn_range_detec = c(-84, 0), color_scale = "inferno", zoom_freq = c(0, 23),
     time_guide_interval = 1, freq_guide_interval = 1, subset_seed = 123,
-    auto_next = TRUE, nav_autosave = TRUE, overwrite = FALSE,
-    visible_bp = FALSE, play_norm = FALSE, path_update = FALSE,
-    pitch_shift = 1
+    auto_next = TRUE, nav_autosave = TRUE, overwrite = FALSE, pitch_shift = 1,
+    visible_bp = FALSE, play_norm = FALSE
   ) {
 
   options(dplyr.summarise.inform = FALSE)
@@ -453,13 +445,6 @@ launch_validation_app <- function(
       "Error! The value assigned to 'overwrite' is not logical. Set it to TRUE or FALSE."
     )
   }
-  if (is.logical(path_update)) {
-    session_data$path_update <- path_update
-  } else {
-    stop(
-      "Error! The value assigned to 'path_update' is not logical. Set it to TRUE or FALSE."
-    )
-  }
 
   validate_and_set_path <- function(path, default_path, session_key) {
     if (is.null(path)) {
@@ -509,16 +494,6 @@ launch_validation_app <- function(
       )
     )
     return(res)
-  }
-
-  wav_exists <- function(path) {
-    wav_files <- fs::dir_ls(
-      path = path,
-      regexp = "(?i)*.wav",
-      recurse = TRUE,
-      type = "file"
-    )
-    length(wav_files) > 0
   }
 
   # hotkeys --------------------------------------------------------------------
@@ -927,10 +902,6 @@ launch_validation_app <- function(
               shiny::checkboxInput(
                 "nav_autosave", HTML("<b>Autosave</b>"),
                 value = session_data$nav_autosave
-              ),
-              shiny::checkboxInput(
-                "path_update", HTML("<b>Update paths</b>"),
-                value = session_data$path_update
               )
             )
           ),
@@ -1164,18 +1135,25 @@ launch_validation_app <- function(
         )
 
         for (path_name in names(paths_to_check)) {
-            path <- paths_to_check[[path_name]]
-            if (!dir.exists(path)) {
-                validation_errors <- c(
-                    validation_errors,
-                    sprintf("%s does not exist", path_name)
-                )
-            } else if (!wav_exists(path)) {
-                validation_errors <- c(
-                    validation_errors,
-                    sprintf("No WAV files found in %s", path_name)
-                )
-            }
+          path <- paths_to_check[[path_name]]
+          if (!dir.exists(path)) {
+            validation_errors <- c(
+              validation_errors,
+              sprintf("%s does not exist", path_name)
+            )
+          } else if (
+            length(
+              fs::dir_ls(
+                path, type = "file", glob = "*.wav", recurse = TRUE,
+                ignore.case = TRUE
+              )
+            ) == 0
+            ) {
+            validation_errors <- c(
+              validation_errors,
+              sprintf("No WAV files found in %s", path_name)
+            )
+          }
         }
 
         # Check output path
@@ -1239,23 +1217,20 @@ launch_validation_app <- function(
         # Safe data loading
         tryCatch(
           {
-            if (input$path_update == TRUE) {
-              df_soundscapes <- data.frame(
-                soundscape_path = as.character(fs::dir_ls(
-                  input$soundscapes_path,
-                  pattern = "(?i).wav$", recurse = TRUE,
-                  type = "file"
-                ))
-              ) %>%
-                dplyr::mutate(soundscape_file = basename(soundscape_path))
-            }
+            df_soundscapes <- data.frame(
+              soundscape_path = as.character(fs::dir_ls(
+                input$soundscapes_path,
+                type = "file", glob = "*.wav", recurse = TRUE,
+                ignore.case = TRUE
+              ))
+            ) %>%
+              dplyr::mutate(soundscape_file = basename(soundscape_path))
 
             df_templates <- data.frame(
               template_path = as.character(fs::dir_ls(
                 input$templates_path,
-                regexp = "(?i).wav$",
-                recurse = TRUE,
-                type = "file"
+                type = "file", glob = "*.wav", recurse = TRUE,
+                ignore.case = TRUE
               ))
             ) %>%
               dplyr::mutate(template_file = basename(template_path))
@@ -1264,21 +1239,17 @@ launch_validation_app <- function(
             res <- data.table::fread(
               input$input_path,
               data.table = FALSE, header = TRUE
-            )
-
-            if (input$path_update == TRUE) {
-              res <- res %>%
-                dplyr::mutate(
-                  soundscape_path = as.character(NA),
-                  template_path = as.character(NA)
-                ) %>%
-                dplyr::rows_update(
-                  df_templates, by = "template_file", unmatched = "ignore"
-                ) %>%
-                dplyr::rows_update(
-                  df_soundscapes, by = "soundscape_file", unmatched = "ignore"
-                )
-            }
+            ) %>%
+              dplyr::mutate(
+                soundscape_path = as.character(NA),
+                template_path = as.character(NA)
+              ) %>%
+              dplyr::rows_update(
+                df_templates, by = "template_file", unmatched = "ignore"
+              ) %>%
+              dplyr::rows_update(df_soundscapes,
+                by = "soundscape_file", unmatched = "ignore"
+              )
 
             var_names <- c(
               "detection_id", "validation_user", "validation_time",
@@ -1648,11 +1619,9 @@ launch_validation_app <- function(
                 )
               )
               unlink("template_.*.wav")
-              template_list <- fs::dir_ls(
+              template_list <- list.files(
                 session_data$temp_path,
-                regexp = "template_.*.wav",
-                recurse = TRUE,
-                type = "file"
+                pattern = "template_.*.wav", full.names = TRUE, recursive = TRUE
               )
               file.remove(template_list[template_list != temp_file])
             } else {
@@ -1663,18 +1632,7 @@ launch_validation_app <- function(
       })
 
       spectro_template <- shiny::reactive({
-        shiny::req(
-          df_template(),
-          rec_template(),
-          input$wl,
-          input$ovlp,
-          input$zoom_freq,
-          input$dyn_range_templ,
-          input$time_guide_interval,
-          input$freq_guide_interval,
-          input$color_scale,
-          input$pitch_shift
-        )
+        shiny::req(df_template())
         if (is.null(rec_template())) {
           ggplot2::ggplot() +
             ggplot2::annotate(
@@ -1721,19 +1679,7 @@ launch_validation_app <- function(
       # render the template spectrogram in the interface
       output$TemplateSpectrogram <- renderPlot({
         shiny::req(df_template())
-        tryCatch(
-          {
-            spectro_template()
-          },
-          error = function(e) {
-            ggplot2::ggplot() +
-              ggplot2::annotate(
-                "label", x = 1, y = 1,
-                label = paste("Error rendering spectrogram:", e$message)
-              ) +
-              ggplot2::theme_void()
-          }
-        )
+        spectro_template()
       })
 
 
@@ -1908,11 +1854,9 @@ launch_validation_app <- function(
             )
           )
           unlink("detection_.*.wav")
-          fs::dir_ls(
+          list.files(
             session_data$temp_path,
-            regexp = "detection_.*.wav",
-            recurse = TRUE,
-            type = "file"
+            pattern = "detection_.*.wav", full.names = TRUE
           ) %>%
             .[. != temp_file] %>%
             file.remove()
@@ -1922,18 +1866,7 @@ launch_validation_app <- function(
       })
 
       spectro_detection <- shiny::reactive({
-        shiny::req(
-          rec_detection(),
-          det_i(),
-          det_sel(),
-          input$color_scale,
-          input$zoom_freq,
-          input$dyn_range_detec,
-          input$time_guide_interval,
-          input$freq_guide_interval,
-          input$color_scale,
-          input$pitch_shift
-        )
+        shiny::req(rec_detection(), det_i(), det_sel())
         box_color <- ifelse(
           input$color_scale %in% c("greyscale 1", "greyscale 2"), "black", "white"
         )
@@ -2002,20 +1935,8 @@ launch_validation_app <- function(
 
       # render the detections spectrogram in the interface
       output$DetectionSpectrogram <- renderPlot({
-        shiny::req(rec_detection(), det_i())
-        tryCatch(
-          {
-            spectro_detection()
-          },
-          error = function(e) {
-            ggplot2::ggplot() +
-              ggplot2::annotate(
-                "label", x = 1, y = 1,
-                label = paste("Error rendering spectrogram:", e$message)
-              ) +
-              ggplot2::theme_void()
-          }
-        )
+        shiny::req(rec_detection(), det_i(), spectro_detection())
+        spectro_detection()
       })
 
       # Reactive object to store info about the active soundscape
@@ -2054,11 +1975,9 @@ launch_validation_app <- function(
                   )
                 )
                 unlink("soundscape_.*.wav")
-                fs::dir_ls(
+                list.files(
                   session_data$temp_path,
-                  regexp = "soundscape_.*.wav",
-                  recurse = TRUE,
-                  type = "file"
+                  pattern = "soundscape_.*.wav", full.names = TRUE
                 ) %>%
                   .[. != temp_file] %>%
                   file.remove()

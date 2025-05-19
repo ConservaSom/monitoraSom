@@ -29,6 +29,11 @@ check()
 # montar um tar.gz do pacote
 # build()
 
+# use_build_ignore(
+#     list.files("example", recursive = TRUE),
+#     escape = FALSE
+# )
+
 # instalar o pacote
 devtools::install()
 

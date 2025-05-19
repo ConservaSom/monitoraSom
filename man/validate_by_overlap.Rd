@@ -14,11 +14,11 @@ validate_by_overlap(
 }
 \arguments{
 \item{df_detecs}{A data frame containing detections as in the output of
-`fetch_score_peaks_n()`. Alternatively, a path to a CSV file containing the
+`fetch_score_peaks()`. Alternatively, a path to a CSV file containing the
 detections (it accepts only one CSV file at a time).}
 
 \item{df_rois}{A data frame containing Regions of Interest (ROIs) as in the
-output of `fetch_rois_n()`. Alternatively, a path to a directory containing
+output of `fetch_rois()`. Alternatively, a path to a directory containing
 the ROI tables as CSV files can be provided.}
 
 \item{validation_user}{A character string specifying the user name.}

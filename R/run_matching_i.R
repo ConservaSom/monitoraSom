@@ -23,18 +23,23 @@
 #' @return A tibble containing either detection results or raw scores.
 #'
 #' @export
-match_i <- function(
-    df_grid_i, score_method = "cor", output = "detections",
-    buffer_size = "template", min_score = NULL, min_quant = NULL,
-    top_n = NULL) {
-
+run_matching_i <- function(
+  df_grid_i, score_method = "cor", output = "detections",
+  buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL
+) {
   score_method <- match.arg(score_method, c("cor", "dtw"))
   output <- match.arg(output, c("detections", "scores"))
 
-  if (!is.null(min_score) && (!is.numeric(min_score) || min_score < 0 || min_score > 1)) {
+  if (
+    !is.null(min_score) &&
+      (!is.numeric(min_score) || min_score < 0 || min_score > 1)
+  ) {
     stop("min_score must be NULL or a number between 0 and 1")
   }
-  if (!is.null(min_quant) && (!is.numeric(min_quant) || min_quant < 0 || min_quant > 1)) {
+  if (
+    !is.null(min_quant) &&
+      (!is.numeric(min_quant) || min_quant < 0 || min_quant > 1)
+  ) {
     stop("min_quant must be NULL or a number between 0 and 1")
   }
   if (!is.null(top_n) && (!is.numeric(top_n) || top_n < 1)) {
@@ -42,7 +47,8 @@ match_i <- function(
   }
 
   spec_params <- list(
-    wl = df_grid_i$template_wl, ovlp = df_grid_i$template_ovlp,
+    wl = df_grid_i$template_wl,
+    ovlp = df_grid_i$template_ovlp,
     flim = c(df_grid_i$template_min_freq, df_grid_i$template_max_freq),
     plot = FALSE, norm = TRUE
   )
@@ -51,13 +57,15 @@ match_i <- function(
     {
       soundscape_spectro <- tuneR::readWave(df_grid_i$soundscape_path)
       soundscape_spectro <- do.call(
-        seewave::spectro, c(list(soundscape_spectro), spec_params)
+        seewave::spectro,
+        c(list(soundscape_spectro), spec_params)
       )
       spectro_template <- tuneR::readWave(df_grid_i$template_path)
       spectro_template <- do.call(
         seewave::spectro,
         c(
-          list(spectro_template), spec_params,
+          list(spectro_template),
+          spec_params,
           list(
             tlim = c(df_grid_i$template_start, df_grid_i$template_end)
           )
@@ -74,8 +82,8 @@ match_i <- function(
   sw_start <- sliding_window %/% 2
   sw_end <- (sliding_window - sw_start) - 1
   ind <- slider::slide(
-    1:nrow(mat_soundscape), ~.x, .before = sw_start, .after = sw_end,
-    .complete = TRUE
+    1:nrow(mat_soundscape),
+    ~.x, .before = sw_start, .after = sw_end, .complete = TRUE
   ) |>
     base::Filter(f = base::Negate(is.null), x = _)
 
@@ -84,14 +92,16 @@ match_i <- function(
       1:length(ind),
       function(x) {
         cor(
-          c(mat_soundscape[ind[[x]], ]), c(mat_template),
+          c(mat_soundscape[ind[[x]], ]),
+          c(mat_template),
           method = "pearson", use = "complete.obs"
         )
       }
     )
     score_vec <- unlist(score_vec)
     score_vec <- c(
-      rep(min(score_vec), sw_start - 1), score_vec,
+      rep(min(score_vec), sw_start - 1),
+      score_vec,
       rep(min(score_vec), sw_end + 1)
     )
     score_vec <- tidyr::replace_na(score_vec, min(score_vec, na.rm = TRUE))
@@ -106,11 +116,9 @@ match_i <- function(
       1:length(ind),
       function(x) {
         dtwclust::dtw_basic(
-          mat_soundscape[ind[[x]], ], mat_template,
-          backtrack = F, norm = norm, step.pattern = step.pattern,
-          window.size = round(
-            sliding_window + (stretch * sliding_window), 0
-          ),
+          mat_soundscape[ind[[x]], ], mat_template, backtrack = FALSE,
+          norm = norm, step.pattern = step.pattern,
+          window.size = round(sliding_window + (stretch * sliding_window), 0),
           normalize = FALSE
         )
       }
@@ -119,7 +127,9 @@ match_i <- function(
     # 1 - dtw score to match the format of the cor score
     score_vec <- 1 - (score_vec / max(score_vec))
     score_vec <- c(
-      rep(min(score_vec), sw_start - 1), score_vec, rep(min(score_vec), sw_end + 1)
+      rep(min(score_vec), sw_start - 1),
+      score_vec,
+      rep(min(score_vec), sw_end + 1)
     )
     score_vec <- tidyr::replace_na(score_vec, min(score_vec, na.rm = TRUE))
   }
@@ -139,12 +149,9 @@ match_i <- function(
   )
 
   if (output == "detections") {
-    fetch_score_peaks_i(
-      res_raw,
-      buffer_size = buffer_size,
-      min_score = min_score,
-      min_quant = min_quant,
-      top_n = top_n
+    fetch_score_peaks(
+      res_raw, buffer_size = buffer_size, min_score = min_score,
+      min_quant = min_quant, top_n = top_n
     )
   } else {
     res_raw

@@ -13,6 +13,6 @@ df_detecs
 \description{
 A data frame containing detections to run the examples of the `monitoraSom`
 package. The detections were extracted from the soundscape recordings with
-the `match_n()` function with the default parameters.
+the `run_matching()` function with the default parameters.
 }
 \keyword{datasets}

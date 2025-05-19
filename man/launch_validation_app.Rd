@@ -31,10 +31,9 @@ launch_validation_app(
   auto_next = TRUE,
   nav_autosave = TRUE,
   overwrite = FALSE,
+  pitch_shift = 1,
   visible_bp = FALSE,
-  play_norm = FALSE,
-  path_update = FALSE,
-  pitch_shift = 1
+  play_norm = FALSE
 )
 }
 \arguments{
@@ -106,19 +105,11 @@ navigates to another file.}
 
 \item{overwrite}{If TRUE, the output file is overwritten.}
 
+\item{pitch_shift}{Pitch shift for the audio cuts.}
+
 \item{visible_bp}{If TRUE, the bandpass filter is visible in the spectrogram.}
 
 \item{play_norm}{If TRUE, the played audio is normalized.}
-
-\item{path_update}{Logical. Controls how soundscape and template file paths are handled.
-If FALSE (default), uses the paths stored in the input file without modification.
-If TRUE, scans the provided soundscape and template directories to update paths.
-Setting to TRUE is useful when files have moved but kept the same names.
-WARNING: Do not use TRUE if you have soundscape and template files with identical
-names in different directories, as this may cause incorrect path assignments and
-crash the app.}
-
-\item{pitch_shift}{Pitch shift for the audio cuts.}
 }
 \value{
 todo

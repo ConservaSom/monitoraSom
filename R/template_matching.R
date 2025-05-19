@@ -104,7 +104,7 @@ template_matching <- function(
   df_grid <- monitoraSom::fetch_match_grid(
     template_data = df_templates, soundscape_data = df_soundscapes
   )
-  df_detections <- monitoraSom::match_n(
+  df_detections <- monitoraSom::run_matching(
     df_grid = df_grid, score_method = score_method, output = "detections",
     output_file = output_file, autosave_action = autosave_action,
     ncores = ncores, buffer_size = buffer_size, min_score = min_score,

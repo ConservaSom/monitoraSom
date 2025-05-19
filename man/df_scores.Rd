@@ -12,7 +12,7 @@ df_scores
 }
 \description{
 A tibble (see the tidyr package for more details) containing the raw results
-of the template matching run with the `match_n()` function with the default
+of the template matching run with the `run_matching()` function with the default
 parameters.
 }
 \keyword{datasets}

@@ -132,14 +132,14 @@ Check the `roi_cuts` folder to see the templates extracted from the soundscape r
 
 ## *Automatic audio extraction*
 
-Although we use a small set of soundscape recordings in this example, the segmentation process for template extraction demostrated is the same as the one used for large scale template matching analysis. Lets see how to do it using the `export_roi_cuts_n()` function. But first, we need to import the ROI tables back into R. The `fetch_rois` function will return a dataframe that aggregates all the ROIs in the `roi_tables` directory.
+Although we use a small set of soundscape recordings in this example, the segmentation process for template extraction demostrated is the same as the one used for large scale template matching analysis. Lets see how to do it using the `export_roi_cuts()` function. But first, we need to import the ROI tables back into R. The `fetch_rois` function will return a dataframe that aggregates all the ROIs in the `roi_tables` directory.
 
 ```{r}
 df_rois <- fetch_rois(rois_path = "./roi_tables/")
 glimpse(df_rois)
 ```
 
-Using the `export_roi_cuts_n()` functon requires a roi table with the cuts (or templates) that will be exported, which get using the `fetch_rois()` function. Lets quickly check what are the recordings represented in the `df_rois` dataframe.
+Using the `export_roi_cuts()` functon requires a roi table with the cuts (or templates) that will be exported, which get using the `fetch_rois()` function. Lets quickly check what are the recordings represented in the `df_rois` dataframe.
 
 ```{r}
 count(df_rois, soundscape_file)
@@ -159,17 +159,17 @@ df_rois_filtered <- df_rois %>%
 glimpse(df_rois_filtered)
 ```
 
-Now we can export the templates using the `export_roi_cuts_n()` function. Note that we have routed the output to the `./templates` directory.
+Now we can export the templates using the `export_roi_cuts()` function. Note that we have routed the output to the `./templates` directory.
 
 ```{r, warning=FALSE, message=FALSE}
-export_roi_cuts_n(
+export_roi_cuts(
     df_rois = df_rois_filtered,
     roi_cuts_path = "./templates",
     overwrite = TRUE
 )
 ```
 
-Although templates can be created manually from within the segmentation app, using the `export_roi_cuts_n()` is the most straightforward way to export the templates. The file name contain all the necessary information for an standalone template, making it easily used downstream in the analysis. Nevertheless, storing metadata in file names has some drawbacks, which will be addressed in future versions of monitoraSom.
+Although templates can be created manually from within the segmentation app, using the `export_roi_cuts()` is the most straightforward way to export the templates. The file name contain all the necessary information for an standalone template, making it easily used downstream in the analysis. Nevertheless, storing metadata in file names has some drawbacks, which will be addressed in future versions of monitoraSom.
 
 # Template matching
 
@@ -234,7 +234,7 @@ Lets make a time check to see how long it takes to run the template matching ana
 # parallel::detectCores()
 
 # If the parallelization is working, this elapsed time...
-match_n(
+run_matching(
   df_grid = df_grid, output = "detections", ncores = 6,
   output_file = "detections/df_detecs.csv"
 )
@@ -248,7 +248,7 @@ The main objective of the validation process is to determine the optimal correla
 
 We will first demonstrate the validation process using the validation app, within which the user can validate the detections manually. Because validation takes place with data produced after the template matching process, this validation is referred to as **a posteriori** validation.
 
-The file we will passs to the argument `input_path` should be the output of the `match_n()` function, *i.e.*, "detections/df_detecs.csv". However, it might be important to save the output file with a different name than the input file to preserve data and avoid rerunning the template matching process. With the steps below, we will make a copy of the detections file and use it as the input for the validation app.
+The file we will passs to the argument `input_path` should be the output of the `run_matching()` function, *i.e.*, "detections/df_detecs.csv". However, it might be important to save the output file with a different name than the input file to preserve data and avoid rerunning the template matching process. With the steps below, we will make a copy of the detections file and use it as the input for the validation app.
 ```{r}
 original_file <- "detections/df_detecs.csv"
 validation_file <- "validation_outputs/df_detecs_val_manual.csv"
@@ -287,7 +287,7 @@ Once we launch the Validation App, we can validate the detections as true or fal
 
 The app presents two spectrograms to facilitate the validation process. The spectrogram parameters can be adjusted through the spectrogram menu. The left spectrogram displays the detection from the soundscape file, while the right shows the template used in the correlation. The user can easily classify the detection as false (Q), positive (E), or unknown (W). If the Autosave and Autonavigate boxes are checked, the validation process becomes very efficient, automatically saving the classifications and navigating to the next detection. Additionally, the user can listen to either the detection or the template to assist the validation process. As the validation process advances, the detection table is updated with the validation inputs, and the resulting data is used in a diagnostic analysis model employing a binomial regression. The validation app is typically set to assess correlation values with a precision of 95% (5% error). Along with the binomial regression plot, users can also see the density plots of correlation values for both false positives and true positives, and the precison vs recall plot. All these plots are updated in real time, allowing the user to evaluate the outcomes of the validation in real time.
 
-It should be noted though that the only output of the validation app are the validation iputs routed to the CSV file passed to the `input_path` argument. The diagsnotics data and plots are only displayed in the app, but can be coimputed with the `diagnostic_validations_n()` function.
+It should be noted though that the only output of the validation app are the validation iputs routed to the CSV file passed to the `input_path` argument. The diagsnotics data and plots are only displayed in the app, but can be coimputed with the `diagnostic_validations()` function.
 
 ```{r}
 # import the validated detections
@@ -295,7 +295,7 @@ df_detecs_val_manual <- read.csv(
   "validation_outputs/df_detecs_val_manual.csv", row.names = 1
 )
 # compute the diagnostics
-ls_validations <- diagnostic_validations_n(
+ls_validations <- diagnostic_validations(
   df_validated = df_detecs_val_manual,
   diag_method = "auto", pos_prob = 0.9
 )
@@ -342,7 +342,7 @@ count(df_detecs_val_tovlp, validation)
 If we perform the validation diagnostics again, we see that the taking FN into account does interfere with the performance metrics of the template matching process.
 ```{r}
 # compute the diagnostics
-ls_validations_tovlp <- diagnostic_validations_n(
+ls_validations_tovlp <- diagnostic_validations(
   df_validated = df_detecs_val_tovlp,
   diag_method = "auto", pos_prob = 0.85
 )
@@ -388,7 +388,7 @@ The final step is to prepare the detections for ecological analysis.
 
 6. *Fetching Soundscapes* Create a correlation grid for the anaysis
 
-7. *Template Matching.* Use 'match_n()' function to compute the correlations between the template and the soundscape at different time points.
+7. *Template Matching.* Use 'run_matching()' function to compute the correlations between the template and the soundscape at different time points.
 
 8. *Thresholding and Identification.* Validade the detections to set a correlation threshold that balances precision and recall
 

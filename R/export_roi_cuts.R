@@ -38,7 +38,7 @@
 #' dir.create("./templates/")
 #'
 #' # Export the roi cuts
-#' export_roi_cuts_n(
+#' export_roi_cuts(
 #'   df_rois = df_rois_processed, roi_cuts_path = "./templates/"
 #' )
 #'
@@ -46,10 +46,9 @@
 #' list.files("./templates/", pattern = "*.wav")
 #'
 #' }
-export_roi_cuts_n <- function(
-    df_rois, roi_cuts_path = "roi_cuts/", overwrite = FALSE
-    ) {
-
+export_roi_cuts <- function(
+  df_rois, roi_cuts_path = "roi_cuts/", overwrite = FALSE
+) {
   if (nrow(df_rois) == 0) {
     stop("No ROIs available in the provided ROI table")
   }
@@ -60,23 +59,16 @@ export_roi_cuts_n <- function(
   rois_list <- dplyr::mutate(
     df_rois,
     cut_name = paste(
-      stringr::str_replace(soundscape_file, "\\.wav$|\\.WAV$", ""),
-        "_",
-        stringr::str_pad(sprintf("%.3f", round(roi_start, 3)), 7, pad = "0"),
-        "-",
-        stringr::str_pad(sprintf("%.3f", round(roi_end, 3)), 7, pad = "0"),
-        "s_",
-        stringr::str_pad(sprintf("%.3f", round(roi_min_freq, 3)), 6, pad = "0"),
-        "-",
-        stringr::str_pad(sprintf("%.3f", round(roi_max_freq, 3)), 6, pad = "0"),
-        "kHz_", roi_wl,
-        "wl_", roi_ovlp,
-        "ovlp_", roi_label,
-        ".wav",
-        sep = ""
-      ),
-      filename = file.path(roi_cuts_path, cut_name)
-    )
+      stringr::str_replace(soundscape_file, "\\.wav$|\\.WAV$", ""), "_",
+      stringr::str_pad(sprintf("%.3f", round(roi_start, 3)), 7, pad = "0"), "-",
+      stringr::str_pad(sprintf("%.3f", round(roi_end, 3)), 7, pad = "0"), "s_",
+      stringr::str_pad(sprintf("%.3f", round(roi_min_freq, 3)), 6, pad = "0"), "-",
+      stringr::str_pad(sprintf("%.3f", round(roi_max_freq, 3)), 6, pad = "0"),
+      "kHz_", roi_wl, "wl_", roi_ovlp, "ovlp_", roi_label, ".wav",
+      sep = ""
+    ),
+    filename = file.path(roi_cuts_path, cut_name)
+  )
 
   invisible(
     results <- pbapply::pblapply(1:nrow(rois_list), function(i) {
@@ -92,8 +84,7 @@ export_roi_cuts_n <- function(
       tryCatch(
         {
           sound <- tuneR::readWave(
-            roi_row$soundscape_path,
-            from = roi_row$roi_start,
+            roi_row$soundscape_path, from = roi_row$roi_start,
             to = roi_row$roi_end, units = "seconds"
           )
           tuneR::writeWave(sound, roi_row$filename)

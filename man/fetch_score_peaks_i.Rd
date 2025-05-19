@@ -13,8 +13,8 @@ fetch_score_peaks_i(
 )
 }
 \arguments{
-\item{df_scores_i}{One row of the output of the function 'match_n()' or the
-output of 'match_i()', which contain score vector the result of a template
+\item{df_scores_i}{One row of the output of the function 'run_matching()' or the
+output of 'run_matching_i()', which contain score vector the result of a template
 matching operation performed with a specific template and soundscape
 recording.}
 
@@ -48,7 +48,7 @@ A data frame in which each row is a detection and has the follwing
 `r lifecycle::badge("experimental")`
 
   This function detects peaks in the score vector resulting from one
-  iteration of template matching, i.e. the output of 'match_i()' or one row
-  of the output of 'match_n()' . The peaks represent potential detections of
+  iteration of template matching, i.e. the output of 'run_matching_i()' or one row
+  of the output of 'run_matching()' . The peaks represent potential detections of
   a template in a soundscape recording.
 }

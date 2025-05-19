@@ -3,12 +3,12 @@
 #' @description `r lifecycle::badge("experimental")`
 #'
 #'   This function detects peaks in the score vector resulting from one
-#'   iteration of template matching, i.e. the output of 'match_i()' or one row
-#'   of the output of 'match_n()' . The peaks represent potential detections of
+#'   iteration of template matching, i.e. the output of 'run_matching_i()' or one row
+#'   of the output of 'run_matching()' . The peaks represent potential detections of
 #'   a template in a soundscape recording.
 #'
-#' @param df_scores_i One row of the output of the function 'match_n()' or the
-#'   output of 'match_i()', which contain score vector the result of a template
+#' @param df_scores_i One row of the output of the function 'run_matching()' or the
+#'   output of 'run_matching_i()', which contain score vector the result of a template
 #'   matching operation performed with a specific template and soundscape
 #'   recording.
 #' @param buffer_size A numeric value specifying the number of frames of the
@@ -35,11 +35,12 @@
 #'
 #' @export
 fetch_score_peaks_i <- function(
-    df_scores_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
-    top_n = NULL) {
-
+  df_scores_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
+  top_n = NULL
+) {
   if (
-    !is.list(df_scores_i) || is.null(df_scores_i$score_vec) ||
+    !is.list(df_scores_i) ||
+      is.null(df_scores_i$score_vec) ||
       is.null(df_scores_i$score_vec[[1]]$score_vec) ||
       is.null(df_scores_i$score_sliding_window)
   ) {
@@ -47,16 +48,14 @@ fetch_score_peaks_i <- function(
   }
 
   if (
-    !is.null(min_score) && (!is.numeric(min_score) || min_score < 0 ||
-      min_score > 1
-    )
+    !is.null(min_score) &&
+      (!is.numeric(min_score) || min_score < 0 || min_score > 1)
   ) {
     stop("min_score must be a numeric value between 0 and 1")
   }
   if (
-    !is.null(min_quant) && (!is.numeric(min_quant) || min_quant < 0 ||
-      min_quant > 1
-    )
+    !is.null(min_quant) &&
+      (!is.numeric(min_quant) || min_quant < 0 || min_quant > 1)
   ) {
     stop("min_quant must be a numeric value between 0 and 1")
   }

@@ -2,7 +2,7 @@
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#'   This function is wrapper of 'match_i()' to perform a batch computation of
+#'   This function is wrapper of 'run_matching_i()' to perform a batch computation of
 #'   the matching vectors of the template and soundscape matches defined in the
 #'   metadata grid obtained as output of the function 'fetch_match_grid()'. The
 #'   available algorithms to compare spectrograms and compute matching scores
@@ -17,7 +17,7 @@
 #'   parallelization. It defaults to 1.
 #' @param output A character string indicating the output of the function. The
 #'   two options are: "detections" or "scores". If "detections" is selected, the
-#'   function will return the output of the function 'fetch_score_peaks_i()'. If
+#'   function will return the output of the function 'fetch_score_peaks()'. If
 #'   "scores" is selected, the function will return the raw output of the
 #'   matching algorithm. It defaults to "detections".
 #' @param output_file A character string indicating the path to save the results
@@ -30,15 +30,15 @@
 #'   aware that it can result in duplicated entries in the output file if the
 #'   function is run again. It defaults to "replace".
 #' @param buffer_size A character string indicating the size of the buffer to be
-#'   used in the function 'fetch_score_peaks_i()'. The two options are:
+#'   used in the function 'fetch_score_peaks()'. The two options are:
 #'   "template" or the number of frames of the template spectrogram to be used
 #'   as buffer. It defaults to "template".
 #' @param min_score A numeric value indicating the minimum score to be used in
-#'   the function 'fetch_score_peaks_i()'. It defaults to NULL.
+#'   the function 'fetch_score_peaks()'. It defaults to NULL.
 #' @param min_quant A numeric value indicating the minimum quantile to be used
-#'   in the function 'fetch_score_peaks_i()'. It defaults to NULL.
+#'   in the function 'fetch_score_peaks()'. It defaults to NULL.
 #' @param top_n A numeric value indicating the number of top detections to be
-#'   used in the function 'fetch_score_peaks_i()'. It defaults to NULL.
+#'   used in the function 'fetch_score_peaks()'. It defaults to NULL.
 #'
 #' @return If the format is set to scores, a tibble containing the input data
 #'   frame with an additional column "score_vec". This column contains
@@ -99,7 +99,7 @@
 #' )
 #'
 #' # Run the template matching to store raw scores of the first ten matches
-#' df_scores <- match_n(
+#' df_scores <- run_matching(
 #'   df_grid = df_grid[1:10, ], score_method = "cor", output = "scores"
 #' )
 #' # Look into the whole results
@@ -108,7 +108,7 @@
 #' glimpse(df_scores$score_vec[1])
 #'
 #' # Run the template matching to get the raw detections
-#' df_detecs <- match_n(
+#' df_detecs <- run_matching(
 #'   df_grid = df_grid[1:10, ], score_method = "cor", output = "detections"
 #' )
 #' # Look into the whole results
@@ -117,11 +117,11 @@
 #' hist(df_detecs$peak_score, breaks = 100)
 #'
 #' }
-match_n <- function(
-    df_grid, score_method = "cor", ncores = 1, output = "detections",
-    output_file = NULL, autosave_action = "replace", buffer_size = "template",
-    min_score = NULL, min_quant = NULL, top_n = NULL) {
-
+run_matching <- function(
+  df_grid, score_method = "cor", ncores = 1, output = "detections",
+  output_file = NULL, autosave_action = "replace", buffer_size = "template",
+  min_score = NULL, min_quant = NULL, top_n = NULL
+) {
   output <- match.arg(output, c("detections", "scores"))
   autosave_action <- match.arg(autosave_action, c("append", "replace"))
 
@@ -148,7 +148,7 @@ match_n <- function(
       res <- pbapply::pblapply(
         grid_list,
         function(x) {
-          match_i(
+          run_matching_i(
             df_grid_i = x, score_method = score_method, output = "detections",
             buffer_size = buffer_size, min_score = min_score,
             min_quant = min_quant, top_n = top_n
@@ -173,13 +173,27 @@ match_n <- function(
       }
       if (!file.exists(output_file) || autosave_action == "replace") {
         csv_headers <- c(
-          "soundscape_path", "soundscape_file", "template_path",
-          "template_file", "template_name", "template_min_freq",
-          "template_max_freq", "template_start", "template_end",
-          "detection_start", "detection_end", "detection_wl",
-          "detection_ovlp", "detection_sample_rate", "detection_buffer",
-          "detection_min_score", "detection_min_quant", "detection_top_n",
-          "peak_index", "peak_score", "peak_quant"
+          "soundscape_path",
+          "soundscape_file",
+          "template_path",
+          "template_file",
+          "template_name",
+          "template_min_freq",
+          "template_max_freq",
+          "template_start",
+          "template_end",
+          "detection_start",
+          "detection_end",
+          "detection_wl",
+          "detection_ovlp",
+          "detection_sample_rate",
+          "detection_buffer",
+          "detection_min_score",
+          "detection_min_quant",
+          "detection_top_n",
+          "peak_index",
+          "peak_score",
+          "peak_quant"
         )
         writeLines(paste(csv_headers, collapse = ","), output_file)
       }
@@ -200,14 +214,18 @@ match_n <- function(
             )
           df_grid_check <- df_grid |>
             dplyr::mutate(
-              buffer_size = buffer_size, min_score = min_score,
-              min_quant = min_quant, top_n = top_n
+              buffer_size = buffer_size,
+              min_score = min_score,
+              min_quant = min_quant,
+              top_n = top_n
             ) |>
             dplyr::select(
               soundscape_file, template_file, template_wl, template_ovlp,
               template_sample_rate, buffer_size, min_score, min_quant, top_n
             )
-          idx <- which(!df_grid_check$soundscape_file %in% df_check$soundscape_file)
+          idx <- which(
+            !df_grid_check$soundscape_file %in% df_check$soundscape_file
+          )
           df_grid <- df_grid[idx, ]
           if (nrow(df_grid) == 0) {
             message(
@@ -226,7 +244,7 @@ match_n <- function(
       pbapply::pblapply(
         grid_list,
         function(x) {
-          res <- match_i(
+          res <- run_matching_i(
             df_grid_i = x, score_method = score_method, output = "detections",
             buffer_size = buffer_size, min_score = min_score,
             min_quant = min_quant, top_n = top_n
@@ -249,7 +267,7 @@ match_n <- function(
     res <- pbapply::pblapply(
       grid_list,
       function(x) {
-        match_i(
+        run_matching_i(
           df_grid_i = x, score_method = score_method, output = "scores",
           buffer_size = buffer_size, min_score = min_score,
           min_quant = min_quant, top_n = top_n

@@ -2125,7 +2125,7 @@ launch_segmentation_app <- function(
           if (!is.null(input$res_table_rows_selected)) {
             df <- df[input$res_table_rows_selected, ]
           }
-          export_roi_cuts_n(df_rois = df, roi_cuts_path = cuts_path_val())
+          export_roi_cuts(df_rois = df, roi_cuts_path = cuts_path_val())
           shiny::showNotification("Cuts sucessfully exported!", type = "message")
         }
       })

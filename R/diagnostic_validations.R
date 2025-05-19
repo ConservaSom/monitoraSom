@@ -45,7 +45,7 @@
 #'   glimpse()
 #'
 #' # Run the diagnostics on the validated detections
-#' ls_diag_tovlp <- diagnostic_validations_n(
+#' ls_diag_tovlp <- diagnostic_validations(
 #'   df_validated = df_detecs_val_tovlp,
 #'   diag_method = "auto", pos_prob = 0.90
 #' )
@@ -73,7 +73,7 @@
 #' glimpse(df_detecs_val_manual)
 #'
 #' # Run the diagnostics on the validated detections
-#' ls_diag_manual <- diagnostic_validations_n(
+#' ls_diag_manual <- diagnostic_validations(
 #'   df_validated = df_detecs_val_manual,
 #'   diag_method = "auto", pos_prob = 0.90
 #' )
@@ -100,10 +100,9 @@
 #'
 #'
 #' }
-diagnostic_validations_n <- function(
-    df_validated, diag_method = "auto", pos_prob = 0.95
-    ) {
-
+diagnostic_validations <- function(
+  df_validated, diag_method = "auto", pos_prob = 0.95
+) {
   split_validations <- df_validated |>
     dplyr::group_by(template_name) |>
     dplyr::group_split()

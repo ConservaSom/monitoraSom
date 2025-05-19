@@ -33,7 +33,6 @@ Imports:
     dplyr,
     DT,
     farver,
-    fftw,
     fs,
     future,
     ggplot2,
@@ -61,5 +60,6 @@ Imports:
 Suggests:
     dtw,
     dtwclust,
+    fftw,
     testthat
 RoxygenNote: 7.3.2

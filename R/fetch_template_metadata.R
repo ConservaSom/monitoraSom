@@ -37,7 +37,7 @@
 #' dir.create("./templates/")
 #'
 #' # Export the roi cuts
-#' export_roi_cuts_n(
+#' export_roi_cuts(
 #'   df_rois = df_rois_processed, roi_cuts_path = "./templates/"
 #' )
 #'

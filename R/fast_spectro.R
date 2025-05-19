@@ -68,11 +68,11 @@
 #'
 #' }
 fast_spectro <- function(
-    rec, f, flim = NULL, tlim = NULL,
-    ovlp = 50, wl = 1024, norm = FALSE, dyn_range = c(-80, 0),
-    color_scale = "inferno", n_colors = 124, interpolate = FALSE,
-    pitch_shift = 1, theme_mode = "light",
-    time_guide_interval = 3, freq_guide_interval = 1, ...) {
+    rec, f, flim = NULL, tlim = NULL, ovlp = 50, wl = 1024, norm = FALSE,
+    dyn_range = c(-80, 0), color_scale = "inferno", n_colors = 124,
+    interpolate = FALSE, pitch_shift = 1, theme_mode = "light",
+    time_guide_interval = 3, freq_guide_interval = 1, ...
+    ) {
 
   requireNamespace("fftw")
 
@@ -145,7 +145,7 @@ fast_spectro <- function(
   spec_raw <- seewave::spectro(
     rec,
     f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim, tlim = tlim,
-    norm = norm, fftw = TRUE, plot = FALSE, interpolate = FALSE, dB = NULL, ...
+    norm = norm, fftw = FALSE, plot = FALSE, interpolate = FALSE, dB = NULL, ...
   )
 
   spec_raw$time <- spec_raw$time / pitch_shift

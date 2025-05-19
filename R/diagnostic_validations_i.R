@@ -24,13 +24,14 @@
 #' @return A list containing the diagnostic results
 #' @export
 diagnostic_validations_i <- function(
-    val_i, diag_method = "auto", pos_prob = 0.95, diag_cut = NULL) {
+    val_i, diag_method = "auto", pos_prob = 0.95, diag_cut = NULL
+    ) {
 
   # check if there is only one template name in the data
   if (length(unique(val_i$template_name)) > 1) {
     stop(
       paste0(
-        "The data contains detections from more than one template or class. Use the 'diagnostic_validations_n()' function to perform diagnostic validations on multiple templates."
+        "The data contains detections from more than one template or class. Use the 'diagnostic_validations()' function to perform diagnostic validations on multiple templates."
       )
     )
   }

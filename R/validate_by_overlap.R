@@ -8,10 +8,10 @@
 #'   with the validated detections.
 #'
 #' @param df_rois A data frame containing Regions of Interest (ROIs) as in the
-#'   output of `fetch_rois_n()`. Alternatively, a path to a directory containing
+#'   output of `fetch_rois()`. Alternatively, a path to a directory containing
 #'   the ROI tables as CSV files can be provided.
 #' @param df_detecs A data frame containing detections as in the output of
-#'   `fetch_score_peaks_n()`. Alternatively, a path to a CSV file containing the
+#'   `fetch_score_peaks()`. Alternatively, a path to a CSV file containing the
 #'   detections (it accepts only one CSV file at a time).
 #' @param validation_user A character string specifying the user name.
 #' @param recursive A logical value indicating whether to search for ROIs
@@ -47,7 +47,7 @@
 #'
 #' }
 validate_by_overlap <- function(
-  df_detecs, df_rois, validation_user = NULL, recursive = FALSE,
+  df_detecs, df_rois, validation_user = NULL, recursive = FALSE, 
   output_path = NULL
   ) {
 
@@ -56,7 +56,7 @@ validate_by_overlap <- function(
 
   if (is.character(df_rois)) {
     if (file.exists(df_rois)) {
-      df_rois <- fetch_rois_n(df_rois, recursive = recursive)
+      df_rois <- fetch_rois(df_rois, recursive = recursive)
     } else {
       stop("There is no file at the provided path to df_rois")
     }

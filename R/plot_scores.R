@@ -3,9 +3,9 @@
 #' @description `r lifecycle::badge("experimental")`
 #'
 #'   This function plots a spectrogram of the soundscape and the results of the
-#'   match_i() and fetch_score_peaks_i() functions.
+#'   run_matching_i() and fetch_score_peaks() functions.
 #'
-#' @param df_scores_i One row of the output of `match_n` containing the raw
+#' @param df_scores_i One row of the output of `run_matching` containing the raw
 #'   scores of a template match run.
 #' @param buffer_size A numeric value specifying the number of frames of the
 #'   buffer within which overlap between detections is avoided. Defaults to
@@ -77,25 +77,25 @@
 #' # Plot the scores of the 20th match with the default parameters. It gets most
 #' # peaks, but several false positives and the spectrogram is not very
 #' # informative.
-#' plot_scores_i(df_scores_i = df_scores[20, ])
+#' plot_scores(df_scores_i = df_scores[20, ])
 #'
 #' # Now with filtered scores and adjusted spectrogram parameters. Now we can see
 #' # the target signals more clearly, but we still have some false positives.
-#' plot_scores_i(
+#' plot_scores(
 #'   df_scores_i = df_scores[20, ], ovlp = 50, wl = 512, dyn_range = c(-90, -30)
 #' )
 #'
 #' # Now lets turn of the default detection filters to have a look at the
 #' # detections obtained without any filtering. We can barely see the target
 #' # signals among so many false positives.
-#' plot_scores_i(
+#' plot_scores(
 #'   df_scores_i = df_scores[20, ], ovlp = 50, wl = 512, dyn_range = c(-90, -30),
 #'   buffer_size = 0, min_score = NULL, min_quant = NULL, top_n = NULL
 #' )
 #'
 #' # Now lets improve the filters so that only true positives are shown as
 #' # detections. We set a minimum score of 0.3 and a minimum quantile of 0.9.
-#' plot_scores_i(
+#' plot_scores(
 #'   df_scores_i = df_scores[20, ], ovlp = 50, wl = 512, dyn_range = c(-90, -30),
 #'   buffer_size = 0, min_score = 0.3, min_quant = 0.9, top_n = NULL
 #' )
@@ -103,7 +103,7 @@
 #' # Now lets zoom in one detection to see the details. We can notice that the
 #' # template has a target siognal that matches the final two notes of the target
 #' # species' song
-#' plot_scores_i(
+#' plot_scores(
 #'   df_scores_i = df_scores[20, ],
 #'   buffer_size = "template", min_score = 0.3, min_quant = NULL, top_n = NULL,
 #'   ovlp = 50, wl = 512, dyn_range = c(-90, -30),
@@ -111,12 +111,12 @@
 #' )
 #'
 #' }
-plot_scores_i <- function(
-    df_scores_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
-    top_n = NULL, zoom_freq = NULL, zoom_time = NULL, zoom_score = NULL,
-    ovlp = NULL, wl = NULL, dyn_range = NULL, color_scale = "inferno",
-    n_colors = 124, interpolate = FALSE, ...) {
-
+plot_scores <- function(
+  df_scores_i, buffer_size = "template", min_score = NULL, min_quant = NULL,
+  top_n = NULL, zoom_freq = NULL, zoom_time = NULL, zoom_score = NULL,
+  ovlp = NULL, wl = NULL, dyn_range = NULL, color_scale = "inferno",
+  n_colors = 124, interpolate = FALSE, ...
+) {
   # requireNamespace("patchwork")
   # requireNamespace("viridis")
   # requireNamespace("seewave")
@@ -124,10 +124,12 @@ plot_scores_i <- function(
   # requireNamespace("ggplot2")
   # requireNamespace("dplyr")
 
-  detecs <- fetch_score_peaks_i(
+  detecs <- fetch_score_peaks(
     df_scores_i,
-    buffer_size = buffer_size, min_score = min_score,
-    min_quant = min_quant, top_n = top_n
+    buffer_size = buffer_size,
+    min_score = min_score,
+    min_quant = min_quant,
+    top_n = top_n
   )
 
   rec <- tuneR::readWave(filename = df_scores_i$soundscape_path)
@@ -147,7 +149,8 @@ plot_scores_i <- function(
   }
   selection_color <- ifelse(
     color_scale %in% c("greyscale 1", "greyscale 2"),
-    "black", "white"
+    "black",
+    "white"
   )
 
   if (is.null(ovlp)) {
@@ -176,14 +179,11 @@ plot_scores_i <- function(
   )
 
   soundscape_spectro <- fast_spectro(
-    rec,
-    f = rec@samp.rate, ovlp = ovlp, wl = wl,
-    dyn_range = dyn_range, color_scale = color_scale, n_colors = 124,
-    interpolate = interpolate, # ...
+    rec, f = rec@samp.rate, ovlp = ovlp, wl = wl, dyn_range = dyn_range,
+    color_scale = color_scale, n_colors = 124, interpolate = interpolate
   ) +
     annotate(
-      "rect",
-      alpha = 0, linewidth = 0.2, linetype = "solid",
+      "rect", alpha = 0, linewidth = 0.2, linetype = "solid",
       color = selection_color,
       xmin = detecs$detection_start,
       xmax = detecs$detection_end,
@@ -193,11 +193,11 @@ plot_scores_i <- function(
     annotate(
       "label",
       label = paste0(
-        df_scores_i$soundscape_file,
-        " (sr = ", df_scores_i$soundscape_sample_rate, ")"
+        df_scores_i$soundscape_file, " (sr = ",
+        df_scores_i$soundscape_sample_rate, ")"
       ),
-      x = -Inf, y = Inf, hjust = 0, vjust = 1,
-      color = "white", fill = "black", size = 3
+      x = -Inf, y = Inf, hjust = 0, vjust = 1, color = "white",
+      fill = "black", size = 3
     ) +
     coord_cartesian(ylim = zoom_freq, xlim = zoom_time) +
     theme(
@@ -216,21 +216,19 @@ plot_scores_i <- function(
     ) +
     annotate(
       "rect",
-      alpha = 0.2, linewidth = 0.5, linetype = "solid",
-      fill = "red",
-      xmin = detecs$detection_start,
-      xmax = detecs$detection_end,
+      alpha = 0.2, linewidth = 0.5, linetype = "solid", fill = "red",
+      xmin = detecs$detection_start, xmax = detecs$detection_end,
       ymin = -Inf, ymax = Inf
     ) +
     geom_line() +
     annotate(
       "label",
       label = paste0(
-        df_scores_i$template_file,
-        " (sr = ", df_scores_i$template_sample_rate, ")"
+        df_scores_i$template_file, " (sr = ", df_scores_i$template_sample_rate,
+        ")"
       ),
-      x = -Inf, y = Inf, hjust = 0, vjust = 1,
-      color = "#000000", fill = "#ffffff", size = 3
+      x = -Inf, y = Inf, hjust = 0, vjust = 1, color = "#000000",
+      fill = "#ffffff", size = 3
     ) +
     {
       if (!is.null(min_score)) {
