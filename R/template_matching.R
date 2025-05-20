@@ -94,17 +94,17 @@ template_matching <- function(
     min_quant = NULL, top_n = NULL, ncores = 1
     ) {
 
-  df_templates <- monitoraSom::fetch_template_metadata(
+  df_templates <- fetch_template_metadata(
     templates_path = templates_path, recursive = recursive_templates
   )
-  df_soundscapes <- monitoraSom::fetch_soundscape_metadata(
+  df_soundscapes <- fetch_soundscape_metadata(
     soundscapes_path = soundscapes_path, recursive = recursive_soundscapes,
     output_file = output_file, skip_processed = skip_processed, ncores = ncores
   )
-  df_grid <- monitoraSom::fetch_match_grid(
+  df_grid <- fetch_match_grid(
     template_data = df_templates, soundscape_data = df_soundscapes
   )
-  df_detections <- monitoraSom::run_matching(
+  df_detections <- run_matching(
     df_grid = df_grid, score_method = score_method, output = "detections",
     output_file = output_file, autosave_action = autosave_action,
     ncores = ncores, buffer_size = buffer_size, min_score = min_score,

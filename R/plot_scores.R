@@ -124,7 +124,7 @@ plot_scores <- function(
   # requireNamespace("ggplot2")
   # requireNamespace("dplyr")
 
-  detecs <- fetch_score_peaks(
+  detecs <- fetch_score_peaks_i(
     df_scores_i,
     buffer_size = buffer_size,
     min_score = min_score,

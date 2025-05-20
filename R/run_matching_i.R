@@ -149,7 +149,7 @@ run_matching_i <- function(
   )
 
   if (output == "detections") {
-    fetch_score_peaks(
+    fetch_score_peaks_i(
       res_raw, buffer_size = buffer_size, min_score = min_score,
       min_quant = min_quant, top_n = top_n
     )
