@@ -1149,7 +1149,8 @@ launch_segmentation_app <- function(
                     tryCatch(
                       {
                         res_cut <- seewave::ffilter(
-                          res_cut, f = res_cut@samp.rate,
+                          res_cut,
+                          f = res_cut@samp.rate,
                           from = (input$zoom_freq[1] / pitch_shift) * 1000,
                           to = (input$zoom_freq[2] / pitch_shift) * 1000,
                           wl = input$wl, output = "Wave", bandpass = TRUE
@@ -1157,8 +1158,7 @@ launch_segmentation_app <- function(
                       },
                       error = function(e) {
                         shiny::showNotification(
-                          "Error applying frequency filter",
-                          type = "error"
+                          "Error applying frequency filter", type = "error"
                         )
                         return()
                       }
@@ -1174,22 +1174,21 @@ launch_segmentation_app <- function(
                       },
                       error = function(e) {
                         shiny::showNotification(
-                          "Error normalizing audio",
-                          type = "error"
+                          "Error normalizing audio", type = "error"
                         )
                         return()
                       }
                     )
                   }
                   seewave::savewav(
-                    res_cut,
-                    f = res_cut@samp.rate, filename = temp_file
+                    res_cut, f = res_cut@samp.rate, filename = temp_file
                   )
                   shiny::removeUI(
                     selector = "#visible_soundscape_clip_selector"
                   )
                   shiny::insertUI(
-                    selector = "#visible_soundscape_clip", where = "afterEnd",
+                    selector = "#visible_soundscape_clip",
+                    where = "afterEnd",
                     ui = tags$audio(
                       id = "visible_soundscape_clip_selector",
                       src = paste0("audio/", basename(temp_file)),
@@ -1197,8 +1196,9 @@ launch_segmentation_app <- function(
                     )
                   )
                   unlink("*.wav")
-                  to_remove <- fs::dir_ls(
-                    session_data$temp_path, pattern = "(?i).wav$", type = "file"
+                  to_remove <- list.files(
+                    session_data$temp_path, pattern = ".wav", 
+                    full.names = TRUE
                   )
                   file.remove(to_remove[to_remove != temp_file])
                 },
