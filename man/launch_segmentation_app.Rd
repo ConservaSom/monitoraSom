@@ -29,7 +29,8 @@ launch_segmentation_app(
   session_notes = NULL,
   zoom_freq = c(0, 180),
   nav_autosave = TRUE,
-  pitch_shift = 1
+  pitch_shift = 1,
+  confirm_paths = TRUE
 )
 }
 \arguments{
@@ -115,6 +116,9 @@ automatically save the ROI table of the active soundscape.}
 
 \item{pitch_shift}{A numeric value indicating the pitch shift to be applied
 to the soundscape audio. The default is 1, which means no pitch shift.}
+
+\item{confirm_paths}{If TRUE, the user will be asked to confirm the paths
+setup at the app startup.}
 }
 \value{
 A pop up with the rendered app.

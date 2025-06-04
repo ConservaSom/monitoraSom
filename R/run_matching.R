@@ -127,7 +127,6 @@ run_matching <- function(
 
   if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
     if (ncores <= parallel::detectCores()) {
-      # ncores <- parallel::makePSOCKcluster(getOption("cl.cores", ncores))
       set_cluster <- parallel::makeCluster(ncores)
     } else {
       stop(
@@ -154,8 +153,8 @@ run_matching <- function(
           }
         )
       } else {
-        res <- pbmcapply::pbmclapply(
-          grid_list, mc.cores = ncores, function(x) {
+        res <- pbapply::pblapply(
+          grid_list, cl = ncores, function(x) {
             run_matching_i(
               df_grid_i = x,
               score_method = score_method,
@@ -240,8 +239,8 @@ run_matching <- function(
       }
       grid_list <- split(df_grid, seq(nrow(df_grid)))
       if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
-        res <- parallel::parLapply(
-          cl = set_cluster, X = grid_list,
+        res <- pbapply::pblapply(
+          X = grid_list, cl = set_cluster,
           fun = function(x) {
             run_matching_i(
               df_grid_i = x, score_method = score_method, output = "detections",
@@ -254,9 +253,9 @@ run_matching <- function(
           }
         )
       } else {
-        res <- pbmcapply::pbmclapply(
+        res <- pbapply::pblapply(
           grid_list,
-          mc.cores = ncores,
+          cl = ncores,
           function(x) {
             res <- run_matching_i(
               df_grid_i = x, score_method = score_method, output = "detections",
@@ -277,8 +276,8 @@ run_matching <- function(
   } else {
     grid_list <- split(df_grid, seq(nrow(df_grid)))
     if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
-      res <- parallel::parLapply(
-        cl = set_cluster, X = grid_list,
+      res <- pbapply::pblapply(
+        X = grid_list, cl = set_cluster,
         fun = function(x) {
           run_matching_i(
             df_grid_i = x, score_method = score_method, output = "scores",
@@ -288,9 +287,9 @@ run_matching <- function(
         }
       )
     } else {
-      res <- pbmcapply::pbmclapply(
+      res <- pbapply::pblapply(
         grid_list,
-        mc.cores = ncores,
+        cl = ncores,
         function(x) {
           run_matching_i(
             df_grid_i = x,

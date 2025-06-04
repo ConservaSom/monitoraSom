@@ -33,7 +33,8 @@ launch_validation_app(
   overwrite = FALSE,
   pitch_shift = 1,
   visible_bp = FALSE,
-  play_norm = FALSE
+  play_norm = FALSE,
+  confirm_paths = TRUE
 )
 }
 \arguments{
@@ -110,6 +111,9 @@ navigates to another file.}
 \item{visible_bp}{If TRUE, the bandpass filter is visible in the spectrogram.}
 
 \item{play_norm}{If TRUE, the played audio is normalized.}
+
+\item{confirm_paths}{If TRUE, the user will be asked to confirm the paths
+setup at the app startup.}
 }
 \value{
 todo
