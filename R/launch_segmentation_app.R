@@ -68,6 +68,8 @@
 #'   between time guides in the spectrogram.
 #' @param freq_guide_interval A numeric value indicating the interval in kHz
 #'   between frequency guides in the spectrogram.
+#' @param confirm_paths If TRUE, the user will be asked to confirm the paths
+#'   setup at the app startup.
 #'
 #' @return A pop up with the rendered app.
 #' @export
@@ -111,7 +113,8 @@ launch_segmentation_app <- function(
     wl = 1024, ovlp = 0, color_scale = "inferno",
     wav_player_type = "HTML player", wav_player_path = "play",
     visible_bp = FALSE, play_norm = FALSE, session_notes = NULL,
-    zoom_freq = c(0, 180), nav_autosave = TRUE, pitch_shift = 1
+    zoom_freq = c(0, 180), nav_autosave = TRUE, pitch_shift = 1,
+    confirm_paths = TRUE
   ) {
 
   # todo - RESOLVER O PROBLEMA DO REQUIRE
@@ -411,7 +414,8 @@ launch_segmentation_app <- function(
     "s", # zoom out in time
     "alt+s", # zoom out to full soundscape duration
     "d", # navigate forward in in time within a sounscape
-    "c" # navigate to the next soudnscape
+    "c", # navigate to the next soudnscape
+    "ctrl+shift+k" # confirm/refresh paths setup
   )
 
   # helper functions ---------------------------------------------------------
@@ -476,7 +480,7 @@ launch_segmentation_app <- function(
   shiny::shinyApp(
     ui = shinydashboard::dashboardPage(
       header = shinydashboard::dashboardHeader(
-        title = "MonitoraSom", titleWidth = "400px"
+        title = "monitoraSom", titleWidth = "400px"
       ),
       sidebar = shinydashboard::dashboardSidebar(
         tags$head(
@@ -1197,8 +1201,7 @@ launch_segmentation_app <- function(
                   )
                   unlink("*.wav")
                   to_remove <- list.files(
-                    session_data$temp_path, pattern = ".wav", 
-                    full.names = TRUE
+                    session_data$temp_path, pattern = ".wav", full.names = TRUE
                   )
                   file.remove(to_remove[to_remove != temp_file])
                 },
@@ -1530,6 +1533,32 @@ launch_segmentation_app <- function(
           )
         }
       }
+
+      if (confirm_paths) {
+        shinyjs::click("user_setup_confirm")
+      }
+
+      shiny::observeEvent(input$hotkeys, {
+        if (input$hotkeys == "ctrl+shift+k") {
+          if (
+            !is.null(input$user) &&
+              !is.null(input$soundscapes_path) &&
+              !is.null(input$roi_tables_path) &&
+              !is.null(input$cuts_path) &&
+              input$user != "" &&
+              input$soundscapes_path != "" &&
+              input$roi_tables_path != "" &&
+              input$cuts_path != ""
+          ) {
+            shinyjs::click("user_setup_confirm")
+          } else {
+            shiny::showNotification(
+              "Please fill in all required fields before confirming",
+              type = "warning"
+            )
+          }
+        }
+      })
 
       shiny::observeEvent(input$hotkeys, {
         shiny::req(roi_values())

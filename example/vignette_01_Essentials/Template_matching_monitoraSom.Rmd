@@ -325,6 +325,8 @@ df_rois <- fetch_rois(rois_path = "./roi_tables/")
 glimpse(df_rois)
 ```
 
+
+
 Now we can validate the detections by overlap with the ROIs. Detections that overlap with at least one ROI in the time window are validated as true positives, and all other detections are validated as false positives.
 ```{r}
 df_detecs_val_tovlp <- validate_by_overlap(
@@ -362,13 +364,24 @@ As rule of thumb, we recommend using the validation app for exploratory analyses
 
 For now we are satisfied with the results, so we can export the final set of validations based on the correlation threshold.
 ```{r}
+# Lets get the results of the first template to ensure consistency
+res <- ls_validations_tovlp[[1]]
+
 # first we retrieve the threshold determined by the diagnostics
-selected_thres <- ls_validations_tovlp[[1]]$score_cut
-# Then we simply filter the detections based on the threshold
-df_detecs_val_final <- df_detecs_val_manual %>%
-  filter(peak_score >= selected_thres) %>%
+selected_thres <- res$score_cut
+
+# then we extract the template name from the diagnostics to ensure we are
+# filtering the detections based on the correct template
+first_template_name <- unique(res$diagnostics$template_name)
+
+# Then we simply filter the detections based on the template name and the
+# threshold value for that template
+df_detecs_final <- df_detecs_val_manual %>%
+  filter(template_name == first_template_name, peak_score >= selected_thres) %>%
   glimpse()
 ```
+
+Although in this example we retrieved a final set of one detection above the threshold for this template, this was retrieved from a single template in a sinficantly smaller set of soundscapes than it would be avaialble in a real use case. Also, results from multiple templates can be combined to achieve both increased performance and complementarity, leading to a more robust set of detections.
 
 The final step is to prepare the detections for ecological analysis.
 

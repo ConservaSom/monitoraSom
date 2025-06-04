@@ -51,6 +51,8 @@
 #'   between time guides in the spectrogram.
 #' @param freq_guide_interval A numeric value indicating the interval in kHz
 #'   between frequency guides in the spectrogram.
+#' @param confirm_paths If TRUE, the user will be asked to confirm the paths
+#'   setup at the app startup.
 #'
 #' @return todo
 #'
@@ -115,7 +117,7 @@ launch_validation_app <- function(
     dyn_range_detec = c(-84, 0), color_scale = "inferno", zoom_freq = c(0, 23),
     time_guide_interval = 1, freq_guide_interval = 1, subset_seed = 123,
     auto_next = TRUE, nav_autosave = TRUE, overwrite = FALSE, pitch_shift = 1,
-    visible_bp = FALSE, play_norm = FALSE
+    visible_bp = FALSE, play_norm = FALSE, confirm_paths = TRUE
   ) {
 
   options(dplyr.summarise.inform = FALSE)
@@ -509,7 +511,9 @@ launch_validation_app <- function(
     "s", #
     "d", #
     "1", #
-    "2" #
+    "2", #
+    "ctrl+shift+k", # confirm/refresh paths setup
+    "alt+k" # confirm/refresh session setup
   )
 
   # resource paths -------------------------------------------------------------
@@ -525,7 +529,7 @@ launch_validation_app <- function(
     # UI -----------------------------------------------------------------------
     ui = shinydashboard::dashboardPage(
       header = shinydashboard::dashboardHeader(
-        title = "MonitoraSom", titleWidth = "400px"
+        title = "monitoraSom", titleWidth = "400px"
       ),
 
       # Sidebar ----------------------------------------------------------------
@@ -1100,7 +1104,6 @@ launch_validation_app <- function(
       df_output <- shiny::reactiveVal(NULL)
       df_ref_templates <- shiny::reactiveVal(NULL)
 
-
       shiny::observeEvent(input$user_setup_confirm, {
         # Initial input validation
         shiny::req(
@@ -1183,35 +1186,15 @@ launch_validation_app <- function(
 
         # Show warning about input/output paths
         if (input$input_path == input$output_path) {
-          shiny::showModal(shiny::modalDialog(
-            title = "Warning: Input and Output Files Are the Same",
-            tags$div(
-              tags$p(
-                shiny::icon("warning"),
-                "Risk of overwriting previous validations!"
-              ),
-              tags$p(
-                "Make sure the Overwrite check is not enabled to protect your data."
-              )
-            ),
-            easyClose = TRUE,
-            footer = modalButton("I Understand")
-          ))
+          shiny::showNotification(
+            "Input and output files are the same. There is a risk of overwriting previous validations.",
+            duration = 15, type = "warning"
+          )
         } else {
-          shiny::showModal(shiny::modalDialog(
-            title = "Different Input and Output Files",
-            tags$div(
-              tags$p(
-                shiny::icon("info-circle"),
-                "You are creating a new output file."
-              ),
-              tags$p(
-                "If the output file already exists, it may be overwritten. Consider backing up existing data."
-              )
-            ),
-            easyClose = TRUE,
-            footer = modalButton("Proceed")
-          ))
+          shiny::showNotification(
+            "Different input and output files. You are creating a new output file.",
+            duration = 15, type = "warning"
+          )
         }
 
         # Safe data loading
@@ -1290,15 +1273,19 @@ launch_validation_app <- function(
             df_full$data <- res
             df_output(res)
 
-            shiny::showModal(shiny::modalDialog(
-              title = "Setup Successful",
-              tags$div(
-                tags$p(shiny::icon("check"), "Paths updated successfully."),
-                tags$p("You can now proceed with the validation.")
-              ),
-              easyClose = TRUE,
-              footer = shiny::modalButton("OK")
-            ))
+            # shiny::showModal(shiny::modalDialog(
+            #   title = "Setup Successful",
+            #   tags$div(
+            #     tags$p(shiny::icon("check"), "Paths updated successfully."),
+            #     tags$p("You can now proceed with the validation.")
+            #   ),
+            #   easyClose = TRUE,
+            #   footer = shiny::modalButton("OK")
+            # ))
+            shiny::showNotification(
+              "Paths updated successfully. You can now proceed with the validation.",
+              duration = 15, type = "message"
+            )
           },
           error = function(e) {
             shiny::showModal(shiny::modalDialog(
@@ -1315,6 +1302,16 @@ launch_validation_app <- function(
             ))
           }
         )
+      })
+
+      if (confirm_paths) {
+        shinyjs::click("user_setup_confirm")
+      }
+
+      shiny::observeEvent(input$hotkeys, {
+        if (input$hotkeys == "ctrl+shift+k") {
+          shinyjs::click("user_setup_confirm")
+        }
       })
 
 
@@ -1426,6 +1423,12 @@ launch_validation_app <- function(
         })
 
         shiny::showNotification("Validation session updated")
+      })
+
+      shiny::observeEvent(input$hotkeys, {
+        if (input$hotkeys == "alt+k") {
+          shinyjs::click("confirm_session_setup")
+        }
       })
 
       # Reactive object to store the detection index within df_cut()
