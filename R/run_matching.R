@@ -127,7 +127,8 @@ run_matching <- function(
 
   if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
     if (ncores <= parallel::detectCores()) {
-      ncores <- parallel::makePSOCKcluster(getOption("cl.cores", ncores))
+      # ncores <- parallel::makePSOCKcluster(getOption("cl.cores", ncores))
+      set_cluster <- parallel::makeCluster(ncores)
     } else {
       stop(
         paste(
@@ -136,27 +137,38 @@ run_matching <- function(
         )
       )
     }
-  } else {
-    ncores <- 1
   }
 
   if (output == "detections") {
     if (is.null(output_file)) {
-      grid_list <- dplyr::group_split(
-        dplyr::rowwise(df_grid)
-      )
-      res <- pbapply::pblapply(
-        grid_list,
-        function(x) {
-          run_matching_i(
-            df_grid_i = x, score_method = score_method, output = "detections",
-            buffer_size = buffer_size, min_score = min_score,
-            min_quant = min_quant, top_n = top_n
-          )
-        },
-        cl = ncores
-      )
-      res <- purrr::list_rbind(res)
+      grid_list <- split(df_grid, seq(nrow(df_grid)))
+      if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
+        res <- parallel::parLapply(
+          cl = set_cluster, X = grid_list,
+          fun = function(x) {
+            run_matching_i(
+              df_grid_i = x, score_method = score_method, output = "detections",
+              buffer_size = buffer_size, min_score = min_score,
+              min_quant = min_quant, top_n = top_n
+            )
+          }
+        )
+      } else {
+        res <- pbmcapply::pbmclapply(
+          grid_list, mc.cores = ncores, function(x) {
+            run_matching_i(
+              df_grid_i = x,
+              score_method = score_method,
+              output = "detections",
+              buffer_size = buffer_size,
+              min_score = min_score,
+              min_quant = min_quant,
+              top_n = top_n
+            )
+          }
+        )
+      }
+      res <- do.call(rbind, res)
       message(
         paste(
           "Template matching finished. Detections have been returned to the",
@@ -173,27 +185,12 @@ run_matching <- function(
       }
       if (!file.exists(output_file) || autosave_action == "replace") {
         csv_headers <- c(
-          "soundscape_path",
-          "soundscape_file",
-          "template_path",
-          "template_file",
-          "template_name",
-          "template_min_freq",
-          "template_max_freq",
-          "template_start",
-          "template_end",
-          "detection_start",
-          "detection_end",
-          "detection_wl",
-          "detection_ovlp",
-          "detection_sample_rate",
-          "detection_buffer",
-          "detection_min_score",
-          "detection_min_quant",
-          "detection_top_n",
-          "peak_index",
-          "peak_score",
-          "peak_quant"
+          "soundscape_path", "soundscape_file", "template_path", "template_file",
+          "template_name", "template_min_freq", "template_max_freq",
+          "template_start", "template_end", "detection_start", "detection_end",
+          "detection_wl", "detection_ovlp", "detection_sample_rate",
+          "detection_buffer", "detection_min_score", "detection_min_quant",
+          "detection_top_n", "peak_index", "peak_score", "peak_quant"
         )
         writeLines(paste(csv_headers, collapse = ","), output_file)
       }
@@ -220,8 +217,11 @@ run_matching <- function(
               top_n = top_n
             ) |>
             dplyr::select(
-              soundscape_file, template_file, template_wl, template_ovlp,
-              template_sample_rate, buffer_size, min_score, min_quant, top_n
+              any_of(c(
+                "soundscape_file", "template_file", "template_wl",
+                "template_ovlp", "template_sample_rate", "buffer_size",
+                "min_score", "min_quant", "top_n"
+              ))
             )
           idx <- which(
             !df_grid_check$soundscape_file %in% df_check$soundscape_file
@@ -238,44 +238,73 @@ run_matching <- function(
           }
         }
       }
-      grid_list <- dplyr::group_split(
-        dplyr::rowwise(df_grid)
-      )
-      pbapply::pblapply(
-        grid_list,
-        function(x) {
-          res <- run_matching_i(
-            df_grid_i = x, score_method = score_method, output = "detections",
-            buffer_size = buffer_size, min_score = min_score,
-            min_quant = min_quant, top_n = top_n
-          )
-          sink(output_file, append = TRUE)
-          write.table(res, sep = ",", row.names = FALSE, col.names = FALSE)
-          sink()
-        },
-        cl = ncores
-      )
+      grid_list <- split(df_grid, seq(nrow(df_grid)))
+      if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
+        res <- parallel::parLapply(
+          cl = set_cluster, X = grid_list,
+          fun = function(x) {
+            run_matching_i(
+              df_grid_i = x, score_method = score_method, output = "detections",
+              buffer_size = buffer_size, min_score = min_score,
+              min_quant = min_quant, top_n = top_n
+            )
+            sink(output_file, append = TRUE)
+            write.table(res, sep = ",", row.names = FALSE, col.names = FALSE)
+            sink()
+          }
+        )
+      } else {
+        res <- pbmcapply::pbmclapply(
+          grid_list,
+          mc.cores = ncores,
+          function(x) {
+            res <- run_matching_i(
+              df_grid_i = x, score_method = score_method, output = "detections",
+              buffer_size = buffer_size, min_score = min_score,
+              min_quant = min_quant, top_n = top_n
+            )
+            sink(output_file, append = TRUE)
+            write.table(res, sep = ",", row.names = FALSE, col.names = FALSE)
+            sink()
+          }
+        )
+      }
       message(
         "Template matching finished. Detections have been saved to ",
         output_file
       )
     }
   } else {
-    grid_list <- dplyr::group_split(
-      dplyr::rowwise(df_grid)
-    )
-    res <- pbapply::pblapply(
-      grid_list,
-      function(x) {
-        run_matching_i(
-          df_grid_i = x, score_method = score_method, output = "scores",
-          buffer_size = buffer_size, min_score = min_score,
-          min_quant = min_quant, top_n = top_n
-        )
-      },
-      cl = ncores
-    ) |>
-      purrr::list_rbind()
+    grid_list <- split(df_grid, seq(nrow(df_grid)))
+    if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
+      res <- parallel::parLapply(
+        cl = set_cluster, X = grid_list,
+        fun = function(x) {
+          run_matching_i(
+            df_grid_i = x, score_method = score_method, output = "scores",
+            buffer_size = buffer_size, min_score = min_score,
+            min_quant = min_quant, top_n = top_n
+          )
+        }
+      )
+    } else {
+      res <- pbmcapply::pbmclapply(
+        grid_list,
+        mc.cores = ncores,
+        function(x) {
+          run_matching_i(
+            df_grid_i = x,
+            score_method = score_method,
+            output = "scores",
+            buffer_size = buffer_size,
+            min_score = min_score,
+            min_quant = min_quant,
+            top_n = top_n
+          )
+        }
+      )
+    }
+    res <- purrr::list_rbind(res)
     if (!is.null(output_file)) {
       if (!dir.exists(dirname(output_file)) || !grepl("\\.rds$", output_file)) {
         stop("The path for the RDS output file is not valid")
