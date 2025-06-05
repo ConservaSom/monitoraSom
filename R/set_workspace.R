@@ -104,19 +104,29 @@ set_workspace <- function(
             },
             error = function(e) {
                 stop(
-                    "Could not determine project path automatically. Please provide project_path parameter."
+                    "Could not determine project path automatically. ",
+                    "Please provide project_path parameter."
                 )
             }
         )
     } else {
         # Create project if path exists
         if (dir.exists(project_path)) {
-            suppressMessages(
-                usethis::create_project(
-                    path = project_path, open = FALSE, rstudio = TRUE
+            # check if the project file already exists
+            if (length(list.files(project_path, pattern = "*.Rproj")) > 0) {
+                warning(
+                    "An R project already exists at the provided project path. ",
+                    "For replacing the existing project, please delete the ",
+                    "existing project and run the function again."
                 )
-            )
-            message("Created new R project at: ", project_path)
+            } else {
+                suppressMessages(
+                    usethis::create_project(
+                        path = project_path, open = FALSE, rstudio = TRUE
+                    )
+                )
+                message("Created new R project at: ", project_path)
+            }
         } else {
             stop("The provided project path does not exist")
         }
@@ -151,9 +161,15 @@ set_workspace <- function(
             dir_name <- deparse(substitute(path))
             if (!dir.exists(path)) {
                 dir.create(path)
-                message("- The '", names(path), "' directory WAS CREATED at '", path, "'")
+                message(
+                    "- The '", names(path), "' directory WAS CREATED at '",
+                    path, "'"
+                )
             } else {
-                message("- The '", names(path), "' directory ALREADY EXISTS at '", path, "'")
+                message(
+                    "- The '", names(path), "' directory ALREADY EXISTS at '",
+                    path, "'"
+                )
             }
         }
     }
@@ -204,7 +220,8 @@ set_workspace <- function(
                     })
                 )
                 message(
-                    "- The soundscape recordings WERE CREATED at '", soundscapes_path, "'."
+                    "- The soundscape recordings WERE CREATED at '",
+                    soundscapes_path, "'."
                 )
             } else {
                 message(
@@ -232,7 +249,8 @@ set_workspace <- function(
                 )
             } else {
                 message(
-                    "- At least one of the recordings ALREADY EXISTS at '", recordings_path, "'. They will not be overwritten."
+                    "- At least one of the recordings ALREADY EXISTS at '",
+                    recordings_path, "'. They will not be overwritten."
                 )
             }
         }
@@ -256,7 +274,8 @@ set_workspace <- function(
                 )
             } else {
                 message(
-                    "- At least one of the templates ALREADY EXISTS at '", templates_path, "'. They will not be overwritten."
+                    "- At least one of the templates ALREADY EXISTS at '",
+                    templates_path, "'. They will not be overwritten."
                 )
             }
         }
@@ -280,7 +299,8 @@ set_workspace <- function(
                 )
             } else {
                 message(
-                    "- At least one of the ROI tables ALREADY EXISTS at '", roi_tables_path, "'. They will not be overwritten."
+                    "- At least one of the ROI tables ALREADY EXISTS at '",
+                    roi_tables_path, "'. They will not be overwritten."
                 )
             }
         }
@@ -310,7 +330,8 @@ set_workspace <- function(
             if (!file.exists(templates_file)) {
                 write.csv(df_templates, templates_file)
                 message(
-                    "- The templates metadata file WAS CREATED at '", templates_metadata_path, "'."
+                    "- The templates metadata file WAS CREATED at '",
+                    templates_metadata_path, "'."
                 )
             } else {
                 message(
@@ -325,7 +346,8 @@ set_workspace <- function(
             if (!file.exists(grid_file)) {
                 write.csv(df_grid, grid_file)
                 message(
-                    "- The match grid metadata file WAS CREATED at '", match_grid_metadata_path, "'."
+                    "- The match grid metadata file WAS CREATED at '",
+                    match_grid_metadata_path, "'."
                 )
             } else {
                 message(
@@ -340,11 +362,13 @@ set_workspace <- function(
             if (!file.exists(detections_file)) {
                 write.csv(df_detecs, detections_file)
                 message(
-                    "- The detections file WAS CREATED at '", detections_path, "'."
+                    "- The detections file WAS CREATED at '", detections_path,
+                    "'."
                 )
             } else {
                 message(
-                    "- The detections file ALREADY EXISTS at '", detections_path, "'. It will not be overwritten."
+                    "- The detections file ALREADY EXISTS at '",
+                    detections_path, "'. It will not be overwritten."
                 )
             }
         }
@@ -355,45 +379,57 @@ set_workspace <- function(
             if (!file.exists(match_scores_file)) {
                 saveRDS(df_scores, match_scores_file)
                 message(
-                    "- The match scores file WAS CREATED at '", match_scores_path, "'."
+                    "- The match scores file WAS CREATED at '",
+                    match_scores_path, "'."
                 )
             } else {
                 message(
-                    "- The match scores file ALREADY EXISTS at '", match_scores_path, "'. It will not be overwritten."
+                    "- The match scores file ALREADY EXISTS at '",
+                    match_scores_path, "'. It will not be overwritten."
                 )
             }
         }
 
         if (!is.na(validation_outputs_path)) {
-            data(df_detecs_val_manual, package = "monitoraSom", envir = environment())
+            data(
+                df_detecs_val_manual,
+                package = "monitoraSom", envir = environment()
+            )
             detections_file <- file.path(
                 validation_outputs_path, "df_detecs_val_manual.csv"
             )
             if (!file.exists(detections_file)) {
                 write.csv(df_detecs_val_manual, detections_file)
                 message(
-                    "- The validated detections file WAS CREATED at '", detections_path, "'."
+                    "- The validated detections file WAS CREATED at '",
+                    detections_path, "'."
                 )
             } else {
                 message(
-                    "- The detections file ALREADY EXISTS at '", detections_path, "'. It will not be overwritten."
+                    "- The detections file ALREADY EXISTS at '",
+                    detections_path, "'. It will not be overwritten."
                 )
             }
         }
 
         if (!is.na(validation_outputs_path)) {
-            data(df_detecs_val_tovlp, package = "monitoraSom", envir = environment())
+            data(
+                df_detecs_val_tovlp,
+                package = "monitoraSom", envir = environment()
+            )
             detections_file <- file.path(
                 validation_outputs_path, "df_detecs_val_tovlp.csv"
             )
             if (!file.exists(detections_file)) {
                 write.csv(df_detecs_val_tovlp, detections_file)
                 message(
-                    "- The validated detections file WAS CREATED at '", detections_path, "'."
+                    "- The validated detections file WAS CREATED at '",
+                    detections_path, "'."
                 )
             } else {
                 message(
-                    "- The validated detections file ALREADY EXISTS at '", detections_path, "'. It will not be overwritten."
+                    "- The validated detections file ALREADY EXISTS at '",
+                    detections_path, "'. It will not be overwritten."
                 )
             }
         }

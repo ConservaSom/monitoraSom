@@ -42,11 +42,12 @@
 #' @param color_scale A character string specifying the color scale to be used
 #'   in the spectrogram. Possible values are "viridis", "magma", "inferno",
 #'   "cividis", "greyscale 1", or "greyscale 2".
-#' @param wav_player_type The type of wav player. "R session" for R
-#'   session-based player, "HTML player" for an embedded HTML player in the
-#'   interface, and "External player" for playing in an external player. The
-#'   last options becomes available only when a valid path to the player
-#'   executable is provided in the 'wav_player_path' argument.
+#' @param wav_player_type The type of wav player. "HTML player" for an embedded
+#'   HTML player in the interface, "R session" (experimental) for R
+#'   session-based player, and "External player" (experimental) for playing in
+#'   an external player. The last options becomes available only when a valid
+#'   path to the player executable is provided in the 'wav_player_path'
+#'   argument.
 #' @param wav_player_path Path to the wav player executable (only for
 #'   wav_player_type = "External player")
 #' @param visible_bp If TRUE, the visible frequency band will be used as a
@@ -415,7 +416,8 @@ launch_segmentation_app <- function(
     "alt+s", # zoom out to full soundscape duration
     "d", # navigate forward in in time within a sounscape
     "c", # navigate to the next soudnscape
-    "ctrl+shift+k" # confirm/refresh paths setup
+    "alt+k", # confirm/refresh paths setup
+    "alt+n" # mark as no signals of interest
   )
 
   # helper functions ---------------------------------------------------------
@@ -476,6 +478,8 @@ launch_segmentation_app <- function(
       }
     )
   }
+
+  # ui ----------------------------------------------------------------------
 
   shiny::shinyApp(
     ui = shinydashboard::dashboardPage(
@@ -1338,14 +1342,6 @@ launch_segmentation_app <- function(
           "roi_type", "roi_label_confidence", "roi_is_complete", "roi_comment",
           "roi_wl", "roi_ovlp", "roi_sample_rate", "roi_pitch_shift"
         )
-        create_empty_roi_df <- function() {
-          data.frame(
-            matrix(
-              NA, nrow = 0, ncol = length(var_names),
-              dimnames = list(NULL, var_names)
-            )
-          )
-        }
         if (file.exists(active_roi_table_path)) {
           res_raw <- as.data.frame(
             data.table::fread(file = active_roi_table_path)
@@ -1364,83 +1360,90 @@ launch_segmentation_app <- function(
             roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S"),
             roi_label = roi_label,
             roi_start = roi_start,
-              roi_end = roi_end,
-              roi_min_freq = roi_min_freq,
-              roi_max_freq = roi_max_freq,
-              roi_type = roi_type,
-              roi_label_confidence = roi_label_confidence,
-              roi_is_complete = roi_is_complete,
-              roi_comment = roi_comment,
-              roi_wl = roi_wl,
-              roi_ovlp = roi_ovlp,
-              roi_sample_rate = roi_sample_rate,
-              roi_pitch_shift = roi_pitch_shift
-              )
+            roi_end = roi_end,
+            roi_min_freq = roi_min_freq,
+            roi_max_freq = roi_max_freq,
+            roi_type = roi_type,
+            roi_label_confidence = roi_label_confidence,
+            roi_is_complete = roi_is_complete,
+            roi_comment = roi_comment,
+            roi_wl = roi_wl,
+            roi_ovlp = roi_ovlp,
+            roi_sample_rate = roi_sample_rate,
+            roi_pitch_shift = roi_pitch_shift
+            )
         } else {
-          res <- create_empty_roi_df()
+          res <- data.frame(
+            matrix(
+              NA, nrow = 0, ncol = length(var_names),
+              dimnames = list(NULL, var_names)
+            )
+          )
         }
         roi_values(res)
       })
 
       ruler <- shiny::reactiveVal(NULL)
 
-      # Define shared save function for buttons and hotkeys
-      save_roi_table <- function() {
-        shiny::req(roi_values(), input$roi_table_name, alt_roitabs_meta())
-        if (
-          is.null(roi_values()) || !is.data.frame(roi_values()) ||
-            nrow(roi_values()) == 0
-          ) {
-          shiny::showNotification("No ROIs to save", type = "warning")
-          return()
-        }
-        current_rois <- roi_values()[roi_values()$soundscape_file == input$soundscape_file, ]
+    # Standard function for saving ROI tables
+    save_roi_table <- function() {
+      shiny::req(roi_values(), input$roi_table_name, alt_roitabs_meta())
+      if (is.null(roi_values()) || !is.data.frame(roi_values())) {
+        shiny::showNotification("Nothing to do here", type = "warning")
+        return()
+      }
+      current_rois <- roi_values()[
+        roi_values()$soundscape_file == input$soundscape_file,
+      ]
+      file_path <- file.path(roi_tables_path_val(), input$roi_table_name)
+      if (file.exists(file_path)) {
+        saved_rois <- data.table::fread(file = file_path) %>%
+          as.data.frame() %>%
+          dplyr::mutate(
+            roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S")
+          )
         if (nrow(current_rois) == 0) {
-          shiny::showNotification(
-            "Error: No valid ROIs for current soundscape",
-            type = "error"
+          if (nrow(saved_rois) > 0) {
+            shiny::showNotification(
+              sprintf("All %d ROI(s) were removed", nrow(saved_rois)),
+              type = "message"
+            )
+          }
+        } else {
+          added_rois <- dplyr::anti_join(
+            current_rois, saved_rois,
+            by = c("soundscape_file", "roi_user", "roi_label", "roi_input_timestamp")
           )
-          return()
-        }
-        complete_rows <- complete.cases(
-          current_rois[, c("roi_label", "roi_start", "roi_end", "roi_min_freq", "roi_max_freq")]
-        )
-        if (!any(complete_rows)) {
-          shiny::showNotification(
-            "Error: No complete ROIs found",
-            type = "error"
+          deleted_rois <- dplyr::anti_join(
+            saved_rois, current_rois,
+            by = c("soundscape_file", "roi_user", "roi_label", "roi_input_timestamp")
           )
-          return()
-        }
-        current_rois <- current_rois[complete_rows, ]
-        if (nrow(current_rois) < nrow(roi_values())) {
-          roi_values(current_rois)
-          shiny::showNotification(sprintf(
-            "Removed %d mismatched or incomplete ROI(s)",
-            nrow(roi_values()) - nrow(current_rois)
-          ), type = "warning")
-        }
-        data.table::fwrite(current_rois, file.path(roi_tables_path_val(), input$roi_table_name))
-        current_index <- which(soundscape_data()$soundscape_file == input$soundscape_file)
-        progress_tracker$df$has_table[current_index] <- TRUE
-        n_done <- sum(progress_tracker$df$has_table)
-        shinyWidgets::updateProgressBar(
-          session, "progress_bar",
-          value = n_done, total = nrow(progress_tracker$df)
-        )
-        shiny::showNotification(
-          "ROI table successfully exported",
-          type = "message"
-        )
-        if (n_done == nrow(progress_tracker$df)) {
-          shiny::showNotification(
-            "All recordings were segmented!",
-            type = "message"
-          )
+          if (nrow(added_rois) == 0 && nrow(deleted_rois) == 0) {
+            shiny::showNotification("No changes detected in ROIs", type = "message")
+            return()
+          }
         }
       }
 
-      # Define shared navigation function
+      # Save the current state (even if empty)
+      data.table::fwrite(current_rois, file_path)
+      current_index <- which(
+        soundscape_data()$soundscape_file == input$soundscape_file
+      )
+      progress_tracker$df$has_table[current_index] <- TRUE
+      n_done <- sum(progress_tracker$df$has_table)
+      shinyWidgets::updateProgressBar(
+        session, "progress_bar", value = n_done, total = nrow(progress_tracker$df)
+      )
+      shiny::showNotification("ROI table successfully exported", type = "message")
+      if (n_done == nrow(progress_tracker$df)) {
+        shiny::showNotification(
+          "All recordings were segmented!", type = "message", duration = 15
+        )
+      }
+    }
+
+      # Standard function for navigating between soundscapes
       navigate_soundscape <- function(direction) {
         shiny::req(soundscape_data())
         vec_soundscapes <- soundscape_data()$soundscape_file
@@ -1461,34 +1464,25 @@ launch_segmentation_app <- function(
         }
       }
 
-      # Define shared navigation function for unsegmented soundscapes
+      # Standard function for navigating between unsegmented soundscapes
       navigate_unsegmented <- function(direction) {
         shiny::req(progress_tracker$df)
-
-        # Get unsegmented soundscapes and current position
         unsegmented_data <- progress_tracker$df %>%
           dplyr::filter(
             has_table == FALSE | soundscape_file == input$soundscape_file
           )
-
         unsegmented_files <- unsegmented_data$soundscape_file
         current_index <- which(unsegmented_files == input$soundscape_file)
-
-        # Handle autosave if enabled
         if (
           input$nav_autosave && !all(is.na(roi_values())) &&
             nrow(roi_values()) > 0
           ) {
           save_roi_table()
         }
-
-        # Calculate new index based on direction
         new_index <- switch(direction,
           "prev" = if (current_index > 1) current_index - 1 else current_index,
           "next" = if (current_index < length(unsegmented_files)) current_index + 1 else current_index
         )
-
-        # Update selection if index changed
         if (new_index != current_index) {
           shiny::updateSelectInput(
             session, "soundscape_file",
@@ -1497,18 +1491,15 @@ launch_segmentation_app <- function(
         }
       }
 
-      # Create a single play function to handle all playback requests
+      # Standard function for playing audio
       play_audio <- function() {
         shiny::req(rec_soundscape())
-
-        # Validate time range
         shiny::validate(
           shiny::need(
             input$zoom_time[1] < input$zoom_time[2],
             "Invalid time range selected"
           )
         )
-
         if (input$wav_player_type == "HTML player") {
           shinyjs::runjs("
             var player = document.getElementById('visible_soundscape_clip_selector');
@@ -1534,12 +1525,27 @@ launch_segmentation_app <- function(
         }
       }
 
+      is_duplicate_roi <- function(new_roi, existing_rois) {
+        if (is.null(existing_rois) || nrow(existing_rois) == 0) {
+          return(FALSE)
+        }
+        duplicates <- existing_rois %>%
+          dplyr::filter(
+            roi_label == new_roi$roi_label &
+              abs(roi_start - new_roi$roi_start) < 0.001 & # Small tolerance for floating point
+              abs(roi_end - new_roi$roi_end) < 0.001 &
+              abs(roi_min_freq - new_roi$roi_min_freq) < 0.001 &
+              abs(roi_max_freq - new_roi$roi_max_freq) < 0.001
+          )
+        return(nrow(duplicates) > 0)
+      }
+
       if (confirm_paths) {
         shinyjs::click("user_setup_confirm")
       }
 
       shiny::observeEvent(input$hotkeys, {
-        if (input$hotkeys == "ctrl+shift+k") {
+        if (input$hotkeys == "alt+k") {
           if (
             !is.null(input$user) &&
               !is.null(input$soundscapes_path) &&
@@ -1569,7 +1575,7 @@ launch_segmentation_app <- function(
             input$roi_limits$xmin, input$roi_limits$xmax, input$roi_limits$ymin,
             input$roi_limits$ymax
           )
-          # Create a new ROI entry
+          # new ROI entry
           roi_i <- tidyr::tibble(
             soundscape_path = wav_path_val(),
             soundscape_file = input$soundscape_file,
@@ -1589,20 +1595,26 @@ launch_segmentation_app <- function(
             roi_sample_rate = rec_soundscape()@samp.rate,
             roi_pitch_shift = input$pitch_shift
           )
-
-          # Update roi_values based on current_rois
           if (!is.null(roi_i$roi_start) && !is.null(roi_i$roi_end)) {
             if (all(is.na(current_rois))) {
               roi_values(roi_i)
             } else {
               if (nrow(current_rois) >= 1) {
-                res <- dplyr::bind_rows(current_rois, roi_i)
-                roi_values(res)
+                # Check for duplicates before adding
+                if (is_duplicate_roi(roi_i, current_rois)) {
+                  shiny::showNotification(
+                    "Duplicate ROI detected - not adding to table",
+                    type = "warning"
+                  )
+                } else {
+                  res <- dplyr::bind_rows(current_rois, roi_i)
+                  roi_values(res)
+                }
               }
             }
           }
         } else if (input$hotkeys == "q") {
-          # Remove the last ROI entry if more than one exists
+          # remove the last ROI entry if more than one exists
           if (nrow(current_rois) > 1) {
             res <- head(current_rois, -1)
             roi_values(res)
@@ -1806,19 +1818,108 @@ launch_segmentation_app <- function(
       shiny::observeEvent(input$next_soundscape_noroi, navigate_unsegmented("next"))
       shiny::observeEvent(input$prev_soundscape_noroi, navigate_unsegmented("prev"))
 
+      # button of no signals of interest - solve this duplicated code when possible
       shiny::observeEvent(input$no_soi, {
-        shiny::showModal(
-          shiny::modalDialog(
-            title = "Confirm Action",
-            "Are you sure you want to mark this recording as having no signals of interest? This action will erase all ROIs in the active soundscape.",
-            footer = shiny::tagList(
-              shiny::modalButton("Cancel"),
-              shiny::actionButton(
-                "confirm_no_soi", "Proceed",
-                style = "color: #fff; background-color: #b73333; border-color: #2e6da4"
+        shiny::req(
+          wav_path_val(), user_val(), rec_soundscape(), soundscape_data()
+        )
+        if (all(is.na(roi_values()))) {
+          roi_i <- tibble::tibble(
+            soundscape_path = wav_path_val(),
+            soundscape_file = input$soundscape_file,
+            roi_user = user_val(),
+            roi_input_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+            roi_label = "no signals of interest",
+            roi_start = 0,
+            roi_end = duration_val(),
+            roi_min_freq = input$zoom_freq[1],
+            roi_max_freq = input$zoom_freq[2],
+            roi_type = NA_character_,
+            roi_label_confidence = NA_character_,
+            roi_is_complete = NA_character_,
+            roi_comment = NA_character_,
+            roi_wl = input$wl,
+            roi_ovlp = input$ovlp,
+            roi_sample_rate = rec_soundscape()@samp.rate,
+            roi_pitch_shift = input$pitch_shift
+          )
+          roi_values(roi_i)
+          save_roi_table()
+          shiny::showNotification(
+            "Recording marked as having no signals of interest",
+            type = "message"
+          )
+          navigate_soundscape("next")
+        } else {
+          shiny::showModal(
+            shiny::modalDialog(
+              title = "Confirm Action",
+              "Are you sure you want to mark this recording as having no signals of interest? This action will erase all ROIs in the active soundscape.",
+              footer = shiny::tagList(
+                shiny::modalButton("Cancel"),
+                shiny::actionButton(
+                  "confirm_no_soi", "Proceed",
+                  style = "color: #fff; background-color: #b73333; border-color: #2e6da4"
+                )
               )
             )
-        ))
+          )
+        }
+      })
+
+      # hotkey of no signals of interest
+      shiny::observeEvent(input$hotkeys, {
+        if (input$hotkeys == "alt+n") {
+          shiny::req(
+            wav_path_val(), user_val(), rec_soundscape(), soundscape_data()
+          )
+          if (all(is.na(roi_values()))) {
+            roi_i <- tibble::tibble(
+              soundscape_path = wav_path_val(),
+              soundscape_file = input$soundscape_file,
+              roi_user = user_val(),
+              roi_input_timestamp = format(
+                Sys.time(),
+                "%Y-%m-%d %H:%M:%S"
+              ),
+              roi_label = "no signals of interest",
+              roi_start = 0,
+              roi_end = duration_val(),
+              roi_min_freq = input$zoom_freq[1],
+              roi_max_freq = input$zoom_freq[2],
+              roi_type = NA_character_,
+              roi_label_confidence = NA_character_,
+              roi_is_complete = NA_character_,
+              roi_comment = NA_character_,
+              roi_wl = input$wl,
+              roi_ovlp = input$ovlp,
+              roi_sample_rate = rec_soundscape()@samp.rate,
+              roi_pitch_shift = input$pitch_shift
+            )
+            roi_values(roi_i)
+            save_roi_table()
+            shiny::showNotification(
+              "Recording marked as having no signals of interest",
+              type = "message"
+            )
+            navigate_soundscape("next")
+          } else {
+            shiny::showModal(
+              shiny::modalDialog(
+                title = "Confirm Action",
+                "Are you sure you want to mark this recording as having no signals of interest? This action will erase all ROIs in the active soundscape.",
+                footer = shiny::tagList(
+                  shiny::modalButton("Cancel"),
+                  shiny::actionButton(
+                    "confirm_no_soi",
+                    "Proceed",
+                    style = "color: #fff; background-color: #b73333; border-color: #2e6da4"
+                  )
+                )
+              )
+            )
+          }
+        }
       })
 
       shiny::observeEvent(input$confirm_no_soi, {
