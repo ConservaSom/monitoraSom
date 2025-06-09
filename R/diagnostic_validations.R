@@ -12,12 +12,6 @@
 #'
 #' @param df_validated A tibble containing the validation results of the
 #'   detections `validate_by_overlap()` function or within the validation app.
-#' @param diag_method A character string indicating the method to use for
-#'   diagnostic validations. The two methods available are: "auto" (default) or
-#'   "manual". If "auto" is selected, the function will automatically determine
-#'   the cutpoint to be used in the diagnostic validations. If "manual" is
-#'   selected, the user must provide the cutpoint to be used in the diagnostic
-#'   validations.
 #' @param pos_prob A numeric value indicating the probability of a positive test
 #' @return A list of results from the diagnostic validations, or NULL if all
 #'   validations failed.
@@ -46,8 +40,7 @@
 #'
 #' # Run the diagnostics on the validated detections
 #' ls_diag_tovlp <- diagnostic_validations(
-#'   df_validated = df_detecs_val_tovlp,
-#'   diag_method = "auto", pos_prob = 0.90
+#'   df_validated = df_detecs_val_tovlp, pos_prob = 0.90
 #' )
 #'
 #' # Check the number of templates in the diagnostics object
@@ -74,8 +67,7 @@
 #'
 #' # Run the diagnostics on the validated detections
 #' ls_diag_manual <- diagnostic_validations(
-#'   df_validated = df_detecs_val_manual,
-#'   diag_method = "auto", pos_prob = 0.90
+#'   df_validated = df_detecs_val_manual, pos_prob = 0.90
 #' )
 #'
 #' # Check the number of templates in the diagnostics object
@@ -101,7 +93,7 @@
 #'
 #' }
 diagnostic_validations <- function(
-  df_validated, diag_method = "auto", pos_prob = 0.95
+  df_validated, pos_prob = 0.95
 ) {
   split_validations <- df_validated |>
     dplyr::group_by(template_name) |>
@@ -113,8 +105,8 @@ diagnostic_validations <- function(
       tryCatch(
         {
           suppressWarnings(
-            monitoraSom::diagnostic_validations_i(
-              val_i = x, diag_method = diag_method, pos_prob = pos_prob
+            diagnostic_validations_i(
+              val_i = x, diag_method = "auto", pos_prob = pos_prob
             )
           )
         },

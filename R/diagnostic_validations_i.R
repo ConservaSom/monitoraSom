@@ -31,9 +31,35 @@ diagnostic_validations_i <- function(
   if (length(unique(val_i$template_name)) > 1) {
     stop(
       paste0(
-        "The data contains detections from more than one template or class. Use the 'diagnostic_validations()' function to perform diagnostic validations on multiple templates."
+        "The data contains detections from more than one template or class. ",
+        " Use the 'diagnostic_validations()' function to perform diagnostic ",
+        "validations on multiple templates."
       )
     )
+  }
+
+  if (diag_method == "auto" & is.null(pos_prob)) {
+    stop(
+      "Error: An explicit value for 'pos_prob' must be set when the",
+      "diagnostics method is set to 'auto'."
+    )
+  } else if (diag_method == "auto" & !is.null(pos_prob)) {
+    if (pos_prob < 0 | pos_prob > 1) {
+      stop("'pos_prob' must be a numeric value between 0 and 1")
+    }
+  }
+
+  if (diag_method == "manual" & is.null(diag_cut)) {
+    stop(
+      "Error: An explicit value for 'diag_cut' must be set when the",
+      "diagnostics method is set to 'manual'."
+    )
+  } else if (diag_method == "manual" & !is.null(diag_cut)) {
+    if (diag_cut < 0 | diag_cut > 1) {
+      stop("'diag_cut' must be a numeric value between 0 and 1")
+    }
+    # The cutpoint is already defined
+    score_cut <- diag_cut
   }
 
   fun_auc <- function(x, y) {
@@ -56,15 +82,8 @@ diagnostic_validations_i <- function(
     family = "binomial", data = df_diag_input
   )
 
-  if (diag_method == "Manual") {
-    if (diag_cut < 0 | diag_cut > 1) {
-      stop("'diag_cut' must be a numeric value between 0 and 1")
-    } else {
-      (
-        score_cut <- diag_cut
-      )
-    }
-  } else if (diag_method == "auto") {
+  # For the "auto" method, the cutpoint is based is bin_mod predictions
+  if (diag_method == "auto") {
     df_pred <- data.frame(peak_score = seq(0.01, 0.99, 0.01))
     df_pred$prob <- predict(bin_mod, newdata = df_pred, type = "response")
     score_cut <- df_pred$peak_score[min(which(df_pred$prob >= pos_prob))]
@@ -175,18 +194,23 @@ diagnostic_validations_i <- function(
     ) +
     scale_fill_manual(
       values = c(
-        "All" = "black", "TP" = "green", "FP" = "red"
+        "All" = "black",
+        "TP" = "green",
+        "FP" = "red"
       )
     ) +
     scale_linetype_manual(values = c("All" = 2, "TP" = 1, "FP" = 1)) +
     geom_vline(xintercept = score_cut, color = "red", linetype = 2) +
     labs(
-      title = "Peak score density", y = "Density", x = "Peak score",
-      fill = "", linetype = ""
+      title = "Peak score density",
+      y = "Density",
+      x = "Peak score",
+      fill = "",
+      linetype = ""
     ) +
     theme_bw() +
     theme(
-      legend.position = c(0.85, 0.85),
+      legend.position.inside = c(0.85, 0.85),
       legend.background = element_blank(),
       legend.box.background = element_blank()
     )
