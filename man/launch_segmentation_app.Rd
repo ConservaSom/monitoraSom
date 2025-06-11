@@ -90,11 +90,12 @@ overlap of windows for computing the spectrogram.}
 in the spectrogram. Possible values are "viridis", "magma", "inferno",
 "cividis", "greyscale 1", or "greyscale 2".}
 
-\item{wav_player_type}{The type of wav player. "R session" for R
-session-based player, "HTML player" for an embedded HTML player in the
-interface, and "External player" for playing in an external player. The
-last options becomes available only when a valid path to the player
-executable is provided in the 'wav_player_path' argument.}
+\item{wav_player_type}{The type of wav player. "HTML player" for an embedded
+HTML player in the interface, "R session" (experimental) for R
+session-based player, and "External player" (experimental) for playing in
+an external player. The last options becomes available only when a valid
+path to the player executable is provided in the 'wav_player_path'
+argument.}
 
 \item{wav_player_path}{Path to the wav player executable (only for
 wav_player_type = "External player")}

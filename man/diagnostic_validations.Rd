@@ -4,18 +4,11 @@
 \alias{diagnostic_validations}
 \title{Compute detection diagnostics of validated detections from multiple templates}
 \usage{
-diagnostic_validations(df_validated, diag_method = "auto", pos_prob = 0.95)
+diagnostic_validations(df_validated, pos_prob = 0.95)
 }
 \arguments{
 \item{df_validated}{A tibble containing the validation results of the
 detections `validate_by_overlap()` function or within the validation app.}
-
-\item{diag_method}{A character string indicating the method to use for
-diagnostic validations. The two methods available are: "auto" (default) or
-"manual". If "auto" is selected, the function will automatically determine
-the cutpoint to be used in the diagnostic validations. If "manual" is
-selected, the user must provide the cutpoint to be used in the diagnostic
-validations.}
 
 \item{pos_prob}{A numeric value indicating the probability of a positive test}
 }
@@ -58,8 +51,7 @@ df_detecs_val_tovlp_subset <- df_detecs_val_tovlp \%>\%
 
 # Run the diagnostics on the validated detections
 ls_diag_tovlp <- diagnostic_validations(
-  df_validated = df_detecs_val_tovlp,
-  diag_method = "auto", pos_prob = 0.90
+  df_validated = df_detecs_val_tovlp, pos_prob = 0.90
 )
 
 # Check the number of templates in the diagnostics object
@@ -86,8 +78,7 @@ glimpse(df_detecs_val_manual)
 
 # Run the diagnostics on the validated detections
 ls_diag_manual <- diagnostic_validations(
-  df_validated = df_detecs_val_manual,
-  diag_method = "auto", pos_prob = 0.90
+  df_validated = df_detecs_val_manual, pos_prob = 0.90
 )
 
 # Check the number of templates in the diagnostics object

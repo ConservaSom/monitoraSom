@@ -6,7 +6,9 @@
 #'   diagnostic validations are used to determine the optimal cutpoint to be
 #'   used in the detections.
 #'
-#' @param val_i A tibble containing the validation results of the detections
+#' @param val_i A tibble containing the validation results of the detections.
+#'   This function takes data from a single template only, otherwise it will
+#'   return an error.
 #' @param diag_method A character string indicating the method to use for
 #'   diagnostic validations. The two methods available are: "auto" (default) or
 #'   "Manual". If "auto" is selected, the function will automatically determine
