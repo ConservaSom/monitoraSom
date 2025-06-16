@@ -12,7 +12,9 @@ diagnostic_validations_i(
 )
 }
 \arguments{
-\item{val_i}{A tibble containing the validation results of the detections}
+\item{val_i}{A tibble containing the validation results of the detections.
+This function takes data from a single template only, otherwise it will
+return an error.}
 
 \item{diag_method}{A character string indicating the method to use for
 diagnostic validations. The two methods available are: "auto" (default) or

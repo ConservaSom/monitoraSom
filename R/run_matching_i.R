@@ -84,8 +84,8 @@ run_matching_i <- function(
   ind <- slider::slide(
     1:nrow(mat_soundscape),
     ~.x, .before = sw_start, .after = sw_end, .complete = TRUE
-  ) |>
-    base::Filter(f = base::Negate(is.null), x = _)
+  ) %>%
+    base::Filter(f = base::Negate(is.null), x = .)
 
   if (score_method == "cor") {
     score_vec <- lapply(
