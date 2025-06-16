@@ -76,7 +76,7 @@ There is not a single way to use the segmentation app, as it is designed to be a
 
 Now that the directories are in place, let's launch the segmentation app with a minimal setup. The essential parameters to launch the app are the paths to the project folder (`project_path`), the path to the soundscapes folder (`soundscapes_path`), the path where to store the ROI tables folder (`roi_tables_path`), and the user identification (in this case set as `user`). You might take note of your ideal settings, and establish the paths directly on the launch_segmentation_app(). The app will be launched by executing the command below.
 
-```{r eval = F}
+```{r eval = FALSE}
 launch_segmentation_app(
     project_path = ".", user = "User Name",
     soundscapes_path = "./soundscapes/",
@@ -96,7 +96,7 @@ In this example we preloaded the ROI tables with all songs of *B. culicivorus* p
 
 Lets launch the app again, with a more complete setup, but instead of segmenting soundscape recordings, now we will segment focal recordings from the target species. Observe the structure of the song of *B. culicivorus* in the spectrogram, and how consistent the substructures are across multiple songs. Avoid excluding the preloaded ROIs from this example, to ensure the consistency of the next steps.
 
-```{r eval = F}
+```{r eval = FALSE}
 launch_segmentation_app(
   project_path = ".", user = "User Name",
   soundscapes_path = "./recordings/",
@@ -267,7 +267,7 @@ if (
 
 Now we can launch the validation app. Notice that we are using the validation copy as the input file and also as the output file. This is a good practice to avoid overwriting the original data and to ensure we can validate the same data across multiple sessions.
 
-```{r eval = F}
+```{r eval = FALSE}
 launch_validation_app(
   project_path = ".",
   validation_user = "Rosa G. L. M.",

@@ -120,6 +120,11 @@ set_workspace <- function(
                     "existing project and run the function again."
                 )
             } else {
+                message(
+                    "If an answer is required below, the current directory ",
+                    "may already be within another R project. ",
+                    "Do you want to create it here anyway? (not recommended)"
+                )
                 suppressMessages(
                     usethis::create_project(
                         path = project_path, open = FALSE, rstudio = TRUE

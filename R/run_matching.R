@@ -196,7 +196,7 @@ run_matching <- function(
       if (file.exists(output_file) && autosave_action == "append") {
         df_check <- data.table::fread(output_file)
         if (nrow(df_check) > 0) {
-          df_check <- df_check |>
+          df_check <- df_check %>%
             dplyr::transmute(
               soundscape_file = soundscape_file,
               template_file = template_file,

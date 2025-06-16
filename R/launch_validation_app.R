@@ -2567,11 +2567,11 @@ launch_validation_app <- function(
               custom_cut <- input$diag_cut
               pos_prob <- NULL
             } else if (input$diag_method == "Error = 0.05") {
-              diag_method <- "Auto"
+              diag_method <- "auto"
               custom_cut <- NULL
               pos_prob <- 0.95
             } else if (input$diag_method == "Error = 0.1") {
-              diag_method <- "Auto"
+              diag_method <- "auto"
               custom_cut <- NULL
               pos_prob <- 0.90
             }

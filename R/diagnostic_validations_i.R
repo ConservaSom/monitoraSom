@@ -9,8 +9,8 @@
 #' @param val_i A tibble containing the validation results of the detections
 #' @param diag_method A character string indicating the method to use for
 #'   diagnostic validations. The two methods available are: "auto" (default) or
-#'   "Manual". If "auto" is selected, the function will automatically determine
-#'   the cutpoint to be used in the diagnostic validations. If "Manual" is
+#'   "manual". If "auto" is selected, the function will automatically determine
+#'   the cutpoint to be used in the diagnostic validations. If "manual" is
 #'   selected, the user must explicitly pass the cutpoint to be used in the
 #'   diagnostic validations to the `diag_cut` argument.
 #' @param pos_prob A numeric value indicating the probability of a positive
@@ -56,7 +56,7 @@ diagnostic_validations_i <- function(
     family = "binomial", data = df_diag_input
   )
 
-  if (diag_method == "Manual") {
+  if (diag_method == "manual") {
     if (diag_cut < 0 | diag_cut > 1) {
       stop("'diag_cut' must be a numeric value between 0 and 1")
     } else {
