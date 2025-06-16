@@ -2563,7 +2563,7 @@ launch_validation_app <- function(
         if (nrow(df_diag_input()) > 2) {
           if (length(unique(df_diag_input()$validation)) == 2) {
             if (input$diag_method == "Manual") {
-              diag_method <- "Manual"
+              diag_method <- "manual"
               custom_cut <- input$diag_cut
               pos_prob <- NULL
             } else if (input$diag_method == "Error = 0.05") {
