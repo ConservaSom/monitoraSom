@@ -36,7 +36,7 @@ current_dir
 
 If you are running this script from an R Markdown file in the RStudio IDE, the current working directory is the folder containing the R Markdown file. However, if you need to change it, you can use the `setwd()` function directly.
 
-```{r, eval = FALSE}
+```{r, eval=FALSE}
 setwd("path/to/your/working/directory")
 ```
 
@@ -49,7 +49,7 @@ setwd(current_dir)
 
 Within the working directory, monitoraSom uses a folder structure that handles multiple file types, from sound files to data tables. While you can set all directories manually, the easiest way to establish monitoraSom's directory structure is by using the `set_workspace()` function. This function automatically creates all necessary directories using a standard structure. If you choose to include the demo data as used here, you can set the parameter `example_data = TRUE`. This will copy all essential files from this demo into the working directory. Note that some directories are not required in this example and can be set to NULL.
 
-```{r}
+```{r eval=FALSE}
 set_workspace(
   project_path = current_dir, example_data = TRUE,
   app_presets_path = "./app_presets/",
@@ -76,7 +76,7 @@ The segmentation app is a multipurpose tool that can be used for various objecti
 
 Now that the directories are in place, let's launch the segmentation app with a minimal setup. The essential parameters for launching the app are the paths to the project folder (`project_path`), the path to the soundscapes folder (`soundscapes_path`), the path where to store the ROI tables folder (`roi_tables_path`), and the user identification (in this case set as `user`). You can note your ideal settings and establish the paths directly in the `launch_segmentation_app()`. The app will be launched by executing the command below.
 
-```{r eval = FALSE}
+```{r eval=FALSE}
 launch_segmentation_app(
     project_path = ".", user = "User Name",
     soundscapes_path = "./soundscapes/",
@@ -96,7 +96,7 @@ In this example, we preloaded the ROI tables with all songs of *B. culicivorus* 
 
 Let's launch the app again with a more complete setup. Instead of segmenting soundscape recordings, we will now segment focal recordings from the target species. Observe the structure of the song of *B. culicivorus* in the spectrogram and how consistent the substructures are across multiple songs. Avoid excluding the preloaded ROIs from this example to ensure the consistency of the next steps.
 
-```{r eval = FALSE}
+```{r eval=FALSE}
 launch_segmentation_app(
   project_path = ".", user = "User Name",
   soundscapes_path = "./recordings/",
@@ -242,7 +242,7 @@ If results with parallel processing and single-core processing are not significa
 
 The main objective of the validation process is to determine the optimal correlation threshold for efficient detection. The correlation threshold value directly influences the number of true positives and false positives in the results. While a higher correlation threshold tends to reduce false positives by ensuring that only strong matches are retained, it also reduces the number of true positives as the model becomes more selective. On the other hand, a lower correlation threshold increases recall by capturing more true positives, but at the cost of lower precision, as it leads to a higher number of false positives above the threshold. The ideal threshold strikes a balance between precision and recall, ensuring sufficient data for ecological analysis while maintaining the quality of the results.
 
-We will first demonstrate the validation process using the validation app, within which users can validate the detections manually. Because validation takes place with data produced after the template matching process, this validation is referred to as **a posteriori** validation.
+We will first demonstrate the validation process using the validation app, within which users can validate the detections manually. Because validation takes place with data produced after the template matching process, this validation is referred to as *a posteriori* validation.
 
 The file we will pass to the `input_path` argument should be the output of the `run_matching()` function, i.e., "detections/df_detecs.csv". However, it might be important to save the output file with a different name than the input file to preserve data and avoid rerunning the template matching process. With the steps below, we will make a copy of the detections file and use it as the input for the validation app.
 ```{r}
@@ -260,7 +260,7 @@ if (file.exists(original_file) && !file.exists(validation_file)) {
 
 Now we can launch the validation app. Note that we are using the validation copy as both the input file and the output file. This is a good practice to avoid overwriting the original data and to ensure we can validate the same data across multiple sessions.
 
-```{r eval = FALSE}
+```{r eval=FALSE}
 launch_validation_app(
   project_path = ".",
   validation_user = "Rosa G. L. M.",
@@ -287,14 +287,13 @@ df_detecs_val_manual <- read.csv(
   "validation_outputs/df_detecs_val_manual.csv", row.names = 1
 )
 ls_validations <- diagnostic_validations(
-  df_validated = df_detecs_val_manual,
-  diag_method = "auto", pos_prob = 0.9
+  df_validated = df_detecs_val_manual, pos_prob = 0.9
 )
 ```
 
 Let's extract and plot the diagnostics for the first template. The `ls_validations` object is a list in which each element is a list of diagnostics for a given template. Now we can plot the diagnostics of the first template.
 
-```{r, fig.width=10, fig.height=8}
+```{r fig.width=10, fig.height=6, out.width="100%"}
 diags_template01 <- ls_validations[[1]]
 diags_template01$mod_plot +
   diags_template01$precrec_plot +
@@ -304,7 +303,7 @@ diags_template01$mod_plot +
 
 We can see that the top-left panel shows the plot of the binomial model used to estimate the score threshold with a minimum precision of 95% (5% error). It shows that we were able to estimate the score threshold with a minimum precision of 95% (5% error), and although no false positives were found, we missed many true positives (i.e., we have many false negatives). The top-right panel shows the precision-recall plot, which shows the precision and recall of the template matching process at different correlation thresholds. We can see in this case that we can reach a recall slightly above 50% with full precision, yet to increase the recall, we would need to accept lower precision. The bottom-left panel shows the F1 score plot, which shows the F1 score of the template matching process at different correlation thresholds. The F1 score is the harmonic mean of precision and recall, and it is a good indicator of the overall performance of the template matching process. Yet, because we will prioritize precision over recall, the most adequate threshold is the one that maximizes precision. The bottom-right panel shows the density plot of the correlation values for both false positives and true positives. The extensive tail of the false positives distribution shows that the template matching process is very good at detecting the target species, but it is not perfect.
 
-Before extracting the final set of validations based on the correlation threshold, let's try another type of validation and compare the results. The alternative to the validation app is to use the `validate_by_overlap()` function, which allows users to validate the detections automatically based on the overlap between the detections and ROI tables of the soundscape recordings produced within the segmentation app. This validation method is referred to as **a priori** validation, as it is based on data previously available, namely the segmentation data from the soundscape recordings.
+Before extracting the final set of validations based on the correlation threshold, let's try another type of validation and compare the results. The alternative to the validation app is to use the `validate_by_overlap()` function, which allows users to validate the detections automatically based on the overlap between the detections and ROI tables of the soundscape recordings produced within the segmentation app. This validation method is referred to as *a priori* validation, as it is based on data previously available, namely the segmentation data from the soundscape recordings.
 
 Before proceeding, we need to import the ROIs.
 ```{r}
@@ -327,10 +326,9 @@ count(df_detecs_val_tovlp, validation)
 ```
 
 If we perform the validation diagnostics again, we see that taking FN into account does interfere with the performance metrics of the template matching process. Lets compute the diagnostics again and plot the results.
-```{r}
+```{r fig.width=10, fig.height=6, out.width="100%"}
 ls_validations_tovlp <- diagnostic_validations(
-  df_validated = df_detecs_val_tovlp,
-  diag_method = "auto", pos_prob = 0.85
+  df_validated = df_detecs_val_tovlp, pos_prob = 0.85
 )
 diags_template01_tovlp <- ls_validations_tovlp[[1]]
 diags_template01_tovlp$mod_plot +

@@ -51,8 +51,8 @@
 #'   between time guides in the spectrogram.
 #' @param freq_guide_interval A numeric value indicating the interval in kHz
 #'   between frequency guides in the spectrogram.
-#' @param confirm_paths If TRUE, the user will be asked to confirm the paths
-#'   setup at the app startup.
+#' @param skip_path_confirmation If TRUE, it will not be necessary to confirm
+#'   the paths setup at the app startup.
 #'
 #' @return todo
 #'
@@ -117,7 +117,7 @@ launch_validation_app <- function(
     dyn_range_detec = c(-84, 0), color_scale = "inferno", zoom_freq = c(0, 23),
     time_guide_interval = 1, freq_guide_interval = 1, subset_seed = 123,
     auto_next = TRUE, nav_autosave = TRUE, overwrite = FALSE, pitch_shift = 1,
-    visible_bp = FALSE, play_norm = FALSE, confirm_paths = TRUE
+    visible_bp = FALSE, play_norm = FALSE, skip_path_confirmation = TRUE
   ) {
 
   options(dplyr.summarise.inform = FALSE)
@@ -1304,7 +1304,7 @@ launch_validation_app <- function(
         )
       })
 
-      if (confirm_paths) {
+      if (skip_path_confirmation) {
         shinyjs::click("user_setup_confirm")
       }
 

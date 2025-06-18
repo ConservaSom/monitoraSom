@@ -69,8 +69,8 @@
 #'   between time guides in the spectrogram.
 #' @param freq_guide_interval A numeric value indicating the interval in kHz
 #'   between frequency guides in the spectrogram.
-#' @param confirm_paths If TRUE, the user will be asked to confirm the paths
-#'   setup at the app startup.
+#' @param skip_path_confirmation If TRUE, it will not be necessary to confirm
+#'   the paths setup at the app startup.
 #'
 #' @return A pop up with the rendered app.
 #' @export
@@ -115,7 +115,7 @@ launch_segmentation_app <- function(
     wav_player_type = "HTML player", wav_player_path = "play",
     visible_bp = FALSE, play_norm = FALSE, session_notes = NULL,
     zoom_freq = c(0, 180), nav_autosave = TRUE, pitch_shift = 1,
-    confirm_paths = TRUE
+    skip_path_confirmation = TRUE
   ) {
 
   # todo - RESOLVER O PROBLEMA DO REQUIRE
@@ -1540,7 +1540,7 @@ launch_segmentation_app <- function(
         return(nrow(duplicates) > 0)
       }
 
-      if (confirm_paths) {
+      if (skip_path_confirmation) {
         shinyjs::click("user_setup_confirm")
       }
 

@@ -18,8 +18,8 @@ return an error.}
 
 \item{diag_method}{A character string indicating the method to use for
 diagnostic validations. The two methods available are: "auto" (default) or
-"Manual". If "auto" is selected, the function will automatically determine
-the cutpoint to be used in the diagnostic validations. If "Manual" is
+"manual". If "auto" is selected, the function will automatically determine
+the cutpoint to be used in the diagnostic validations. If "manual" is
 selected, the user must explicitly pass the cutpoint to be used in the
 diagnostic validations to the `diag_cut` argument.}
 

@@ -34,7 +34,7 @@ launch_validation_app(
   pitch_shift = 1,
   visible_bp = FALSE,
   play_norm = FALSE,
-  confirm_paths = TRUE
+  skip_path_confirmation = TRUE
 )
 }
 \arguments{
@@ -112,8 +112,8 @@ navigates to another file.}
 
 \item{play_norm}{If TRUE, the played audio is normalized.}
 
-\item{confirm_paths}{If TRUE, the user will be asked to confirm the paths
-setup at the app startup.}
+\item{skip_path_confirmation}{If TRUE, it will not be necessary to confirm
+the paths setup at the app startup.}
 }
 \value{
 todo
