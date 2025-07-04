@@ -4,13 +4,18 @@
 \alias{diagnostic_validations}
 \title{Compute detection diagnostics of validated detections from multiple templates}
 \usage{
-diagnostic_validations(df_validated, pos_prob = 0.95)
+diagnostic_validations(df_validated, pos_prob = 0.95, val_a_priori = TRUE)
 }
 \arguments{
 \item{df_validated}{A tibble containing the validation results of the
 detections `validate_by_overlap()` function or within the validation app.}
 
 \item{pos_prob}{A numeric value indicating the probability of a positive test}
+
+\item{val_a_priori}{A logical value indicating whether the validation was
+performed with a priori method (with the `validate_by_overlap()` function),
+which defaults to TRUE. If FALSE, it will be assumed that the validation
+was performed with the a posteriori method (with the validation app).}
 }
 \value{
 A list of results from the diagnostic validations, or NULL if all
@@ -51,7 +56,7 @@ df_detecs_val_tovlp_subset <- df_detecs_val_tovlp \%>\%
 
 # Run the diagnostics on the validated detections
 ls_diag_tovlp <- diagnostic_validations(
-  df_validated = df_detecs_val_tovlp, pos_prob = 0.90
+  df_validated = df_detecs_val_tovlp, pos_prob = 0.90, val_a_priori = TRUE
 )
 
 # Check the number of templates in the diagnostics object
@@ -78,7 +83,7 @@ glimpse(df_detecs_val_manual)
 
 # Run the diagnostics on the validated detections
 ls_diag_manual <- diagnostic_validations(
-  df_validated = df_detecs_val_manual, pos_prob = 0.90
+  df_validated = df_detecs_val_manual, pos_prob = 0.90, val_a_priori = FALSE
 )
 
 # Check the number of templates in the diagnostics object
@@ -100,7 +105,6 @@ template_B <- ls_diag_manual[[1]]
     template_B$mod_plot + labs(title = "Manual validation")
 ) /
   (template_A$precrec_plot + template_B$precrec_plot)
-
 
 }
 }

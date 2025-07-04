@@ -3,11 +3,7 @@ title: '**monitoraSom**'
 subtitle: An easy path from Soundscapes to Population Ecology
 author: "Rosa, G. L. M.; Zurano, J. P.; Torres, I. M. D.; Simões, C. R.; dos Anjos, L.; de Araújo, C. B."
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Vignette Title}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+output: pdf_document
 ---
 
 # Overview
@@ -287,7 +283,7 @@ df_detecs_val_manual <- read.csv(
   "validation_outputs/df_detecs_val_manual.csv", row.names = 1
 )
 ls_validations <- diagnostic_validations(
-  df_validated = df_detecs_val_manual, pos_prob = 0.9
+  df_validated = df_detecs_val_manual, pos_prob = 0.9, val_a_priori = FALSE
 )
 ```
 
@@ -328,7 +324,7 @@ count(df_detecs_val_tovlp, validation)
 If we perform the validation diagnostics again, we see that taking FN into account does interfere with the performance metrics of the template matching process. Lets compute the diagnostics again and plot the results.
 ```{r fig.width=10, fig.height=6, out.width="100%"}
 ls_validations_tovlp <- diagnostic_validations(
-  df_validated = df_detecs_val_tovlp, pos_prob = 0.85
+  df_validated = df_detecs_val_tovlp, pos_prob = 0.85, val_a_priori = TRUE
 )
 diags_template01_tovlp <- ls_validations_tovlp[[1]]
 diags_template01_tovlp$mod_plot +

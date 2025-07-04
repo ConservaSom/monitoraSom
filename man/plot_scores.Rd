@@ -80,7 +80,7 @@ interpolated or not.}
 \item{...}{Other arguments passed to the seewave::spectro() function}
 }
 \value{
-Todo
+A ggplot object containing the spectrogram and the score vector.
 }
 \description{
 `r lifecycle::badge("experimental")`

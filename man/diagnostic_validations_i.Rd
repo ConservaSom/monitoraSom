@@ -8,7 +8,8 @@ diagnostic_validations_i(
   val_i,
   diag_method = "auto",
   pos_prob = 0.95,
-  diag_cut = NULL
+  diag_cut = NULL,
+  val_a_priori = TRUE
 )
 }
 \arguments{
@@ -30,6 +31,11 @@ defaults to 0.95.}
 \item{diag_cut}{A numeric value indicating the cutpoint to be used in the
 diagnostic, if `diag_method` is set to "manual", otherwise it is ignored.
 It defaults to NULL.}
+
+\item{val_a_priori}{A logical value indicating whether the validation was
+performed with a priori method (with the `validate_by_overlap()` function),
+which defaults to TRUE. If FALSE, it will be assumed that the validation
+was performed with the a posteriori method (with the validation app).}
 }
 \value{
 A list containing the diagnostic results

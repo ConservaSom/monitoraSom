@@ -21,14 +21,21 @@
 #' @param diag_cut A numeric value indicating the cutpoint to be used in the
 #'   diagnostic, if `diag_method` is set to "manual", otherwise it is ignored.
 #'   It defaults to NULL.
+#' @param val_a_priori A logical value indicating whether the validation was
+#'   performed with a priori method (with the `validate_by_overlap()` function),
+#'   which defaults to TRUE. If FALSE, it will be assumed that the validation
+#'   was performed with the a posteriori method (with the validation app).
 #'
 #' @import dplyr ggplot2
 #' @return A list containing the diagnostic results
 #' @export
 diagnostic_validations_i <- function(
-    val_i, diag_method = "auto", pos_prob = 0.95, diag_cut = NULL
-    ) {
-
+  val_i,
+  diag_method = "auto",
+  pos_prob = 0.95,
+  diag_cut = NULL,
+  val_a_priori = TRUE
+) {
   # check if there is only one template name in the data
   if (length(unique(val_i$template_name)) > 1) {
     stop(
@@ -81,7 +88,8 @@ diagnostic_validations_i <- function(
 
   bin_mod <- glm(
     validation_bin ~ peak_score,
-    family = "binomial", data = df_diag_input
+    family = "binomial",
+    data = df_diag_input
   )
 
   # For the "auto" method, the cutpoint is based is bin_mod predictions
@@ -93,9 +101,15 @@ diagnostic_validations_i <- function(
 
   if (n_fp >= 4 & n_tp >= 4) {
     cutpointr_raw <- cutpointr::cutpointr(
-      df_diag_input, peak_score, validation,
-      cutpoint = score_cut, silent = TRUE, pos_class = "TP",
-      neg_class = "FP", direction = ">=", method = cutpointr::oc_manual,
+      df_diag_input,
+      peak_score,
+      validation,
+      cutpoint = score_cut,
+      silent = TRUE,
+      pos_class = "TP",
+      neg_class = "FP",
+      direction = ">=",
+      method = cutpointr::oc_manual,
       use_midpoints = FALSE
     )
 
@@ -176,14 +190,18 @@ diagnostic_validations_i <- function(
   mod_plot <- ggplot(df_diag_input, aes(x = peak_score, y = validation_bin)) +
     geom_point(pch = 1) +
     stat_smooth(
-      formula = y ~ x, method = "glm",
-      method.args = list(family = "binomial"), se = TRUE,
-      fullrange = T, na.rm = TRUE
+      formula = y ~ x,
+      method = "glm",
+      method.args = list(family = "binomial"),
+      se = TRUE,
+      fullrange = T,
+      na.rm = TRUE
     ) +
     geom_vline(xintercept = score_cut, color = "red", linetype = 2) +
     labs(
       title = "Binomial regression",
-      y = "Probability of validations as TP", x = "Peak score"
+      y = "Probability of validations as TP",
+      x = "Peak score"
     ) +
     theme_bw()
 
@@ -218,63 +236,87 @@ diagnostic_validations_i <- function(
     )
 
   precrec_plot <- diag_out |>
-      ggplot(aes(recall, precision)) +
-      geom_line() +
-      geom_point(data = diag_out[sel_i, ], aes(recall, precision)) +
-      geom_vline(
-          xintercept = diag_out[sel_i, ]$recall, color = "red", linetype = 2
-      ) +
-      annotate(
-          "label",
-          x = 0.75, y = 0.25,
-          label = paste0(
-              "prAUC = ",
-              round(
-                  -fun_auc(diag_out$recall, diag_out$precision), 3
-              )
-          )
-      ) +
-      labs(title = "Precision and Recall", x = "Recall", y = "Precision") +
-      coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
-      theme_bw()
+    ggplot(aes(recall, precision)) +
+    geom_line() +
+    geom_point(data = diag_out[sel_i, ], aes(recall, precision)) +
+    geom_vline(
+      xintercept = diag_out[sel_i, ]$recall,
+      color = "red",
+      linetype = 2
+    ) +
+    annotate(
+      "label",
+      x = 0.75,
+      y = 0.25,
+      label = paste0(
+        "prAUC = ",
+        round(
+          -fun_auc(diag_out$recall, diag_out$precision),
+          3
+        )
+      )
+    ) +
+    labs(title = "Precision and Recall", x = "Recall", y = "Precision") +
+    coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
+    theme_bw()
 
   f1_plot <- diag_out |>
     ggplot(aes(peak_score, F1_score)) +
     geom_line() +
     geom_point(
-      data = diag_out[sel_i, ], aes(peak_score, F1_score)
+      data = diag_out[sel_i, ],
+      aes(peak_score, F1_score)
     ) +
     geom_vline(
-      xintercept = diag_out[sel_i, ]$peak_score, color = "red", linetype = 2
+      xintercept = diag_out[sel_i, ]$peak_score,
+      color = "red",
+      linetype = 2
     ) +
     labs(
-      title = "F1 score", x = "Peak score", y = "F1 score"
+      title = "F1 score",
+      x = "Peak score",
+      y = "F1 score"
     ) +
     theme_bw()
 
-  roc_plot <- diag_out |>
-    ggplot(aes(x = c(1 - specificity), y = sensitivity)) +
-    geom_line() +
-    geom_segment(
-      aes(x = 0, y = 0, xend = 1, yend = 1),
-      linetype = "dashed", color = "grey40"
-    ) +
-    geom_point(
-      data = diag_out[sel_i, ], aes(x = c(1 - specificity), y = sensitivity)
-    ) +
-    labs(
-      title = "ROC Curve", x = "False Positive Rate (1 - Specificity)",
-      y = "True Positive Rate (Sensitivity)"
-    ) +
-    annotate(
-      "label",
-      x = 0.75, y = 0.25,
-      label = paste0(
-        "AUC = ",
-        round(-fun_auc(1 - diag_out$specificity, diag_out$sensitivity), 3)
-      )
-    ) +
-    theme_bw()
+  if (val_a_priori) {
+    roc_plot <- diag_out |>
+      ggplot(aes(x = c(1 - specificity), y = sensitivity)) +
+      geom_line() +
+      geom_segment(
+        aes(x = 0, y = 0, xend = 1, yend = 1),
+        linetype = "dashed",
+        color = "grey40"
+      ) +
+      geom_point(
+        data = diag_out[sel_i, ],
+        aes(x = c(1 - specificity), y = sensitivity)
+      ) +
+      labs(
+        title = "ROC Curve",
+        x = "False Positive Rate (1 - Specificity)",
+        y = "True Positive Rate (Sensitivity)"
+      ) +
+      annotate(
+        "label",
+        x = 0.75,
+        y = 0.25,
+        label = paste0(
+          "AUC = ",
+          round(-fun_auc(1 - diag_out$specificity, diag_out$sensitivity), 3)
+        )
+      ) +
+      theme_bw()
+  } else {
+    roc_plot <- ggplot2::ggplot() +
+      ggplot2::annotate(
+        "label",
+        x = 1,
+        y = 1,
+        label = "ROC plot not available"
+      ) +
+      ggplot2::theme_void()
+  }
 
   res <- list(
     diagnostics = diag_out,

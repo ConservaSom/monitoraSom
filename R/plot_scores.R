@@ -47,7 +47,7 @@
 #' @param zoom_time Set time limits for the spectrogram panel.
 #' @param ... Other arguments passed to the seewave::spectro() function
 #'
-#' @return Todo
+#' @return A ggplot object containing the spectrogram and the score vector.
 #'
 #' @export
 #' @import ggplot2 patchwork seewave viridis

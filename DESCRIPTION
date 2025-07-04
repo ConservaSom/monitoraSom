@@ -20,7 +20,7 @@ Description: `monitoraSom` is an R package designed to overcome the challenges o
     rather than technical hurdles, accelerating the transformation of raw
     acoustic data into actionable knowledge.
 Depends:
-    R (>= 3.5)
+    R (>= 4.1.0)
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: TRUE

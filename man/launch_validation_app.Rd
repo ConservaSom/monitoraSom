@@ -115,9 +115,6 @@ navigates to another file.}
 \item{skip_path_confirmation}{If TRUE, it will not be necessary to confirm
 the paths setup at the app startup.}
 }
-\value{
-todo
-}
 \description{
 `r lifecycle::badge("experimental")`
 
