@@ -6,6 +6,8 @@
 #' recordings, including the template paths, frequency ranges, and detection
 #' thresholds.
 #'
-#' @format ## `df_grid` A data frame containing match grid parameters used for
-#'   template matching.
+#' @format ## `df_grid` A data frame with 72 rows and 17 columns containing
+#'   soundscape and template file information, including paths, durations,
+#'   sample rates, frequency ranges and other audio parameters used for template
+#'   matching.
 "df_grid"

@@ -5,7 +5,10 @@
 \alias{df_templates}
 \title{Metadata of templates}
 \format{
-## `df_templates` Add description here
+## `df_templates` A data frame with 6 rows and 11 columns containing
+  template metadata, including file paths, names, labels, temporal bounds,
+  sample rates, frequency ranges, and spectrogram parameters (window length
+  and overlap).
 }
 \usage{
 df_templates

@@ -27,7 +27,7 @@ tools::showNonASCIIfile("R/launch_segmentation_app.R")
 check()
 
 # montar um tar.gz do pacote
-# build()
+build()
 
 # use_build_ignore(
 #     list.files("example", recursive = TRUE),
