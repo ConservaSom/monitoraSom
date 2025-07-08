@@ -265,7 +265,7 @@ run_matching <- function(
     if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
       res <- pbapply::pblapply(
         X = grid_list, cl = set_cluster,
-        fun = function(x) {
+        FUN = function(x) {
           run_matching_i(
             df_grid_i = x, score_method = score_method, output = "scores",
             buffer_size = buffer_size, min_score = min_score,
