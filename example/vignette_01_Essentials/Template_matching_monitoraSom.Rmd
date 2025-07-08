@@ -270,7 +270,7 @@ launch_validation_app(
   output_path = "validation_outputs/df_detecs_val_manual.csv",
   dyn_range_templ = c(-42, 0), dyn_range_detec = c(-90, -48),
   wl = 512, ovlp = 70, time_pads = 0.5, nav_autosave = TRUE, overwrite = TRUE,
-  auto_next = TRUE, path_update = FALSE
+  auto_next = TRUE
 )
 ```
 
