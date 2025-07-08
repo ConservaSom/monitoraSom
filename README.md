@@ -14,7 +14,7 @@ View the complete template matching detection workflow vignette [in the monitora
 
 ## Setup and installation
 
-This package can be installed from GitHub on [github](http://github.com/). To install, you will need the [devtools](https://cran.r-project.org/package=devtools) package installed on your [R program](https://www.r-project.org/). The `monitoraSom` package is still under development, so be aware of potential breaking changes.
+This package can be installed from GitHub on [github](http://github.com/). To install, you will need an R version 4.1.0 or newer and [devtools](https://cran.r-project.org/package=devtools) package installed on your [R program](https://www.r-project.org/). The `monitoraSom` package is still under development, so be aware of potential breaking changes.
 
 **Note for Windows users**: Ensure you have Rtools compatible with your R version installed. Download from [CRAN](https://cran.r-project.org/bin/windows/Rtools/).
 
