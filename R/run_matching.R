@@ -142,7 +142,8 @@ run_matching <- function(
     if (is.null(output_file)) {
       grid_list <- split(df_grid, seq(nrow(df_grid)))
       res <- pbapply::pblapply(
-        grid_list, cl = ncores, function(x) {
+        grid_list, cl = ncores, 
+        FUN = function(x) {
           run_matching_i(
             df_grid_i = x,
             score_method = score_method,
@@ -241,8 +242,7 @@ run_matching <- function(
         )
       } else {
         res <- pbapply::pblapply(
-          grid_list,
-          cl = ncores,
+          grid_list, cl = ncores,
           FUN = function(x) {
             res <- run_matching_i(
               df_grid_i = x, score_method = score_method, output = "detections",
