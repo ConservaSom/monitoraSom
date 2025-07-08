@@ -23,6 +23,8 @@ Description: `monitoraSom` is an R package designed to overcome the challenges o
 Depends:
     R (>= 4.1.0)
 License: GPL (>= 3)
+URL: https://github.com/ConservaSom/monitoraSom
+BugReports: https://github.com/ConservaSom/monitoraSom/issues
 Encoding: UTF-8
 LazyData: TRUE
 LazyDataCompression: xz
