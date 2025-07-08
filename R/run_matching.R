@@ -141,32 +141,19 @@ run_matching <- function(
   if (output == "detections") {
     if (is.null(output_file)) {
       grid_list <- split(df_grid, seq(nrow(df_grid)))
-      if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
-        res <- parallel::parLapply(
-          cl = set_cluster, X = grid_list,
-          fun = function(x) {
-            run_matching_i(
-              df_grid_i = x, score_method = score_method, output = "detections",
-              buffer_size = buffer_size, min_score = min_score,
-              min_quant = min_quant, top_n = top_n
-            )
-          }
-        )
-      } else {
-        res <- pbapply::pblapply(
-          grid_list, cl = ncores, function(x) {
-            run_matching_i(
-              df_grid_i = x,
-              score_method = score_method,
-              output = "detections",
-              buffer_size = buffer_size,
-              min_score = min_score,
-              min_quant = min_quant,
-              top_n = top_n
-            )
-          }
-        )
-      }
+      res <- pbapply::pblapply(
+        grid_list, cl = ncores, function(x) {
+          run_matching_i(
+            df_grid_i = x,
+            score_method = score_method,
+            output = "detections",
+            buffer_size = buffer_size,
+            min_score = min_score,
+            min_quant = min_quant,
+            top_n = top_n
+          )
+        }
+      )
       res <- do.call(rbind, res)
       message(
         paste(

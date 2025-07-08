@@ -179,11 +179,13 @@ plot_scores <- function(
   )
 
   soundscape_spectro <- fast_spectro(
-    rec, f = rec@samp.rate, ovlp = ovlp, wl = wl, dyn_range = dyn_range,
+    rec,
+    f = rec@samp.rate, ovlp = ovlp, wl = wl, dyn_range = dyn_range,
     color_scale = color_scale, n_colors = 124, interpolate = interpolate
   ) +
     annotate(
-      "rect", alpha = 0, linewidth = 0.2, linetype = "solid",
+      "rect",
+      alpha = 0, linewidth = 0.2, linetype = "solid",
       color = selection_color,
       xmin = detecs$detection_start,
       xmax = detecs$detection_end,
@@ -204,7 +206,8 @@ plot_scores <- function(
       axis.title.x = element_blank(),
       axis.text.x = element_blank(),
       axis.ticks.x = element_blank()
-    )
+    ) +
+    theme_bw()
 
   plot_score <- df_scores_i$score_vec[[1]] |>
     ggplot(aes(x = time_vec, y = score_vec)) +
