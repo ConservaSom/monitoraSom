@@ -118,10 +118,6 @@ launch_segmentation_app <- function(
     skip_path_confirmation = TRUE
   ) {
 
-  # todo - RESOLVER O PROBLEMA DO REQUIRE
-  # require(shinyjs, exclude = "runExample")
-  # require(shinyWidgets, exclude = "alert")
-
   session_data <- list()
 
   if (!is.null(project_path)) {
@@ -797,7 +793,6 @@ launch_segmentation_app <- function(
                 width = 3,
                 shiny::selectizeInput(
                   "signal_type", "Type",
-                  # todo - implement custom choices based on a spreadsheet of signal types
                   choices = c(
                     "anuran - advertisement",
                     "anuran - advertisement - duet",
@@ -994,7 +989,6 @@ launch_segmentation_app <- function(
           return()
         }
 
-        # todo - replace a full list of files by df_soundscapes
         list_soundscapes <- fs::dir_ls(
           soundscape_path_val(),
           pattern = "(?i).wav$", recurse = TRUE, type = "file"
@@ -1229,7 +1223,6 @@ launch_segmentation_app <- function(
         if (x == "R session") {
           shiny::updateTextInput(session, "wav_player_path", value = "play")
           tuneR::setWavPlayer("play")
-          # todo Adicionar aqui uma opcao para detectar o OS e substituir o caminho default para o SoX (https://rug.mnhn.fr/seewave/HTML/MAN/sox.html)
           shinyjs::showElement("play_soundscape")
         } else if (x == "External player" & !is.null(input$wav_player_path)) {
           if (file.exists(input$wav_player_path)) {
@@ -1755,7 +1748,6 @@ launch_segmentation_app <- function(
           )
         }
 
-        # todo - add delay to avoid saving rois and rendering spectrograms mid navigation
         if (input$hotkeys == "z") {
           navigate_soundscape("prev")
         } else if (input$hotkeys == "c") {
@@ -2262,7 +2254,6 @@ launch_segmentation_app <- function(
 
       preset_path_load <- shiny::reactive(input$preset_path_load)
 
-      # todo update here
       shiny::observeEvent(input$default_pars, {
         shiny::req(rec_soundscape())
         shiny::updateSliderInput(

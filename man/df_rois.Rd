@@ -5,7 +5,9 @@
 \alias{df_rois}
 \title{Concatenated ROI table}
 \format{
-## `df_rois` add description here
+## `df_rois` A data frame with 79 rows and 19 columns containing ROI
+  (region of interest) data from soundscape recordings, including file paths,
+  temporal and frequency bounds, labels, and segmentation parameters.
 }
 \usage{
 df_rois

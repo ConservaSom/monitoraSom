@@ -28,7 +28,8 @@
 #'   if the output file already exists. Possible values are "append" and
 #'   "replace". To avoid overwriting existing files, set to "append", but be
 #'   aware that it can result in duplicated entries in the output file if the
-#'   function is run again. It defaults to "replace".
+#'   function is run again. It defaults to "replace". The "append" option is
+#'   not available for Windows systems when using multiple cores.
 #' @param buffer_size A character string indicating the size of the buffer to be
 #'   used in the function 'fetch_score_peaks()'. The two options are:
 #'   "template" or the number of frames of the template spectrogram to be used
@@ -125,9 +126,16 @@ run_matching <- function(
   output <- match.arg(output, c("detections", "scores"))
   autosave_action <- match.arg(autosave_action, c("append", "replace"))
 
+  cluster_created <- FALSE
   if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
     if (ncores <= parallel::detectCores()) {
       set_cluster <- parallel::makeCluster(ncores)
+      cluster_created <- TRUE
+      on.exit({
+        if (cluster_created) {
+          parallel::stopCluster(set_cluster)
+        }
+      })
     } else {
       stop(
         paste(
@@ -141,32 +149,21 @@ run_matching <- function(
   if (output == "detections") {
     if (is.null(output_file)) {
       grid_list <- split(df_grid, seq(nrow(df_grid)))
-      if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
-        res <- parallel::parLapply(
-          cl = set_cluster, X = grid_list,
-          fun = function(x) {
-            run_matching_i(
-              df_grid_i = x, score_method = score_method, output = "detections",
-              buffer_size = buffer_size, min_score = min_score,
-              min_quant = min_quant, top_n = top_n
-            )
-          }
-        )
-      } else {
-        res <- pbapply::pblapply(
-          grid_list, cl = ncores, function(x) {
-            run_matching_i(
-              df_grid_i = x,
-              score_method = score_method,
-              output = "detections",
-              buffer_size = buffer_size,
-              min_score = min_score,
-              min_quant = min_quant,
-              top_n = top_n
-            )
-          }
-        )
-      }
+      res <- pbapply::pblapply(
+        grid_list,
+        cl = ncores,
+        FUN = function(x) {
+          run_matching_i(
+            df_grid_i = x,
+            score_method = score_method,
+            output = "detections",
+            buffer_size = buffer_size,
+            min_score = min_score,
+            min_quant = min_quant,
+            top_n = top_n
+          )
+        }
+      )
       res <- do.call(rbind, res)
       message(
         paste(
@@ -241,22 +238,23 @@ run_matching <- function(
       if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
         res <- pbapply::pblapply(
           X = grid_list, cl = set_cluster,
-          fun = function(x) {
+          FUN = function(x) {
             run_matching_i(
               df_grid_i = x, score_method = score_method, output = "detections",
               buffer_size = buffer_size, min_score = min_score,
               min_quant = min_quant, top_n = top_n
             )
-            sink(output_file, append = TRUE)
-            write.table(res, sep = ",", row.names = FALSE, col.names = FALSE)
-            sink()
           }
+        )
+        res <- do.call(rbind, res)
+        write.table(
+          res, file = output_file, sep = ",", row.names = FALSE,
+          col.names = FALSE
         )
       } else {
         res <- pbapply::pblapply(
-          grid_list,
-          cl = ncores,
-          function(x) {
+          grid_list, cl = ncores,
+          FUN = function(x) {
             res <- run_matching_i(
               df_grid_i = x, score_method = score_method, output = "detections",
               buffer_size = buffer_size, min_score = min_score,
@@ -278,7 +276,7 @@ run_matching <- function(
     if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
       res <- pbapply::pblapply(
         X = grid_list, cl = set_cluster,
-        fun = function(x) {
+        FUN = function(x) {
           run_matching_i(
             df_grid_i = x, score_method = score_method, output = "scores",
             buffer_size = buffer_size, min_score = min_score,

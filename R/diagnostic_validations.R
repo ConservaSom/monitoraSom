@@ -13,6 +13,10 @@
 #' @param df_validated A tibble containing the validation results of the
 #'   detections `validate_by_overlap()` function or within the validation app.
 #' @param pos_prob A numeric value indicating the probability of a positive test
+#' @param val_a_priori A logical value indicating whether the validation was
+#'   performed with a priori method (with the `validate_by_overlap()` function),
+#'   which defaults to TRUE. If FALSE, it will be assumed that the validation
+#'   was performed with the a posteriori method (with the validation app).
 #' @return A list of results from the diagnostic validations, or NULL if all
 #'   validations failed.
 #' @export
@@ -40,7 +44,7 @@
 #'
 #' # Run the diagnostics on the validated detections
 #' ls_diag_tovlp <- diagnostic_validations(
-#'   df_validated = df_detecs_val_tovlp, pos_prob = 0.90
+#'   df_validated = df_detecs_val_tovlp, pos_prob = 0.90, val_a_priori = TRUE
 #' )
 #'
 #' # Check the number of templates in the diagnostics object
@@ -67,7 +71,7 @@
 #'
 #' # Run the diagnostics on the validated detections
 #' ls_diag_manual <- diagnostic_validations(
-#'   df_validated = df_detecs_val_manual, pos_prob = 0.90
+#'   df_validated = df_detecs_val_manual, pos_prob = 0.90, val_a_priori = FALSE
 #' )
 #'
 #' # Check the number of templates in the diagnostics object
@@ -90,10 +94,11 @@
 #' ) /
 #'   (template_A$precrec_plot + template_B$precrec_plot)
 #'
-#'
 #' }
 diagnostic_validations <- function(
-  df_validated, pos_prob = 0.95
+  df_validated,
+  pos_prob = 0.95,
+  val_a_priori = TRUE
 ) {
   split_validations <- df_validated |>
     dplyr::group_by(template_name) |>
@@ -106,7 +111,10 @@ diagnostic_validations <- function(
         {
           suppressWarnings(
             diagnostic_validations_i(
-              val_i = x, diag_method = "auto", pos_prob = pos_prob
+              val_i = x,
+              diag_method = "auto",
+              pos_prob = pos_prob,
+              val_a_priori = val_a_priori
             )
           )
         },

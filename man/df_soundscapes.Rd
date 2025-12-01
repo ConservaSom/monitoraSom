@@ -5,7 +5,9 @@
 \alias{df_soundscapes}
 \title{Metadata of soundscape recordings}
 \format{
-## `df_soundscapes` Add description here
+## `df_soundscapes` A data frame with 12 rows and 6 columns
+  containing metadata from soundscape recordings, including file paths,
+  durations, sample rates, bit rates, and audio channel layouts.
 }
 \usage{
 df_soundscapes

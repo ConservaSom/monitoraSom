@@ -5,7 +5,10 @@
 \alias{df_detecs}
 \title{Detections}
 \format{
-## `df_detecs` Add description here
+## `df_detecs` A data frame with 4,363 rows and 21 columns containing
+detection results from soundscape analysis, including soundscape and template
+file information, template parameters, detection timing and parameters, and
+detection peak metrics.
 }
 \usage{
 df_detecs

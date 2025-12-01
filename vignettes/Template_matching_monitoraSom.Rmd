@@ -270,7 +270,7 @@ launch_validation_app(
   output_path = "validation_outputs/df_detecs_val_manual.csv",
   dyn_range_templ = c(-42, 0), dyn_range_detec = c(-90, -48),
   wl = 512, ovlp = 70, time_pads = 0.5, nav_autosave = TRUE, overwrite = TRUE,
-  auto_next = TRUE, path_update = FALSE
+  auto_next = TRUE
 )
 ```
 
@@ -287,7 +287,7 @@ df_detecs_val_manual <- read.csv(
   "validation_outputs/df_detecs_val_manual.csv", row.names = 1
 )
 ls_validations <- diagnostic_validations(
-  df_validated = df_detecs_val_manual, pos_prob = 0.9
+  df_validated = df_detecs_val_manual, pos_prob = 0.9, val_a_priori = FALSE
 )
 ```
 
@@ -328,7 +328,7 @@ count(df_detecs_val_tovlp, validation)
 If we perform the validation diagnostics again, we see that taking FN into account does interfere with the performance metrics of the template matching process. Lets compute the diagnostics again and plot the results.
 ```{r fig.width=10, fig.height=6, out.width="100%"}
 ls_validations_tovlp <- diagnostic_validations(
-  df_validated = df_detecs_val_tovlp, pos_prob = 0.85
+  df_validated = df_detecs_val_tovlp, pos_prob = 0.85, val_a_priori = TRUE
 )
 diags_template01_tovlp <- ls_validations_tovlp[[1]]
 diags_template01_tovlp$mod_plot +
