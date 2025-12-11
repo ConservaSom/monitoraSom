@@ -82,7 +82,9 @@ Multiple directories at the project path.
 
   This function sets the working directory to the project path and creates
   the necessary directories if they do not exist. It also creates the species
-  labels file if it doesn't exist.
+  labels file if it doesn't exist. CAUTION: This function is not supposed to
+  be used to modify an existing project, if done so, it will overwrite any
+  files that have the same names as the ones from the example data.
 }
 \examples{
 \dontrun{
@@ -93,24 +95,31 @@ Multiple directories at the project path.
 # start a new one within the project directory to run the examples or to build a
 # new project from scratch.
 
-# set the workspace to the current directory and populate it with the complete
+# Caution: This function is not supposed to be used to modify an existing
+# project, if done so, it will overwrite any files that have the same names
+# as the ones from the example data.
+
+# Set the workspace to the current directory and populate it with the complete
 # example data. Uncomment the command below to run it.
 
 # library(monitoraSom)
-# set_workspace(
-#     project_path = NULL, ext_soundscapes_path = FALSE, example_data = TRUE
-# )
+# current_dir <- "<path/to/your/working/directory>"
+# set_workspace(project_path = current_dir, example_data = TRUE)
+
+# After running set_workspace, re recommend reading the messages in the
+# console to verify that the workspace was set as expected.
 
 # Or, alternatively, set the workspace to the current directory and populate it
 # only with the subdirectories with the recommended structure for a new project.
 # When working with soundscapes stored in external directories, which is highly
-# recommended, the `ext_soundscapes_path` argument should be set to `TRUE` and
+# recommended, the `soundscapes_path` argument should be set to `NA` and
 # it will prevent the creation of a soundscapes subdirectory. Uncomment the
-# command below to run it.
+# command below to run it:
 
 # library(monitoraSom)
+# current_dir <- "<path/to/your/working/directory>"
 # set_workspace(
-#     project_path = NULL, ext_soundscapes_path = TRUE, example_data = FALSE
+#     project_path = current_dir, soundscapes_path = NA, example_data = FALSE
 # )
 
 }

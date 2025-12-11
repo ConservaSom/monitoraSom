@@ -1347,20 +1347,15 @@ launch_validation_app <- function(
           path <- paths_to_check[[path_name]]
           if (!dir.exists(path)) {
             validation_errors <- c(
-              validation_errors,
-              sprintf("%s does not exist", path_name)
+              validation_errors, sprintf("%s does not exist", path_name)
             )
           } else if (
             length(
               fs::dir_ls(
-                path,
-                type = "file",
-                glob = "*.wav",
-                recurse = TRUE,
+                path, type = "file", glob = "*.wav", recurse = TRUE,
                 ignore.case = TRUE
               )
-            ) ==
-              0
+            ) == 0
           ) {
             validation_errors <- c(
               validation_errors,
@@ -1373,8 +1368,7 @@ launch_validation_app <- function(
         output_dir <- dirname(input$output_path)
         if (!dir.exists(output_dir)) {
           validation_errors <- c(
-            validation_errors,
-            "Output directory does not exist"
+            validation_errors, "Output directory does not exist"
           )
         }
 

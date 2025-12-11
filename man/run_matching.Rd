@@ -42,7 +42,8 @@ is NULL. We recommend to export detection or raw score files to the
 if the output file already exists. Possible values are "append" and
 "replace". To avoid overwriting existing files, set to "append", but be
 aware that it can result in duplicated entries in the output file if the
-function is run again. It defaults to "replace".}
+function is run again. It defaults to "replace". The "append" option is
+not available for Windows systems when using multiple cores.}
 
 \item{buffer_size}{A character string indicating the size of the buffer to be
 used in the function 'fetch_score_peaks()'. The two options are:

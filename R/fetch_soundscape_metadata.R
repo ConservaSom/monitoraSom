@@ -68,7 +68,7 @@ fetch_soundscape_metadata <- function(
 
   ls_soundscapes_raw <- fs::dir_ls(
     soundscapes_path,
-    pattern = "(?i).wav$", recurse = TRUE, type = "file"
+    regexp = "(?i).wav$", recurse = TRUE, type = "file"
   )
 
   if (length(ls_soundscapes_raw) == 0) {
