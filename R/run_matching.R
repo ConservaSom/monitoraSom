@@ -125,25 +125,43 @@ run_matching <- function(
 ) {
   output <- match.arg(output, c("detections", "scores"))
   autosave_action <- match.arg(autosave_action, c("append", "replace"))
+  score_method <- match.arg(score_method, c("cor", "dtw"))
+
+  if (ncores > parallel::detectCores()) {
+    stop(
+      paste(
+        "The number of cores requested (", ncores,
+        ") cannot be higher than the number of available cores (",
+        parallel::detectCores(), ")"
+      )
+    )
+  }
 
   cluster_created <- FALSE
   if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
-    if (ncores <= parallel::detectCores()) {
-      set_cluster <- parallel::makeCluster(ncores)
-      cluster_created <- TRUE
-      on.exit({
-        if (cluster_created) {
-          parallel::stopCluster(set_cluster)
-        }
+    set_cluster <- parallel::makeCluster(ncores)
+    cluster_created <- TRUE
+    on.exit({
+      if (cluster_created) {
+        parallel::stopCluster(set_cluster)
+      }
+    })
+    parallel::clusterEvalQ(set_cluster, {
+      library(tuneR)
+      library(seewave)
+      library(slider)
+      library(tidyr)
+      library(tibble)
+      library(monitoraSom)
+    })
+    if (score_method == "dtw") {
+      parallel::clusterEvalQ(set_cluster, {
+        library(dtw)
+        library(dtwclust)
       })
-    } else {
-      stop(
-        paste(
-          "The number of cores requested cannot be higher than the number of ",
-          "available cores"
-        )
-      )
     }
+  } else {
+    set_cluster <- ncores
   }
 
   if (output == "detections") {
@@ -151,16 +169,12 @@ run_matching <- function(
       grid_list <- split(df_grid, seq(nrow(df_grid)))
       res <- pbapply::pblapply(
         grid_list,
-        cl = ncores,
+        cl = set_cluster,
         FUN = function(x) {
           run_matching_i(
-            df_grid_i = x,
-            score_method = score_method,
-            output = "detections",
-            buffer_size = buffer_size,
-            min_score = min_score,
-            min_quant = min_quant,
-            top_n = top_n
+            df_grid_i = x, score_method = score_method, output = "detections",
+            buffer_size = buffer_size, min_score = min_score,
+            min_quant = min_quant, top_n = top_n
           )
         }
       )
@@ -193,7 +207,7 @@ run_matching <- function(
       if (file.exists(output_file) && autosave_action == "append") {
         df_check <- data.table::fread(output_file)
         if (nrow(df_check) > 0) {
-          df_check <- df_check %>%
+          df_check <- df_check |>
             dplyr::transmute(
               soundscape_file = soundscape_file,
               template_file = template_file,
@@ -235,6 +249,7 @@ run_matching <- function(
         }
       }
       grid_list <- split(df_grid, seq(nrow(df_grid)))
+
       if (ncores > 1 && Sys.info()["sysname"] == "Windows") {
         res <- pbapply::pblapply(
           X = grid_list, cl = set_cluster,
@@ -249,11 +264,11 @@ run_matching <- function(
         res <- do.call(rbind, res)
         write.table(
           res, file = output_file, sep = ",", row.names = FALSE,
-          col.names = FALSE
+          col.names = TRUE
         )
       } else {
         res <- pbapply::pblapply(
-          grid_list, cl = ncores,
+          grid_list, cl = set_cluster,
           FUN = function(x) {
             res <- run_matching_i(
               df_grid_i = x, score_method = score_method, output = "detections",
@@ -287,7 +302,7 @@ run_matching <- function(
     } else {
       res <- pbapply::pblapply(
         grid_list,
-        cl = ncores,
+        cl = set_cluster,
         function(x) {
           run_matching_i(
             df_grid_i = x,
