@@ -1,0 +1,17 @@
+#' Spectrogram Labels
+#'
+#' A data frame containing spectrogram labels and acoustic measurements for
+#' soundscape recordings. The lists in the `roi_label_lists` data frame are used
+#' to label the species in the spectrograms within the segmentation shiny app.
+#' When lauching the app, a xlsx spreadsheet is created within the working
+#' directory, in which users can add custom species labels as new columns, with
+#' the first cell as the title of that respective list.
+#'
+#' @format ## `roi_label_lists` A data frame with the following columns:
+#' \describe{
+#'   \item{`Brazillian birds (Pacheco et al. 2021)`}{List of bird species from from Brazil, #' published in Pacheco et al. (2021; \url{https://doi.org/10.1007/s43388-021-00058-x}).}
+#'   \item{`Argentinian birds (Monteleone & Pagano 2022)`}{List of bird species from Argentina, published in Monteleone & Pagano (2022; \url{https://www.avesargentinas.org.ar/listado-de-las-aves-argentinas}; ISBN 978-987-4192-21-9).}
+#'   \item{`Brazillian amphibians (Segalla et al. 2025)`}{List of amphibian species from from Brazil, published by Segalla et al. (2021; \url{https://doi.org/10.5281/zenodo.4716176}).}
+#'   \item{`Brazillian bats (Garbino et al. 2024)`}{List of bat species from from Brazil, published in Garbino et al. (2024; \url{https://doi.org/10.1590/S1984-4689.v41.e23073}).}
+#' }
+"roi_label_lists"

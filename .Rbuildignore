@@ -7,7 +7,7 @@
 ^LICENSE\.md$
 NoSync_extras&tests/
 00_build_script.R
-app_presets/sp_labels.xlsx
+app_presets/roi_label_lists.xlsx
 detections/df_detecs.csv
 launch_validation_app_backup.R
 match_grid_metadata/df_grid.csv
@@ -49,7 +49,7 @@ templates/Bcu_2_014.393-014.794s_02.975-09.554kHz_1024wl_70ovlp_Basileuterus cul
 templates/Bcu_2_024.071-024.462s_02.878-09.636kHz_1024wl_70ovlp_Basileuterus culicivorus.wav
 validation_outputs/df_detecs_val_manual.csv
 validation_outputs/df_detecs_val_tovlp.csv
-vignette_01_Essentials/app_presets/sp_labels.xlsx
+vignette_01_Essentials/app_presets/roi_label_lists.xlsx
 vignette_01_Essentials/detections/df_detecs.csv
 vignette_01_Essentials/images/Complete_App.png
 vignette_01_Essentials/images/ROI_App.jpg

@@ -23,8 +23,8 @@
 #'   in the segmentation. This file must be a '.xlsx' spreadsheet in which
 #'   available lists are stored as columns, identified in the app menu by their
 #'   titles.
-#' @param sp_list A character string with the available labels to be used in the
-#'   current session. The default is "CBRO-2021 (Birds - Brazil)".
+#' @param roi_label_list A character string with the available labels to be used in the
+#'   current session. The default is "Brazillian birds (Pacheco et al. 2021)".
 #' @param label_angle Angle between 0 and 180 to draw the ROI labels in the
 #'   spectrogram plot.
 #' @param show_label If TRUE, ROI labels will be displayed alongside ROI
@@ -108,7 +108,8 @@
 launch_segmentation_app <- function(
     project_path = NULL, preset_path = NULL, user = NULL,
     soundscapes_path = NULL, roi_tables_path = NULL, cuts_path = NULL,
-    labels_file = NULL, sp_list = "CBRO-2021 (Birds - Brazil)",
+    labels_file = NULL,
+    roi_label_list = "Brazillian birds (Pacheco et al. 2021)",
     label_angle = 90, show_label = TRUE, time_guide_interval = 3,
     freq_guide_interval = 2, dyn_range = c(-60, 0), dyn_range_bar = c(-144, 0),
     wl = 1024, ovlp = 0, color_scale = "inferno",
@@ -357,11 +358,11 @@ launch_segmentation_app <- function(
   }
   session_data$pitch_shift <- pitch_shift
 
-  # Load species labels with proper fallback
-  load_species_labels <- function(labels_file, project_path) {
+  # Load ROI label lists with proper fallback
+  load_roi_label_lists <- function(labels_file, project_path) {
     # Load default labels from package
-    data("sp_labels", package = "monitoraSom", envir = environment())
-    default_labels <- sp_labels
+    data("roi_label_lists", package = "monitoraSom", envir = environment())
+    default_labels <- roi_label_lists
     # Return if no custom path needed
     if (is.null(labels_file) && is.null(project_path)) {
       return(default_labels)
@@ -369,12 +370,17 @@ launch_segmentation_app <- function(
     # Try custom file if provided
     if (!is.null(labels_file) && file.exists(labels_file)) {
       return(tryCatch(
-        readxl::read_xlsx(labels_file), error = function(e) default_labels
+        readxl::read_xlsx(labels_file),
+        error = function(e) default_labels
       ))
     }
     # Handle project path case
     if (!is.null(project_path)) {
-      preset_path <- file.path(project_path, "app_presets", "sp_labels.xlsx")
+      preset_path <- file.path(
+        project_path,
+        "app_presets",
+        "roi_label_lists.xlsx"
+      )
       if (!dir.exists(dirname(preset_path))) {
         dir.create(dirname(preset_path), recursive = TRUE)
       }
@@ -388,12 +394,12 @@ launch_segmentation_app <- function(
     }
     return(default_labels)
   }
-  sp_labels <- load_species_labels(labels_file, project_path)
+  roi_label_lists <- load_roi_label_lists(labels_file, project_path)
 
-  if (!sp_list %in% colnames(sp_labels)) {
-    warning("The selected species list is not among the available species lists. Using the default species list.")
+  if (!roi_label_list %in% colnames(roi_label_lists)) {
+    warning("The selected ROI label list is not among the available ROI label lists. Using the default ROI label list.")
   }
-  session_data$sp_list <- sp_list
+  session_data$roi_label_list <- roi_label_list
 
   # This function defines where embedded html wav players will look for the files
   shiny::addResourcePath("audio", session_data$temp_path)
@@ -672,8 +678,8 @@ launch_segmentation_app <- function(
             shiny::column(
               width = 2,
               shiny::selectizeInput(
-                "sp_list", "Available species names",
-                choices = session_data$sp_list, selected = sp_list,
+                "roi_label_list", "Available ROI label lists",
+                choices = session_data$roi_label_list, selected = roi_label_list,
                 width = "100%"
               )
             )
@@ -794,38 +800,27 @@ launch_segmentation_app <- function(
                 shiny::selectizeInput(
                   "signal_type", "Type",
                   choices = c(
-                    "anuran - advertisement",
-                    "anuran - advertisement - duet",
-                    "anuran - advertisement - multiple",
-                    "anuran - alarm",
-                    "anuran - amplectant",
-                    "anuran - courtship",
-                    "anuran - displacement",
-                    "anuran - distres",
-                    "anuran - encounter",
-                    "anuran - feeding",
-                    "anuran - fighting",
-                    "anuran - post-oviposition",
-                    "anuran - rain",
-                    "anuran - release",
-                    "anuran - territorial",
-                    "anuran - warning",
-                    "bat - echolocation call",
-                    "bat - echolocation call - mutiple",
-                    "bat - feed buzz",
-                    "bat - feed buzz - multiple",
-                    "bat - social call",
-                    "bat - social call - multiple",
-                    "bird - song",
-                    "bird - song - duet",
-                    "bird - song - multiple",
-                    "bird - call",
-                    "bird - call - duet",
-                    "bird - call - multiple",
-                    "bird - mechanical",
+                    "advertisement",
+                    "alarm",
+                    "amplectant",
                     "anthopophony",
+                    "call",
+                    "courtship",
+                    "displacement",
+                    "distress",
+                    "echolocation call",
+                    "encounter",
+                    "feeding buzz",
+                    "fighting",
                     "geophony",
-                    "other"
+                    "mechanical",
+                    "other",
+                    "rain",
+                    "release",
+                    "social call",
+                    "song",
+                    "territorial",
+                    "warning"
                   ),
                   options = list(
                     placeholder = "ex.: song",
@@ -1055,21 +1050,21 @@ launch_segmentation_app <- function(
 
       shiny::observe({
         shiny::updateSelectizeInput(
-          session, "sp_list",
-          choices = colnames(sp_labels), selected = sp_list,
+          session, "roi_label_list",
+          choices = colnames(roi_label_lists), selected = roi_label_list,
           server = TRUE
         )
       })
 
-      shiny::observeEvent(input$sp_list, {
-        shiny::req(input$sp_list)
-        res <- sp_labels %>% pull(input$sp_list)
+      shiny::observeEvent(input$roi_label_list, {
+        shiny::req(input$roi_label_list)
+        res <- roi_label_lists %>% pull(input$roi_label_list)
         shiny::updateSelectizeInput(
           session, "label_name",
           choices = c(NA, res),
           selected = NULL, server = TRUE,
           options = list(
-            placeholder = "Input the species name here",
+            placeholder = "Input the ROI label here",
             onInitialize = I('function() { this.setValue(""); }'),
             "create" = TRUE, "persist" = FALSE
           )
@@ -2322,7 +2317,7 @@ launch_segmentation_app <- function(
           session_notes = input$session_notes,
           zoom_freq = input$zoom_freq,
           nav_autosave = input$nav_autosave,
-          sp_list = input$sp_list,
+          roi_label_list = input$roi_label_list,
           pitch_shift = input$pitch_shift
         )
         session_settings(res)
@@ -2458,7 +2453,7 @@ launch_segmentation_app <- function(
         # ROI Input
         soundscape_file = "Select current soundscape",
         roi_table_name = "Select ROI table",
-        sp_list = "Choose label list",
+        roi_label_list = "Choose label list",
         label_name = "Name for next ROI",
         signal_type = "Type of sound",
         label_certainty = "Confidence in identification",
@@ -2483,7 +2478,7 @@ launch_segmentation_app <- function(
           title = tooltips[[id]],
           placement = if (id %in% c(
             "zoom_time", "soundscape_file", "roi_table_name",
-            "sp_list", "label_name", "signal_type",
+            "roi_label_list", "label_name", "signal_type",
             "label_certainty", "signal_is_complete",
             "label_comment", "save_roi", "export_new_roi_table",
             "export_selected_cut", "delete_selected_rois",

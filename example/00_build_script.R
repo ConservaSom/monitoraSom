@@ -94,13 +94,13 @@ use_version()
 library(dplyr)
 library(tuneR)
 
-# Species lists
-sp_labels <- readxl::read_xlsx(
-    "example/app_presets/sp_labels.xlsx"
+# Available ROI lists
+roi_label_lists <- readxl::read_xlsx(
+    "./example/app_presets/roi_label_lists.xlsx"
 ) %>%
     as.data.frame() %>%
     glimpse()
-# sp_labels$`CBRO-2021 (Birds - Brazil)` %>% tail()
+# roi_label_lists$`CBRO-2021 (Birds - Brazil)` %>% tail()
 
 # Focal recordings
 ls_recordings_raw <- list.files("example/recordings", full.names = TRUE)
@@ -157,7 +157,7 @@ df_detecs_val_tovlp <- read.csv(
     glimpse()
 
 {
-    usethis::use_data(sp_labels, overwrite = TRUE)
+    usethis::use_data(roi_label_lists, overwrite = TRUE)
     usethis::use_data(ls_recordings, overwrite = TRUE)
     usethis::use_data(ls_soundscapes, overwrite = TRUE)
     usethis::use_data(ls_templates, overwrite = TRUE)
@@ -185,7 +185,7 @@ df_detecs_val_tovlp <- read.csv(
     tools::resaveRdaFiles("data/ls_roi_tables.rda", compress = "xz")
     tools::resaveRdaFiles("data/ls_soundscapes.rda", compress = "xz")
     tools::resaveRdaFiles("data/ls_templates.rda", compress = "xz")
-    tools::resaveRdaFiles("data/sp_labels.rda", compress = "xz")
+    tools::resaveRdaFiles("data/roi_label_lists.rda", compress = "xz")
 }
 
 # tools::checkRdaFiles("data/df_detecs_val_manual.rda")
@@ -200,7 +200,7 @@ df_detecs_val_tovlp <- read.csv(
 # tools::checkRdaFiles("data/ls_roi_tables.rda")
 # tools::checkRdaFiles("data/ls_soundscapes.rda")
 # tools::checkRdaFiles("data/ls_templates.rda")
-# tools::checkRdaFiles("data/sp_labels.rda")
+# tools::checkRdaFiles("data/roi_label_lists.rda")
 
 # Para descrever os datasets
 
@@ -218,7 +218,7 @@ data(ls_recordings)
 data(ls_roi_tables)
 data(ls_soundscapes)
 data(ls_templates)
-data(sp_labels)
+data(roi_label_lists)
 
 str(df_detecs_val_manual)
 str(df_detecs_val_tovlp)
@@ -232,7 +232,7 @@ str(ls_recordings)
 str(ls_roi_tables)
 str(ls_soundscapes)
 str(ls_templates)
-str(sp_labels)
+str(roi_label_lists)
 
 # Tests ------------------------------------------------------------
 

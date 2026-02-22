@@ -198,10 +198,10 @@ set_workspace <- function(
     )
 
     if (!is.na(app_presets_path)) {
-        labels_file <- file.path(app_presets_path, "sp_labels.xlsx")
+        labels_file <- file.path(app_presets_path, "roi_label_lists.xlsx")
         if (!file.exists(labels_file)) {
-            data("sp_labels", package = "monitoraSom", envir = environment())
-            openxlsx::write.xlsx(sp_labels, labels_file)
+            data("roi_label_lists", package = "monitoraSom", envir = environment())
+            openxlsx::write.xlsx(roi_label_lists, labels_file)
         } else {
             message(
                 "- The labels file already exists. It will not be overwritten."

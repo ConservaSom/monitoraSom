@@ -12,7 +12,7 @@ launch_segmentation_app(
   roi_tables_path = NULL,
   cuts_path = NULL,
   labels_file = NULL,
-  sp_list = "CBRO-2021 (Birds - Brazil)",
+  roi_label_list = "Brazillian birds (Pacheco et al. 2021)",
   label_angle = 90,
   show_label = TRUE,
   time_guide_interval = 3,
@@ -57,8 +57,8 @@ in the segmentation. This file must be a '.xlsx' spreadsheet in which
 available lists are stored as columns, identified in the app menu by their
 titles.}
 
-\item{sp_list}{A character string with the available labels to be used in the
-current session. The default is "CBRO-2021 (Birds - Brazil)".}
+\item{roi_label_list}{A character string with the available labels to be used in the
+current session. The default is "Brazillian birds (Pacheco et al. 2021)".}
 
 \item{label_angle}{Angle between 0 and 180 to draw the ROI labels in the
 spectrogram plot.}
