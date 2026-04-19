@@ -1345,7 +1345,7 @@ launch_segmentation_app <- function(
             soundscape_path = soundscape_path,
             soundscape_file = soundscape_file,
             roi_user = roi_user,
-            roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S"),
+            roi_input_timestamp = format(as.POSIXct(roi_input_timestamp), "%Y-%m-%d %H:%M:%S"),
             roi_label = roi_label,
             roi_start = roi_start,
             roi_end = roi_end,
@@ -1388,7 +1388,7 @@ launch_segmentation_app <- function(
         saved_rois <- data.table::fread(file = file_path) %>%
           as.data.frame() %>%
           dplyr::mutate(
-            roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S")
+            roi_input_timestamp = format(as.POSIXct(roi_input_timestamp), "%Y-%m-%d %H:%M:%S")
           )
         if (nrow(current_rois) == 0) {
           if (nrow(saved_rois) > 0) {
@@ -2344,7 +2344,7 @@ launch_segmentation_app <- function(
             saved_rois <- data.table::fread(file = active_roi_table_path) %>%
               as.data.frame() %>%
               dplyr::mutate(
-                roi_input_timestamp = format(roi_input_timestamp, "%Y-%m-%d %H:%M:%S")
+                roi_input_timestamp = format(as.POSIXct(roi_input_timestamp), "%Y-%m-%d %H:%M:%S")
               )
             nrow_unsaved <- nrow(
               dplyr::anti_join(
