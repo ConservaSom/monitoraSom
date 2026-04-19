@@ -49,6 +49,7 @@ detecs_to_rois <- function(
     df_detecs, username = NULL, output_path = NULL, filter_tp = FALSE
     ) {
 
+
     if (is.null(username)) {
         stop("Please provide a username")
     }
