@@ -11,7 +11,7 @@
   workflow.
 }
 \usage{
-ls_recordings
+data(ls_recordings)
 }
 \description{
 A list of two focal recordings of Basileuterus culicivorus from which the

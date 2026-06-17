@@ -10,7 +10,7 @@
   temporal and frequency bounds, labels, and segmentation parameters.
 }
 \usage{
-df_rois
+data(df_rois)
 }
 \description{
 A data frame containing the concatenated ROI tables for the soundscape

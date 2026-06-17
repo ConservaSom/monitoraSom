@@ -10,7 +10,7 @@
   `run_matching()` function output.
 }
 \usage{
-df_detecs_val_manual
+data(df_detecs_val_manual)
 }
 \description{
 A data frame containing detections that were manually validated to run the

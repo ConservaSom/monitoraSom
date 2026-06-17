@@ -11,7 +11,7 @@ file information, template parameters, detection timing and parameters, and
 detection peak metrics.
 }
 \usage{
-df_detecs
+data(df_detecs)
 }
 \description{
 A data frame containing detections to run the examples of the `monitoraSom`

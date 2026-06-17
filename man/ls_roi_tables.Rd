@@ -13,7 +13,7 @@
   to validate the detections.
 }
 \usage{
-ls_roi_tables
+data(ls_roi_tables)
 }
 \description{
 A list of ROI tables to run the examples of the `monitoraSom` package.

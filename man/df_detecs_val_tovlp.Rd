@@ -10,7 +10,7 @@
   `run_matching()` function output.
 }
 \usage{
-df_detecs_val_tovlp
+data(df_detecs_val_tovlp)
 }
 \description{
 A data frame containing detections with validation labels assigned based on

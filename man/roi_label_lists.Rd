@@ -14,7 +14,7 @@
 }
 }
 \usage{
-roi_label_lists
+data(roi_label_lists)
 }
 \description{
 A data frame containing spectrogram labels and acoustic measurements for

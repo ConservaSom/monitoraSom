@@ -13,7 +13,7 @@
   but it can be exported as an RData or Rds file.
 }
 \usage{
-df_scores
+data(df_scores)
 }
 \description{
 A tibble (see the tidyr package for more details) containing the raw results

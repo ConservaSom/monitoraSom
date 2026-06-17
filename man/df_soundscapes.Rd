@@ -10,7 +10,7 @@
   durations, sample rates, bit rates, and audio channel layouts.
 }
 \usage{
-df_soundscapes
+data(df_soundscapes)
 }
 \description{
 A data frame containing the metadata of the soundscape recordings to run the

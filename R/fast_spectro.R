@@ -142,6 +142,17 @@ fast_spectro <- function(
   tlim <- adjusted$tlim
   flim <- adjusted$flim
 
+  # Clamp flim to the valid frequency range of the recording so that
+  # seewave::spectro does not throw a subscript-out-of-bounds error when
+  # zoom_freq was calibrated against a higher-rate recording (e.g., a
+  # soundscape) but the current rec has a lower Nyquist frequency.
+  nyquist_khz <- abs(rec@samp.rate) / 2000
+  if (!is.null(flim)) {
+    flim[1] <- max(0, flim[1])
+    flim[2] <- min(nyquist_khz, flim[2])
+    if (flim[1] >= flim[2]) flim[1] <- 0
+  }
+
   spec_raw <- seewave::spectro(
     rec,
     f = rec@samp.rate, ovlp = ovlp, wl = wl, flim = flim, tlim = tlim,

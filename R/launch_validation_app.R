@@ -215,22 +215,42 @@ launch_validation_app <- function(
     )
   }
 
-  # Validate and set the templates path
+  # Validate and set the templates path (LVA-100: templates are OPTIONAL).
+  # The template panel is auxiliary; the core validation workflow reads only the
+  # soundscape WAV + the detection CSV. When no usable templates directory is
+  # present we set `session_data$templates_available <- FALSE` and warn, instead
+  # of stopping. Behaviour is unchanged when a valid templates path is provided.
+  session_data$templates_available <- FALSE
+  .lva_templates_has_wav <- function(p) {
+    isTRUE(dir.exists(p)) &&
+      length(list.files(p, pattern = "\\.wav$", recursive = TRUE,
+                        ignore.case = TRUE)) > 0
+  }
   if (is.null(templates_path)) {
     templates_path <- "templates_metadata/" # Default path
-    if (dir.exists(templates_path)) {
+    if (.lva_templates_has_wav(templates_path)) {
       session_data$templates_path <- templates_path
-      warning(
-        "Warning! The path to the template wave files was not provided. Using the default path 'templates_metadata/'."
-      )
+      session_data$templates_available <- TRUE
     } else {
-      stop("Error! The default path 'templates_metadata/' does not exist.")
+      session_data$templates_path <- NULL
+      warning(
+        "Warning! No template wave files were found. The template comparison ",
+        "panel will be disabled; detection validation continues normally."
+      )
     }
-  } else if (dir.exists(templates_path)) {
+  } else if (.lva_templates_has_wav(templates_path)) {
     session_data$templates_path <- templates_path
+    session_data$templates_available <- TRUE
   } else {
-    stop(
-      "Error! The provided path to the template wave files was not found locally."
+    session_data$templates_path <- if (dir.exists(templates_path)) {
+      templates_path
+    } else {
+      NULL
+    }
+    warning(
+      "Warning! The provided templates path is missing or has no WAV files. ",
+      "The template comparison panel will be disabled; detection validation ",
+      "continues normally."
     )
   }
 
@@ -1306,6 +1326,10 @@ launch_validation_app <- function(
       df_full <- reactiveValues(data = NULL)
       df_output <- shiny::reactiveVal(NULL)
       df_ref_templates <- shiny::reactiveVal(NULL)
+      # LVA-100: templates are optional. TRUE iff the templates dir holds >=1 WAV.
+      templates_available <- shiny::reactiveVal(
+        isTRUE(session_data$templates_available)
+      )
 
       shiny::observeEvent(input$user_setup_confirm, {
         # Initial input validation
@@ -1337,10 +1361,11 @@ launch_validation_app <- function(
           )
         }
 
-        # Check directories
+        # Check directories. Soundscapes are a HARD requirement; templates are
+        # OPTIONAL (LVA-100) — a missing/empty templates dir is a soft warning,
+        # not a blocking error.
         paths_to_check <- list(
-          "Soundscapes directory" = input$soundscapes_path,
-          "Templates directory" = input$templates_path
+          "Soundscapes directory" = input$soundscapes_path
         )
 
         for (path_name in names(paths_to_check)) {
@@ -1362,6 +1387,27 @@ launch_validation_app <- function(
               sprintf("No WAV files found in %s", path_name)
             )
           }
+        }
+
+        # LVA-100: soft templates check — set availability flag + warn.
+        tpl_ok <- !is.null(input$templates_path) &&
+          dir.exists(input$templates_path) &&
+          length(
+            fs::dir_ls(
+              input$templates_path, type = "file", glob = "*.wav",
+              recurse = TRUE, ignore.case = TRUE
+            )
+          ) > 0
+        templates_available(isTRUE(tpl_ok))
+        if (!isTRUE(tpl_ok)) {
+          shiny::showNotification(
+            paste0(
+              "No templates available — the template comparison panel is ",
+              "disabled. Detection validation continues normally."
+            ),
+            duration = 15,
+            type = "warning"
+          )
         }
 
         # Check output path
@@ -1417,16 +1463,25 @@ launch_validation_app <- function(
             ) %>%
               dplyr::mutate(soundscape_file = basename(soundscape_path))
 
-            df_templates <- data.frame(
-              template_path = as.character(fs::dir_ls(
-                input$templates_path,
-                type = "file",
-                glob = "*.wav",
-                recurse = TRUE,
-                ignore.case = TRUE
-              ))
-            ) %>%
-              dplyr::mutate(template_file = basename(template_path))
+            # LVA-100: only scan templates when a usable templates dir exists;
+            # otherwise df_templates is empty and template_path stays NA.
+            df_templates <- if (isTRUE(templates_available())) {
+              data.frame(
+                template_path = as.character(fs::dir_ls(
+                  input$templates_path,
+                  type = "file",
+                  glob = "*.wav",
+                  recurse = TRUE,
+                  ignore.case = TRUE
+                ))
+              ) %>%
+                dplyr::mutate(template_file = basename(template_path))
+            } else {
+              data.frame(
+                template_path = character(0),
+                template_file = character(0)
+              )
+            }
             df_ref_templates(df_templates)
 
             res <- data.table::fread(
@@ -1437,12 +1492,19 @@ launch_validation_app <- function(
               dplyr::mutate(
                 soundscape_path = as.character(NA),
                 template_path = as.character(NA)
-              ) %>%
-              dplyr::rows_update(
-                df_templates,
-                by = "template_file",
-                unmatched = "ignore"
-              ) %>%
+              )
+
+            # LVA-100: skip the template join when no templates are available.
+            if (isTRUE(templates_available()) && nrow(df_templates) > 0) {
+              res <- res %>%
+                dplyr::rows_update(
+                  df_templates,
+                  by = "template_file",
+                  unmatched = "ignore"
+                )
+            }
+
+            res <- res %>%
               dplyr::rows_update(
                 df_soundscapes,
                 by = "soundscape_file",
@@ -1745,6 +1807,13 @@ launch_validation_app <- function(
 
       # Reactive object containing the wav of the active template
       shiny::observeEvent(input$lock_template, {
+        # LVA-100: the custom-reference feature needs templates on disk. With no
+        # templates available, keep it disabled and skip fetch_template_metadata.
+        if (!isTRUE(templates_available()) || is.null(input$templates_path)) {
+          shinyjs::disable("custom_reference")
+          custom_references(NULL)
+          return()
+        }
         shiny::req(input$templates_path)
         if (input$lock_template != TRUE) {
           shinyjs::enable("custom_reference")

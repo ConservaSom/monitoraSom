@@ -12,7 +12,7 @@
   elements are the names of the soundscape recordings.
 }
 \usage{
-ls_soundscapes
+data(ls_soundscapes)
 }
 \description{
 A list of soundscape recordings to run the examples of the `monitoraSom`

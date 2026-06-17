@@ -11,7 +11,7 @@
   and overlap).
 }
 \usage{
-df_templates
+data(df_templates)
 }
 \description{
 A data frame containing the metadata of the templates to run the examples of

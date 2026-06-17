@@ -13,7 +13,7 @@
   workflow.
 }
 \usage{
-ls_templates
+data(ls_templates)
 }
 \description{
 A list of templates to run the examples of the `monitoraSom` package.

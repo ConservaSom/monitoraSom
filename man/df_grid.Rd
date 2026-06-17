@@ -11,7 +11,7 @@
   matching.
 }
 \usage{
-df_grid
+data(df_grid)
 }
 \description{
 A data frame containing example match grid data used to demonstrate the
