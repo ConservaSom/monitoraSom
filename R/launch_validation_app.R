@@ -215,16 +215,17 @@ launch_validation_app <- function(
     )
   }
 
-  # Validate and set the templates path (LVA-100: templates are OPTIONAL).
-  # The template panel is auxiliary; the core validation workflow reads only the
-  # soundscape WAV + the detection CSV. When no usable templates directory is
-  # present we set `session_data$templates_available <- FALSE` and warn, instead
-  # of stopping. Behaviour is unchanged when a valid templates path is provided.
+  # Validate and set the templates path
   session_data$templates_available <- FALSE
   .lva_templates_has_wav <- function(p) {
     isTRUE(dir.exists(p)) &&
-      length(list.files(p, pattern = "\\.wav$", recursive = TRUE,
-                        ignore.case = TRUE)) > 0
+      length(list.files(
+        p,
+        pattern = "\\.wav$",
+        recursive = TRUE,
+        ignore.case = TRUE
+      )) >
+        0
   }
   if (is.null(templates_path)) {
     templates_path <- "templates_metadata/" # Default path
@@ -1362,8 +1363,7 @@ launch_validation_app <- function(
         }
 
         # Check directories. Soundscapes are a HARD requirement; templates are
-        # OPTIONAL (LVA-100) — a missing/empty templates dir is a soft warning,
-        # not a blocking error.
+        # optional
         paths_to_check <- list(
           "Soundscapes directory" = input$soundscapes_path
         )
@@ -1372,15 +1372,20 @@ launch_validation_app <- function(
           path <- paths_to_check[[path_name]]
           if (!dir.exists(path)) {
             validation_errors <- c(
-              validation_errors, sprintf("%s does not exist", path_name)
+              validation_errors,
+              sprintf("%s does not exist", path_name)
             )
           } else if (
             length(
               fs::dir_ls(
-                path, type = "file", glob = "*.wav", recurse = TRUE,
+                path,
+                type = "file",
+                glob = "*.wav",
+                recurse = TRUE,
                 ignore.case = TRUE
               )
-            ) == 0
+            ) ==
+              0
           ) {
             validation_errors <- c(
               validation_errors,
@@ -1389,15 +1394,19 @@ launch_validation_app <- function(
           }
         }
 
-        # LVA-100: soft templates check — set availability flag + warn.
+        # soft templates check
         tpl_ok <- !is.null(input$templates_path) &&
           dir.exists(input$templates_path) &&
           length(
             fs::dir_ls(
-              input$templates_path, type = "file", glob = "*.wav",
-              recurse = TRUE, ignore.case = TRUE
+              input$templates_path,
+              type = "file",
+              glob = "*.wav",
+              recurse = TRUE,
+              ignore.case = TRUE
             )
-          ) > 0
+          ) >
+            0
         templates_available(isTRUE(tpl_ok))
         if (!isTRUE(tpl_ok)) {
           shiny::showNotification(
@@ -1414,7 +1423,8 @@ launch_validation_app <- function(
         output_dir <- dirname(input$output_path)
         if (!dir.exists(output_dir)) {
           validation_errors <- c(
-            validation_errors, "Output directory does not exist"
+            validation_errors,
+            "Output directory does not exist"
           )
         }
 
@@ -1463,8 +1473,8 @@ launch_validation_app <- function(
             ) %>%
               dplyr::mutate(soundscape_file = basename(soundscape_path))
 
-            # LVA-100: only scan templates when a usable templates dir exists;
-            # otherwise df_templates is empty and template_path stays NA.
+            # only scan templates when a usable templates dir exists; otherwise
+            # df_templates is empty and template_path stays NA.
             df_templates <- if (isTRUE(templates_available())) {
               data.frame(
                 template_path = as.character(fs::dir_ls(
@@ -1807,8 +1817,6 @@ launch_validation_app <- function(
 
       # Reactive object containing the wav of the active template
       shiny::observeEvent(input$lock_template, {
-        # LVA-100: the custom-reference feature needs templates on disk. With no
-        # templates available, keep it disabled and skip fetch_template_metadata.
         if (!isTRUE(templates_available()) || is.null(input$templates_path)) {
           shinyjs::disable("custom_reference")
           custom_references(NULL)
