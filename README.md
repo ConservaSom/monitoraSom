@@ -35,6 +35,71 @@ Please follow the code below to install the latest released version:
 devtools::install_github("ConservaSom/monitoraSom", dependencies = TRUE)
 ```
 
+## Upgrading from 1.0.x
+
+Version 1.2.0 brings the largest change in the package so far. The function
+names you know are mostly the same, but files created with earlier versions
+cannot be used by the new one. Read this section before you upgrade.
+
+### What changed
+
+- **Where results are saved.** Earlier versions saved detections, ROIs,
+  metadata, templates and validations as CSV files. The package now saves
+  them in DuckDB database files. A DuckDB database is a single file that
+  holds many tables, and you read those tables back from R.
+- **How matching scores are computed.** `run_matching()` now uses a much
+  faster method by default. Scores are also on one shared scale: earlier
+  versions scaled each recording against its own maximum, so scores from
+  different recordings could not be compared. Now they can.
+- **How the DTW method measures distance.** The DTW (dynamic time warping)
+  scores changed. Any threshold value that worked before needs to be chosen
+  again.
+
+### What you must redo
+
+- Run the matching again. Old scores and new scores are not comparable.
+- Choose your DTW thresholds again.
+- Download the example data with `fetch_example_data()` if you used it.
+  The data no longer ships inside the package. It downloads once and is
+  saved on your computer.
+
+### Moving your earlier results into the new version
+
+Four functions read the CSV files from earlier versions and write them into
+the new databases:
+
+```r
+migrate_metadata_csv_to_duckdb()    # soundscape metadata
+migrate_templates_to_db()           # template database
+migrate_rois_csv_to_duckdb()        # ROI tables
+migrate_detections_csv_to_duckdb()  # detections
+```
+
+During the ROI migration, full file paths stored in your tables become
+relative to your project folder, as the new version expects.
+
+The `export_*_duckdb_to_csv()` functions write tables back to CSV files
+whenever you need them. You can also read and write annotations from Raven
+(`read_raven_selection()`, `write_raven_selection()`) and Audacity
+(`read_audacity_labels()`, `write_audacity_labels()`).
+
+For the complete list of changes, see [NEWS.md](NEWS.md). The help page
+`?monitoraSom-package` explains the differences in detail, and
+`vignette("monitoraSom")` walks the new workflow.
+
+### Staying on version 1.0.2
+
+If you are not ready to move, you can install the previous version from the
+same repository:
+
+```r
+devtools::install_github("ConservaSom/monitoraSom@v1.0.2")
+```
+
+A project made with 1.0.2 uses CSV files, and the new version does not read
+them directly. When you decide to move, the migration functions above bring
+those files into the new databases.
+
 ## Citation
 
 If you use `monitoraSom` in your research, please cite:
