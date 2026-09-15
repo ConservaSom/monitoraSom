@@ -1,0 +1,7 @@
+"artifact","returns_df","n_rows","messages","warnings","error","note"
+"G1_rois_inmem",TRUE,12,"Detections successfully converted to ROIs. Because a path is not provided, a ROI data frame is returned to the current R session environment","","","DTR-02: roi_label is row-1's label for ALL rows; DTR-05: .WAV not stripped"
+"G2_rois_filter_tp",TRUE,4,"Detections successfully converted to ROIs. Because a path is not provided, a ROI data frame is returned to the current R session environment","","","filter_tp keeps only validation == 'TP'; roi_label_confidence='certain'"
+"G3_rois_no_validation",TRUE,12,"Detections successfully converted to ROIs. Because a path is not provided, a ROI data frame is returned to the current R session environment","Data was not filtered - validation variable not found in input data","","no `validation` col: warns, does NOT filter; roi_label_confidence=NA"
+"G4_rois_persisted",TRUE,12,"ROIs tables successfully exported to /tmp/Rtmp0i5YuF/dtr_out_3dcbb87813fc","","","output_path: 3 per-soundscape CSV table(s) written; also returns the frame"
+"G6_rois_two_labels",TRUE,12,"Detections successfully converted to ROIs. Because a path is not provided, a ROI data frame is returned to the current R session environment","","","DTR-02: input has 2 labels but ALL output rows get row-1's label (bug)"
+"G5_missing_col",FALSE,NA,"","","The input data frame is missing the following variables: peak_quant","DTR-01: hand-listed required_cols stop on missing peak_quant"

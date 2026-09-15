@@ -2,146 +2,209 @@
 % Please edit documentation in R/run_matching.R
 \name{run_matching}
 \alias{run_matching}
-\title{Batch template matching}
+\title{Run the template matching over a template x soundscape grid}
 \usage{
 run_matching(
   df_grid,
-  score_method = "cor",
+  score_method = "fft",
   ncores = 1,
   output = "detections",
-  output_file = NULL,
+  output_db = NULL,
   autosave_action = "replace",
+  scores_format = "duckdb",
+  stream_threshold_s = 300,
   buffer_size = "template",
   min_score = NULL,
   min_quant = NULL,
-  top_n = NULL
+  top_n = NULL,
+  scope = c("pair", "grid"),
+  dtw_slack = 0.2,
+  require_template_id = TRUE,
+  pb = TRUE
 )
 }
 \arguments{
-\item{df_grid}{The output of the function 'fetch_match_grid()}
+\item{df_grid}{A \code{\link[=fetch_match_grid]{fetch_match_grid()}} result (one row per
+soundscape-template pair). Should carry a \code{template_id} column for a
+clean detections join (see \code{require_template_id}).}
 
-\item{score_method}{A character string indicating the method to use for
-matching. The two methods available are: "cor" (Pearson correlation
-coefficient) or "dtw" (dynamic time warping). It defaults to "cor".}
+\item{score_method}{Character, the matching engine. \code{"fft"} (default,
+FFT-accelerated, roughly 10× faster than and numerically equal to
+\code{"cor"} within 1e-6), \code{"cor"} (Pearson reference) or \code{"dtw"}
+(time-warping tolerant, experimental). Leave at \code{"fft"} unless you need
+the reference engine or tolerance to time distortion in the acoustic
+structure.}
 
-\item{ncores}{An integer indicating the number of cores to be used for
-parallelization. It defaults to 1.}
+\item{ncores}{Positive integer, default \code{1}. Number of CPU cores used to
+score the grid in parallel (one group per soundscape; multiple cores
+work on macOS and Linux). Raise it to speed up large grids; it is
+capped at the number of available cores.}
 
-\item{output}{A character string indicating the output of the function. The
-two options are: "detections" or "scores". If "detections" is selected, the
-function will return the output of the function 'fetch_score_peaks()'. If
-"scores" is selected, the function will return the raw output of the
-matching algorithm. It defaults to "detections".}
+\item{output}{Character. \code{"detections"} (default) reduces scores to peaks by
+running \code{\link[=fetch_score_peaks]{fetch_score_peaks()}} internally; \code{"scores"} returns the raw
+per-frame score vectors instead.}
 
-\item{output_file}{A character string indicating the path to save the results
-in the format of a CSV file for detections or RDS file for scores. Default
-is NULL. We recommend to export detection or raw score files to the
-"detections/" subdirectory.}
+\item{output_db}{Optional path of a DuckDB database (detections, or scores
+when \code{output = "scores"}). \code{NULL} (default) returns the result in memory
+and persists nothing.}
 
-\item{autosave_action}{A character string indicating the action to be taken
-if the output file already exists. Possible values are "append" and
-"replace". To avoid overwriting existing files, set to "append", but be
-aware that it can result in duplicated entries in the output file if the
-function is run again. It defaults to "replace". The "append" option is
-not available for Windows systems when using multiple cores.}
+\item{autosave_action}{Character, only used when the detections are written
+to \code{output_db}. \code{"replace"} (default) clears the detections table and
+inserts the new rows; \code{"append"} updates existing rows by \code{detection_id}
+and keeps prior rows. Under \code{"append"}, re-running a pair you already
+computed never duplicates rows: \code{detection_id} is deterministic, so the
+same result replaces itself. Rows written by an earlier run with
+different filters are kept by design.}
 
-\item{buffer_size}{A character string indicating the size of the buffer to be
-used in the function 'fetch_score_peaks()'. The two options are:
-"template" or the number of frames of the template spectrogram to be used
-as buffer. It defaults to "template".}
+\item{scores_format}{Character, only used when \code{output = "scores"}.
+\code{"duckdb"} (default) persists one compressed array column per pair.}
 
-\item{min_score}{A numeric value indicating the minimum score to be used in
-the function 'fetch_score_peaks()'. It defaults to NULL.}
+\item{stream_threshold_s}{Numeric seconds (default \code{300} = 5 min).
+Soundscapes longer than this are streamed (re-read per template) rather
+than held in memory. Lower it when memory is scarce; raise it to favour
+speed.}
 
-\item{min_quant}{A numeric value indicating the minimum quantile to be used
-in the function 'fetch_score_peaks()'. It defaults to NULL.}
+\item{buffer_size}{Internal: the peak-capture window, in spectrogram
+frames. Default \code{"template"} (one template length); a non-negative
+whole number sets it explicitly, \code{0} disables suppression.}
 
-\item{top_n}{A numeric value indicating the number of top detections to be
-used in the function 'fetch_score_peaks()'. It defaults to NULL.}
+\item{min_score, min_quant, top_n, scope}{Detection filters. \code{min_score}
+(absolute score floor in \verb{[0, 1]}),
+\code{min_quant} (score-quantile floor), \code{top_n} (keep at most N by score) and
+\code{scope} (\code{"pair"} default, applied within each pair, or \code{"grid"}, across the
+whole grid). \code{NULL} filters keep everything.}
+
+\item{dtw_slack}{Numeric warping-window slack fraction for \code{score_method = "dtw"} (the experimental engine). Default \code{0.2}. Ignored by
+\code{"cor"}/\code{"fft"}.}
+
+\item{require_template_id}{Logical. When \code{TRUE} (default), a \code{df_grid} with
+no usable \code{template_id} (column absent or all \code{NA}) is an error, because
+the resulting detections would carry \code{NA} and could not be joined or
+filtered downstream. Set \code{FALSE} for the fallback used before 1.2.0: a
+warning, then the durable id falls back to the file path.}
+
+\item{pb}{Logical, default \code{TRUE}. Show the progress bar. Set \code{FALSE} for
+non-interactive pipelines, such as rendering rmarkdown reports.}
 }
 \value{
-If the format is set to scores, a tibble containing the input data
-  frame with an additional column "score_vec". This column contains
-  dataframes with "time_vec" (time of each frame) and "score_vec" (matching
-  score at that frame) columns. The scores are padded at the start and end to
-  match the soundscape spectrogram length. If the format is set to
-  detections, the function returns a data frame with the detections. If no
-  paths are provided, the output are returned to the R session.
+When \code{output_db = NULL}, a detections \code{data.frame} (standard
+detections format, one row per score peak) or, when \code{output = "scores"}, a
+scores tibble (one row per pair carrying its per-frame \code{score_vec}). When a
+database is written, the same object is returned invisibly after persisting.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function is wrapper of 'run_matching_i()' to perform a batch computation of
-  the matching vectors of the template and soundscape matches defined in the
-  metadata grid obtained as output of the function 'fetch_match_grid()'. The
-  available algorithms to compare spectrograms and compute matching scores
-  are the Pearson correlation coefficient ("cor") or dynamic time warping
-  ("dtw").
+Runs the matching engine over a whole \code{\link[=fetch_match_grid]{fetch_match_grid()}} search grid:
+for each soundscape-template pair it computes a per-frame similarity
+score and (by default) reduces those scores to a table of \strong{detections}
+(score peaks). This is the heart of the monitoraSom workflow: the step
+between building the search grid and validating what was found.
 }
+\details{
+The engine offers three interchangeable scoring methods, all producing
+outputs with the same format, so you can switch freely with
+\code{score_method}:
+\itemize{
+\item \code{"fft"} (default): FFT-accelerated normalized cross-correlation.
+Numerically equal to \code{"cor"} (within 1e-6) but roughly 10× faster;
+the default option.
+\item \code{"cor"}: the plain Pearson sliding-window reference. Slower,
+kept for validation and teaching.
+\item \code{"dtw"} (\strong{experimental}): Dynamic Time Warping, tolerant to
+small time distortions between the template and the corresponding
+soundscape frame. Use it when calls of the same species keep the same
+spectral acoustic signature but vary in duration.
+}
+Set \code{output = "scores"} to keep the raw per-frame score vectors instead of
+peaks (for custom peak-picking or plotting with \code{\link[=plot_scores]{plot_scores()}}).
+
+Three things to know. (1) The grid should carry a real \code{template_id};
+without one the resulting detections cannot be cleanly joined back to
+their template, so this is an error by default (bypass it with
+\code{require_template_id = FALSE}). (2) Long soundscapes are memory-hungry.
+Recordings longer than \code{stream_threshold_s} are re-read per template
+rather than held in memory; this bounds memory use at a small speed
+cost. (3) The filters (\code{min_score}, \code{min_quant}, \code{top_n}) trim the
+detection set. Strong filters can drop detections that were never
+validated, leaving an incomplete picture of what the templates found.
+Use filters with caution while a template's thresholds are still being
+tuned. The safest path is to keep the raw scores
+(\code{output = "scores"}) and filter later with \code{\link[=fetch_score_peaks]{fetch_score_peaks()}}.
+}
+\section{Pipeline context}{
+
+Step 7 of the monitoraSom analysis flow. Reads the search grid from
+\code{\link[=fetch_match_grid]{fetch_match_grid()}} (step 6). Produces a detections table (or raw score
+vectors) used by \code{\link[=fetch_score_peaks]{fetch_score_peaks()}} / peak review and downstream by
+\code{\link[=detecs_to_rois]{detecs_to_rois()}} (step 10).
+}
+
 \examples{
 \dontrun{
+# Load the package
 library(monitoraSom)
-library(dplyr)
-library(tuneR)
-
-library(monitoraSom)
-library(dplyr)
-library(tuneR)
-
-# Load the soundscape list to populate the example data
-data(ls_soundscapes)
-
-# Create a directory to store the soundscapes
-soundscapes_path <- "./soundscapes"
-dir.create(soundscapes_path)
-invisible(lapply(1:length(ls_soundscapes), function(i) {
-  writeWave(
-    ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
-  )
-}))
-
-# Load the templates to populate the example data
-data(ls_templates)
-
-# Create a directory to store the templates
-templates_path <- "./templates"
-dir.create(templates_path)
-invisible(lapply(1:length(ls_templates), function(i) {
-  writeWave(
-    ls_templates[[i]], file.path(templates_path, names(ls_templates)[i])
-  )
-}))
-
-# Import the soundscapes and templates as dataframes
-df_soundscapes <- fetch_soundscape_metadata(
-  soundscapes_path = soundscapes_path
-)
-
-# Import the templates as a dataframe
-df_templates <- fetch_template_metadata(templates_path = templates_path)
-
-# Create a match grid
+# Step 7: score a small soundscape-template grid into detections.
+# (Build a tiny grid from a synthesized recording; see
+# [fetch_match_grid()] for the full recipe. The bundled df_grid dataset
+# predates template_id and cannot feed run_matching().)
+rec_dir <- file.path(tempdir(), "recs"); dir.create(rec_dir, showWarnings = FALSE)
+# A 20 s soundscape: one clear 4 kHz burst (the template), a longer copy of
+# it, a fainter copy, and a 5.5 kHz distractor burst.
+sr <- 16000
+set.seed(7)
+t <- seq_len(20 * sr) / sr
+x <- rnorm(length(t), 0, 0.02)                       # low noise floor
+m4 <- function(tt) 0.6 * sin(2 * pi * 4000 * tt)
+m55 <- function(tt) 0.5 * sin(2 * pi * 5500 * tt)
+x[(t >= 1) & (t < 1.4)]   <- x[(t >= 1) & (t < 1.4)] + m4(t[(t >= 1) & (t < 1.4)])
+x[(t >= 3) & (t < 4.2)]   <- x[(t >= 3) & (t < 4.2)] + m4(t[(t >= 3) & (t < 4.2)])
+x[(t >= 7) & (t < 7.4)]   <- x[(t >= 7) & (t < 7.4)] + 0.25 * m4(t[(t >= 7) & (t < 7.4)])
+x[(t >= 4.5) & (t < 5.1)] <- x[(t >= 4.5) & (t < 5.1)] + m55(t[(t >= 4.5) & (t < 5.1)])
+rec <- tuneR::normalize(tuneR::Wave(x, samp.rate = sr, bit = 16), unit = "16")
+tuneR::writeWave(rec, file.path(rec_dir, "siteA_01.wav"))
+df_rois <- data.frame(
+  soundscape_path = file.path(rec_dir, "siteA_01.wav"),
+  soundscape_file = "siteA_01.wav",
+  roi_label = "burst", roi_start = 0.8, roi_end = 1.2,
+  roi_min_freq = 3, roi_max_freq = 5, roi_wl = 512, roi_ovlp = 50,
+  stringsAsFactors = FALSE)
+out_dir <- file.path(tempdir(), "templates")
+export_templates(df_rois, templates_path = out_dir, create_dir = TRUE)
 df_grid <- fetch_match_grid(
-  soundscape_data = df_soundscapes, template_data = df_templates
-)
+  fetch_soundscape_metadata(rec_dir),
+  fetch_template_metadata(out_dir))
+detections <- run_matching(df_grid, score_method = "fft")
+head(detections)
+nrow(detections)                       # how many detections passed
+hist(detections$peak_score)            # where the scores sit: the strong
+                                       # 4 kHz hits near 1, the fainter copy
+                                       # and the distractor lower
 
-# Run the template matching to store raw scores of the first ten matches
-df_scores <- run_matching(
-  df_grid = df_grid[1:10, ], score_method = "cor", output = "scores"
-)
-# Look into the whole results
-glimpse(df_scores)
-# Look into the raw score vector of the first match
-glimpse(df_scores$score_vec[1])
+# Thresholds can also be applied on the fly (see [fetch_score_peaks()] for
+# re-filtering saved scores without re-running the engine):
+detections_top <- run_matching(df_grid, score_method = "fft", top_n = 5)
+nrow(detections_top)
+detections_strong <- run_matching(df_grid, score_method = "fft",
+                                  min_score = 0.6)
+nrow(detections_strong)                # the three 4 kHz hits (the faint
+                                       # copy still clears 0.6); the
+                                       # distractor does not
 
-# Run the template matching to get the raw detections
-df_detecs <- run_matching(
-  df_grid = df_grid[1:10, ], score_method = "cor", output = "detections"
-)
-# Look into the whole results
-glimpse(df_detecs)
-# make a histogram of the scores of the detections
-hist(df_detecs$peak_score, breaks = 100)
+# Switch the engine: time-warping-tolerant DTW instead of FFT correlation.
+detections_dtw <- run_matching(df_grid, score_method = "dtw")
 
+# Scores live only in DuckDB. For CSV consumers, export the detections and
+# re-import the same file to confirm the CSV mirrors the DuckDB contents:
+det_db <- file.path(tempdir(), "det.duckdb")
+det_csv <- file.path(tempdir(), "det.csv")
+run_matching(df_grid, score_method = "fft", output_db = det_db)
+export_detections_duckdb_to_csv(det_db, det_csv, overwrite = TRUE)
+df_csv <- utils::read.csv(det_csv)
+head(df_csv)
 }
+}
+\seealso{
+\code{\link[=fetch_match_grid]{fetch_match_grid()}} (previous step), \code{\link[=fetch_score_peaks]{fetch_score_peaks()}}
+(next step), \code{\link[=plot_scores]{plot_scores()}}.
 }

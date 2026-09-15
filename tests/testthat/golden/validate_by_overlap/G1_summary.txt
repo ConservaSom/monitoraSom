@@ -1,0 +1,6 @@
+n_rows=1198
+n_cols=43
+TP=157
+FP=933
+FN=108
+note_values=instersection with a ROI || no detections to intersect with || no intersection with a ROI

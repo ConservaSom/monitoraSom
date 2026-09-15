@@ -1,0 +1,3 @@
+"tag","method","sliding_window","sw_start","sw_end","n_complete_windows","left_fill","right_fill","padded_pre_head","n_time","n_score","head_drop_triggered","score_min","score_max","edge_left_val","edge_right_val","peak_time","peak_score","truth_start","truth_end","n_warnings","n_messages","error"
+"t075","cor",172,86,85,4515,85,86,4686,4686,4686,FALSE,-0.199387404115982,0.821173669152969,-0.199387404115982,-0.199387404115982,10.3351120597652,0.821173669152969,9.247,11.47,0,0,""
+"t092","cor",104,52,51,2708,51,52,2811,2811,2811,FALSE,-0.236366831387343,0.991147853951548,-0.236366831387343,-0.236366831387343,37.3451957295374,0.991147853951548,36.225,38.483,0,0,""

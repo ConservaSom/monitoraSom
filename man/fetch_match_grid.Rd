@@ -2,82 +2,132 @@
 % Please edit documentation in R/fetch_match_grid.R
 \name{fetch_match_grid}
 \alias{fetch_match_grid}
-\title{Creates a grid with all combinations of templates and soundscapes for
-template matching}
+\title{Build the template × soundscape search grid}
 \usage{
-fetch_match_grid(soundscape_data, template_data)
+fetch_match_grid(
+  soundscape_data = NULL,
+  template_data = NULL,
+  channel_policy = "permissive",
+  verify_integrity = FALSE
+)
 }
 \arguments{
-\item{soundscape_data}{A data frame containing metadata about the soundscapes
-to be matched.}
+\item{soundscape_data}{data.frame of soundscapes, as returned by
+\code{\link[=fetch_soundscape_metadata]{fetch_soundscape_metadata()}}. \code{NULL} (default) reads the standard
+soundscape metadata cache \code{soundscapes/soundscapes_metadata.duckdb} and
+stops if it is absent.
+Required columns: \code{soundscape_path},
+\code{soundscape_sample_rate}, \code{soundscape_duration}. Any extra columns are
+carried through to the grid.}
 
-\item{template_data}{A data frame containing metadata about the templates to
-be matched.}
+\item{template_data}{data.frame of templates, as returned by
+\code{\link[=fetch_template_metadata]{fetch_template_metadata()}}. \code{NULL} (default) falls back to the standard
+templates folder \verb{templates/} and stops if it holds no template.
+Required columns: \code{template_path},
+\code{template_sample_rate}, \code{template_min_freq} and \code{template_max_freq} (kHz),
+\code{template_start} and \code{template_end} (s). Optional \code{template_mode} and
+\verb{*_sha256} columns are used when present. Extra columns are carried through
+(an internal \code{template_resolved} column, if present, is dropped).}
+
+\item{channel_policy}{How stereo/multichannel layouts are handled.
+\code{"permissive"} (default) carries the channel columns and never excludes a
+pair; the engine reads channel 1 (left) of every soundscape.
+\code{"strict_left"} drops pairs whose template side is \code{"right"} (the engine
+would not analyze that channel). \code{"strict_right"} is the mirror: it drops
+pairs whose template side is \code{"left"}. A \code{"mono"} template or soundscape is
+always kept. \code{"per_channel"} scores a soundscape-template pair once per
+soundscape channel: for a stereo soundscape each pair becomes two rows
+(one per channel, recorded in \code{soundscape_channel}); mono soundscapes keep
+a single row. No effect when channel columns are absent.}
+
+\item{verify_integrity}{Single logical, default \code{FALSE}. When \code{TRUE}, hash
+the referenced files again and drop pairs whose sha256 differs from the
+recorded hash columns. Off by default because hashing is costly; when
+\code{TRUE} but no \verb{*_sha256} column is present, nothing is verified and a
+warning is emitted.}
 }
 \value{
-A data frame with a grid of all possible matching combinations
-  between the two input data sets. In other words, each row of the output
-  data frame represents the match between a template and a soundscape. All
-  columns with metadata from soundscapes and templates are kept (see the
-  documentation of the functions 'fetch_soundscape_metadata()' and
-  'fetch_template_metadata()' for more details).
+A data.frame with one row per compatible soundscape-template pair,
+keeping all columns of both inputs. It carries a \code{"dropped"} attribute: a
+named integer vector of per-reason exclusion counts. When a VIEW is
+requested, it is created as a side effect and the same data.frame is returned.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function takes in two data frames: soundscape_data (the output of the
-  function 'fetch_soundscape_metadata()') and template_data (the output of
-  the function 'fetch_template_metadata()'), checks their compatibilities,
-  and returns a new data frame with a grid of all possible matching
-  combinations between the two data sets.
+Crosses every soundscape with every template into one row per match, each
+carrying the complete metadata of both sources. Pairs that cannot be
+matched (incomplete metadata, unresolvable files, incompatible frequency
+bands or channels) are dropped from the grid. The result is the search
+grid given to the matching engine: one scored comparison per row.
 }
+\details{
+The grid is a full cartesian product of the two inputs, filtered in a fixed
+order. Rows are removed for four reasons, and the count for each is reported
+in the \code{"dropped"} attribute of the result (each count is \emph{after} the earlier
+filters, so together they account for every excluded row):
+\itemize{
+\item \strong{incomplete metadata}: an \code{NA} in any compared column;
+\item \strong{missing source}: the template's audio cut (or, for a reference
+template, its source recording) cannot be found on disk;
+\item \strong{integrity mismatch}: only when \code{verify_integrity = TRUE};
+\item \strong{channel incompatibility}: only when \code{channel_policy = "strict"}.
+}
+Run it right after metadata collection, before any expensive matching, to
+inspect exactly which pairs will be scored and why the others were
+excluded. Malformed template metadata, such as an inverted band
+(\code{template_min_freq > template_max_freq}), a non-positive duration
+(\code{template_start >= template_end}) or a non-numeric compared column,
+stops the function with an error naming the rows that hold the bad data.
+So an empty grid always means a genuine "no compatible pairs"; it never
+hides a data error.
+}
+\section{Pipeline context}{
+
+Step 6 of the monitoraSom analysis flow. Reads soundscape metadata from
+\code{\link[=fetch_soundscape_metadata]{fetch_soundscape_metadata()}} (step 5) and template metadata from
+\code{\link[=fetch_template_metadata]{fetch_template_metadata()}} (step 4). Produces the search grid that
+\code{\link[=run_matching]{run_matching()}} (step 7) scores, one row per pair.
+}
+
 \examples{
+# Step 6 of the analysis flow: cross soundscape metadata (step 5) with
+# template metadata (step 4) to produce the search grid that run_matching
+# (step 7) scores: one row per soundscape-template pair.
 \dontrun{
-
-# Load the necessary packages to run this example
+# Load the package
 library(monitoraSom)
-library(dplyr)
-library(tuneR)
+# (The package ships no field recordings, so this example synthesizes them;
+# for the same steps on real data see [fetch_example_data()].)
+rec_dir <- file.path(tempdir(), "recs"); dir.create(rec_dir, showWarnings = FALSE)
+rec <- tuneR::normalize(tuneR::sine(4000, duration = 10 * 16000,
+                                    samp.rate = 16000), unit = "16")
+for (f in c("siteA_01.wav", "siteA_02.wav"))
+  tuneR::writeWave(rec, file.path(rec_dir, f))
+df_soundscapes <- fetch_soundscape_metadata(rec_dir)
 
-# Load the soundscape list and the template list to populate the example data
-data(ls_soundscapes)
-data(ls_templates)
+wav <- file.path(rec_dir, "siteA_01.wav")
+df_rois <- data.frame(
+  soundscape_path = wav, soundscape_file = "siteA_01.wav",
+  roi_label = "burst", roi_start = 1, roi_end = 1.5,
+  roi_min_freq = 2, roi_max_freq = 6, roi_wl = 512, roi_ovlp = 50,
+  stringsAsFactors = FALSE)
+str(df_rois)
 
-# Create a directory and export the soundscapes
-soundscapes_path <- "./soundscapes"
-dir.create(soundscapes_path)
-invisible(lapply(1:length(ls_soundscapes), function(i) {
-  writeWave(
-    ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
-  )
-}))
+out_dir <- file.path(tempdir(), "templates")
+export_templates(df_rois, templates_path = out_dir, create_dir = TRUE)
+df_templates <- fetch_template_metadata(out_dir)
+str(df_templates)
 
-# Create a directory and export the templates
-templates_path <- "./templates"
-dir.create(templates_path)
-invisible(lapply(1:length(ls_templates), function(i) {
-  writeWave(
-    ls_templates[[i]], file.path(templates_path, names(ls_templates)[i])
-  )
-}))
+df_grid <- fetch_match_grid(df_soundscapes, df_templates)
+str(df_grid)                 # one row per soundscape-template pair
+attr(df_grid, "dropped")      # why any pairs were excluded
 
-# Import the soundscapes metadata
-df_soundscapes <- fetch_soundscape_metadata(
-  soundscapes_path = soundscapes_path
-)
-
-# Import the templates metadata
-df_templates <- fetch_template_metadata(templates_path = templates_path)
-
-# Create a match grid
-df_grid <- fetch_match_grid(
-  soundscape_data = df_soundscapes, template_data = df_templates
-)
-glimpse(df_grid)
-
-# Check if there is one match per soundscape-template pair in the grid. The test
-# should return TRUE
-nrow(df_grid) == length(ls_soundscapes) * length(ls_templates)
-
+# 'strict' channel policy also drops pairs whose channel layouts disagree:
+fetch_match_grid(df_soundscapes, df_templates, channel_policy = "strict")
 }
+}
+\seealso{
+\code{\link[=fetch_soundscape_metadata]{fetch_soundscape_metadata()}}, \code{\link[=fetch_template_metadata]{fetch_template_metadata()}},
+\code{\link[=run_matching]{run_matching()}}
 }

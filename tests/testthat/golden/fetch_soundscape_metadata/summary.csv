@@ -1,0 +1,7 @@
+"case","n_rows","n_cols","cols","n_mono","n_stereo","n_other","n_short_lt1s","n_read_errors","warning_short_fired","missing_log_written","errored"
+"audiomoth_fresh",16,6,"soundscape_path;soundscape_file;soundscape_duration;soundscape_sample_rate;soundscape_bitrate;soundscape_layout",16,0,0,1,0,TRUE,FALSE,FALSE
+"sm4_fresh",12,6,"soundscape_path;soundscape_file;soundscape_duration;soundscape_sample_rate;soundscape_bitrate;soundscape_layout",0,12,0,0,3,FALSE,FALSE,FALSE
+"synthetic_fresh",3,6,"soundscape_path;soundscape_file;soundscape_duration;soundscape_sample_rate;soundscape_bitrate;soundscape_layout",2,1,0,1,0,TRUE,FALSE,FALSE
+"cache_skip_incremental",4,6,"soundscape_path;soundscape_file;soundscape_duration;soundscape_sample_rate;soundscape_bitrate;soundscape_layout",4,0,0,0,0,FALSE,FALSE,FALSE
+"cache_missing_log",2,6,"soundscape_path;soundscape_file;soundscape_duration;soundscape_sample_rate;soundscape_bitrate;soundscape_layout",2,0,0,0,0,FALSE,TRUE,FALSE
+"cache_reprocess_bug",0,0,"",0,0,0,0,0,FALSE,FALSE,TRUE

@@ -2,64 +2,123 @@
 % Please edit documentation in R/detecs_to_rois.R
 \name{detecs_to_rois}
 \alias{detecs_to_rois}
-\title{Convert detections to ROIs}
+\title{Turn detections back into ROIs}
 \usage{
 detecs_to_rois(
   df_detecs,
   username = NULL,
+  output_db = NULL,
   output_path = NULL,
   filter_tp = FALSE
 )
 }
 \arguments{
-\item{df_detecs}{A data frame containing detections or path to a CSV file
-with detections in the 'monitoraSom' format.}
+\item{df_detecs}{Detections: a \code{data.frame} in the standard detections
+format (tables from older versions are coerced), a path to a detections
+\code{.duckdb} database, or \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} a path to a
+detections CSV from versions before 1.2.0.}
 
-\item{username}{A character string identifying the user creating the ROIs.}
+\item{username}{Character tag identifying who created the ROIs. Letters,
+numbers, dots and spaces only; must not be empty after cleaning. Required.}
 
-\item{output_path}{Path where the ROIs will be saved. We avise against
-providing the same path as the one used to export ROI tables obtained from
-the segmentation app.}
+\item{output_db}{Optional path to a ROI DuckDB database; the ROIs are written
+there per soundscape (updated when they already exist). \strong{Must be distinct
+from any hand-segmented ground-truth store} (see Details). \code{NULL} (default)
+persists nothing.}
 
-\item{filter_tp}{Logical indicating whether to filter the detections to only
-include true positives. Defaults to FALSE.}
+\item{output_path}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Old directory target;
+per-soundscape CSV ROI tables are written there (with a deprecation warning).
+Prefer \code{output_db}.}
+
+\item{filter_tp}{Logical. Keep only true-positive detections (\code{validation == "TP"}). Requires a \code{validation} column; otherwise warns and keeps all.
+Default \code{FALSE}.}
 }
 \value{
-A data frame containing the ROI information.
+A tibble of ROIs (signals data, \code{signal_class = "detection_to_roi"});
+returned invisibly when the ROIs are written to a database.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}
 
-  This function converts detections from template matching or external
-  sources into ROIs (Regions of Interest) in the 'monitoraSom' format.
+Converts template-matching \strong{detections} (or externally validated ones) into
+regions of interest (\strong{ROIs}), written as signals data like any other row
+of the \code{signals.duckdb} store. Detection events can then re-enter the ROI
+workflow: visual review in the segmentation app, promotion to new templates
+via \code{\link[=export_templates]{export_templates()}}, or adding to a ground-truth set.
+
+\strong{Deprecated:} the \code{signals} database already holds every detection
+as a \verb{roi_*} box; this conversion only re-packages the same boxes, it does
+not compute anything new. Prefer reading the \code{signals} database directly
+(the segmentation and validation apps do that) to get the same table in
+memory.
 }
+\details{
+Each detection becomes one ROI, carrying its time/frequency box, the
+species label read from the detection, \code{roi_type = "detection"}, and an
+origin column marking it as derived from a detection. Set \code{filter_tp = TRUE} to keep only detections you have already validated as true positives
+(needs a \code{validation} column).
+
+Store separation is a rule of the analysis flow before monitoraSom 1.2.0:
+ROIs had to live in a store \strong{distinct} from your hand-segmented ground
+truth, or a later validation could compare detections against themselves
+(circular validation, inflated metrics). The current flow supersedes it:
+detections live in the same \code{signals} store as ROIs, and promotion to ROI
+happens upon validation, manually or automatically. This deprecated
+function keeps the old guard: it refuses to write into a store that
+already holds ground-truth ROIs.
+
+Promotion only makes sense for detections you validated as true positives
+(\code{filter_tp = TRUE}): a promoted set built this way does not inflate the
+ground truth.
+
+The detection->ROI cycle: a detection becomes a ROI only after it is
+validated as a true positive. In the routine flow this happens
+automatically: \code{\link[=validate_by_overlap]{validate_by_overlap()}} validates each detection against
+ground-truth ROIs and promotes every TP to a
+\code{signal_class = "detection_to_roi"} row in the same signals store
+(opt-out with \code{promote_to_roi = FALSE}). The segmentation app offers the
+same promotion by hand (tab Detections, \code{Alt+P}). After promoted ROIs
+join a reference set, update the diagnostics: re-run
+\code{\link[=validate_by_overlap]{validate_by_overlap()}} and \code{\link[=diagnostic_validations]{diagnostic_validations()}} so the metrics
+reflect the enlarged reference.
+}
+\section{Pipeline context}{
+
+Step 10 of the monitoraSom analysis flow. Reads a detections table from
+\code{\link[=run_matching]{run_matching()}} / \code{\link[=template_matching]{template_matching()}} (steps 7/9). Produces standard
+ROIs for \code{\link[=export_templates]{export_templates()}} (new templates) or the segmentation app; the
+ground-truth ROIs used by \code{\link[=validate_by_overlap]{validate_by_overlap()}} (step 11) come from
+manual segmentation, not from here.
+}
+
 \examples{
-\dontrun{
-
-# Load the necessary packages to run this example
+\donttest{
+# Load the package
 library(monitoraSom)
-library(dplyr)
 
-# Load a dataset with validated detections (output of the of validation app)
+# Load the bundled validated detections
 data(df_detecs_val_manual)
-glimpse(df_detecs_val_manual)
 
-# Create a directory to store the roi tables
-roi_cuts_path <- "./rois_from_detections"
-dir.create(roi_cuts_path)
+# Convert the detections to ROIs, keeping only the validated true positives.
+# Promotion only makes sense for TPs: a promoted set built this way does not
+# inflate the ground truth.
+df_rois <- detecs_to_rois(df_detecs_val_manual, username = "User",
+                          filter_tp = TRUE)
+str(df_rois)          # standard ROI format, one row per TP detection
 
-# Convert the detections to rois to a unified roi table within the current R
-# session and export it as multiple roi tables in the directory created earlier
-df_detecs_to_rois <- detecs_to_rois(
-    df_detecs = df_detecs_val_manual, username = "User",
-    output_path = roi_cuts_path
-)
+# Persist the promoted ROIs into a DuckDB signals store (temporary file)
+exported_ddb <- file.path(tempdir(), "rois_from_detections.duckdb")
+detecs_to_rois(df_detecs_val_manual, username = "User",
+               filter_tp = TRUE, output_db = exported_ddb)
 
-# Check the object
-glimpse(df_detecs_to_rois)
-
-# Check the roi tables in the directory created earlier
-list.files(roi_cuts_path, pattern = "*.csv")
-
+# Promoted rows are stored with signal_class = "detection_to_roi".
+# fetch_rois() returns only the ROI rows of a store (the ground-truth and
+# template branch); it leaves detection-derived rows out by design, so a
+# store that holds only promoted rows reads back as empty:
+fetch_rois(exported_ddb)
 }
+}
+\seealso{
+\code{\link[=run_matching]{run_matching()}} / \code{\link[=template_matching]{template_matching()}} (produce the detections),
+\code{\link[=export_templates]{export_templates()}} (promote ROIs to templates), \code{\link[=validate_by_overlap]{validate_by_overlap()}}.
 }

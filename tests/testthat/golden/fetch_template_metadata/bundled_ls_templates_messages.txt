@@ -1,0 +1,4 @@
+## messages
+Template metadata successfully extracted
+
+## warnings

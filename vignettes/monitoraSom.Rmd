@@ -1,0 +1,556 @@
+---
+title: "Getting started with monitoraSom"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with monitoraSom}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.2,
+  out.width = "100%",
+  dpi = 96
+)
+```
+
+```{r library, message = FALSE}
+library(monitoraSom)
+```
+
+In this document, we, the monitoraSom developers, will walk you through a
+complete template matching workflow. You will extract templates from focal
+recordings, search soundscape recordings for similar signals, and inspect the
+detections that come out. Most steps are shown as code you can read; the steps that need no audio run
+for real, on the data bundled with the package. To follow the full example
+with its recordings, download the example project first (see the download
+section below).
+
+## What this package does
+
+`monitoraSom` turns raw soundscape recordings into ecological data through
+template matching. A template is a short, curated recording of the sound you
+are looking for. The engine slides that template over every recording in a
+corpus and scores the acoustic similarity at each position. Peaks in that score
+become candidate detections. Detections are then validated against manually
+segmented regions of interest (ROIs), and the validated set is scored with
+standard detection metrics.
+
+The workflow runs in nine steps.
+
+1. `set_workspace()` creates the project directory tree and its DuckDB stores.
+2. `fetch_soundscape_metadata()` reads the recordings and builds the corpus table.
+3. `launch_segmentation_app()` opens the interface where you draw ROIs by hand.
+4. `fetch_rois()` reads those ROIs back into R.
+5. `export_templates()` cuts the ROIs you marked as templates into WAV files.
+6. `fetch_template_metadata()` reads the template library.
+7. `fetch_match_grid()` pairs every soundscape with every template.
+8. `run_matching()` scores each pair, and `fetch_score_peaks()` turns the score
+   series into detections.
+9. `validate_by_overlap()` and `diagnostic_validations()` measure how well the
+   templates performed.
+
+## What this dataset is
+
+The worked example uses the original data from the monitoraSom 1.0.0
+publication: recordings of *Basileuterus culicivorus* (the golden-crowned
+warbler). It pairs two kinds of material. Focal recordings, taken by observers
+in the field with handheld recorders, from which the templates are obtained, and
+soundscape recordings, taken by autonomous recorders in passive acoustic
+monitoring, where we search for occurrences of the signals represented by the
+templates.
+
+|                      |                                                 |
+| -------------------- | ----------------------------------------------- |
+| Focal recordings     | 2 (`Bcu_1`, `Bcu_2`), the source of the templates |
+| Search soundscapes   | 12, where we look for similar songs             |
+| ROIs                 | 71 (18 focal + 53 search)                       |
+| Templates            | 6 (the Substructure C ROIs)                    |
+| Species              | ***B. culicivorus***                            |
+
+> **Important:** only *B. culicivorus* songs were segmented. Precision and
+> recall are meaningful for the target species' song only; calls of the same
+> species and vocalizations of other species are not represented in this
+> example. One recording carries the mark `no signals of interest`, meaning
+> it was reviewed and no song of the target species was found.
+
+## Download the example project
+
+To follow the example with its recordings, get the example project with
+`fetch_example_data()`. It downloads the project into your user cache folder
+and returns its path, ready for `setwd()` or the `project_path` argument of
+the pipeline functions. `is_example_data_cached()` reports whether the
+project is already there. The download is opt-in: nothing in the package
+triggers it on its own.
+
+```{r download-example, eval = FALSE}
+is_example_data_cached()
+example_project <- fetch_example_data()
+setwd(example_project)
+```
+
+The chunk above does not run while this vignette is built, so the build stays
+network-free. Run it once, by hand, in your own session. If the host is
+unreachable, the download times out, or the bundle is malformed,
+`fetch_example_data()` prints an informative message and returns `NULL`; it
+never errors. The bundle lands at
+`<your cache>/basileuterus-culicivorus` and stays there across R sessions,
+so later calls are a no-op unless you pass `overwrite = TRUE`. To use a local
+copy or a mirror instead of the public release, set
+`options(monitoraSom.data_url = "file:///path/to/bundle.tar.gz")` first.
+
+A machine with no network can still follow this vignette: the audio is not
+needed for the bundled-table sections, which run for real from "The project
+directory" onwards.
+
+## The project directory
+
+The downloaded project is a small real project: the 14 recordings, a ready
+`rois.duckdb` and the walkthrough in three formats. The audio is far too
+large to ship inside a package, so you get it as a download.
+
+```
+bcu/                     project root
+├── bcu.qmd              the walkthrough document
+├── recordings/          2 focal recordings, the template source
+│   ├── Bcu_1.wav
+│   └── Bcu_2.wav
+├── soundscapes/         12 soundscape recordings to search
+│   └── W54393S25597_…wav
+└── rois.duckdb          71 manually segmented ROIs
+```
+
+The paths inside `rois.duckdb` are relative to the directory that contains it.
+You can move the folder anywhere and everything keeps working. This matters
+when you collaborate with others. Downloading the project is covered in the
+download section above.
+
+```{r bundled-data}
+data(df_soundscapes)
+data(df_templates)
+data(df_rois)
+data(df_detecs)
+
+c(
+  soundscapes = nrow(df_soundscapes),
+  templates = nrow(df_templates),
+  ground_truth_rois = nrow(df_rois),
+  detections = nrow(df_detecs)
+)
+```
+
+The package itself carries a small, complete result set from that same study.
+The audio is not included, but every table the audio produced is: 12
+soundscapes searched with 6 templates, `r nrow(df_detecs)` candidate
+detections, and `r nrow(df_rois)` ground truth ROIs. The chunks from here to
+the end of the diagnostics run on these bundled tables, so you can execute the
+vignette end to end without downloading anything.
+
+## Preparation
+
+The first step prepares the environment so the active R session knows where
+the files to read are and where the exported files go. In the downloaded
+example, the walkthrough document sits at the project root, so the relative
+paths resolve from there.
+
+```{r workspace, eval = FALSE}
+# Create the project tree and its DuckDB stores:
+set_workspace("my_project")
+```
+
+## Reading the inputs
+
+With the environment ready, we read the inputs of the workflow: the metadata
+of the 12 soundscapes and the ROI table that the example ships with. The
+`fetch_soundscape_metadata()` function walks the soundscapes folder, reads each
+recording, and stores the metadata in a DuckDB database as well as returning
+it to your R session.
+
+This step matters because the metadata feed every later step, and a reading
+problem that slips through here propagates to the rest of the analysis. If a
+corrupted recording were silently skipped, the search would cover less audio
+than you planned, and you would only notice through detections that never
+appeared. So the function logs a recording that will not open, a truncated
+metadata header, or a zero-byte file into an error log, without interrupting
+the sweep of the remaining files. An empty folder, with no readable recording
+at all, is an immediate error rather than an empty table that would only
+denounce the problem much later.
+
+```{r inputs, eval = FALSE}
+df_soundscapes <- fetch_soundscape_metadata(
+  soundscapes_path = "my_project/soundscapes",
+  output_file = "my_project/soundscapes_metadata.duckdb"
+)
+```
+
+The same care applies to the ROI table. When the path points to a folder with
+several ROI stores, an unreadable file is not ignored, so no segmentation is
+lost without notice. Types and variable compatibilities are checked, and
+values that do not match the monitoraSom standard are converted to `NA` with a
+warning that names the source file. The checks also read tables produced by
+older package versions in the current format, and standardize recording paths,
+so no ROI is orphaned by cosmetic differences in how a path is written.
+
+```{r inputs-rois, eval = FALSE}
+df_rois <- fetch_rois("my_project/rois.duckdb")
+```
+
+## The whole analysis in one command
+
+`template_matching()` is the main function of the workflow. It reads the
+recording and template metadata, builds the search grid, runs the matching,
+and returns the detections, all in a single call.
+
+```{r canonical-run, eval = FALSE}
+df_detecs <- template_matching(
+  soundscapes_path = "my_project/soundscapes/",
+  templates_path = "my_project/templates/templates.duckdb",
+  score_method = "fft", min_score = 0.4
+)
+```
+
+The `score_method` argument chooses the search engine. `"cor"` computes the
+Pearson correlation between the template and every sliding window of the
+soundscape; it is the original reference implementation. `"fft"` computes the
+same correlation through Fourier transforms. Both give the same result, to
+differences around 1e-6, but `"fft"` is about ten times faster, which is why
+it is the current default.
+
+The call above leaves the results in your R session only. To save them to
+disk, use the `output_db` argument.
+
+```{r persisting, eval = FALSE}
+template_matching(
+  soundscapes_path = "my_project/soundscapes/",
+  templates_path = "my_project/templates/templates.duckdb",
+  min_score = 0.4,
+  output_db = "my_project/detections.duckdb"
+)
+```
+
+## The steps inside the orchestrator
+
+The single call is the path we recommend, but it only runs, in sequence, the
+four stages that make up the orchestrator. The chunk below shows those four
+stages, plus the preparation that feeds them. The orchestrator covers
+everything from `fetch_template_metadata()` down to `fetch_score_peaks()`;
+a comment marks where it ends. The preparation before it and the validation
+and diagnostics sections after it are separate steps that you call yourself.
+Call the stages separately when you need to inspect or reuse an intermediate
+result.
+
+```{r expanded, eval = FALSE}
+# The same workflow as the orchestrator, step by step:
+set_workspace("my_project")
+df_soundscapes <- fetch_soundscape_metadata("my_project/soundscapes/")
+
+# Draw ROIs by hand; the app writes them straight to the ROI store.
+launch_segmentation_app()
+
+df_rois <- fetch_rois("my_project/rois.duckdb")
+
+# The six templates are the Substructure C ROIs (the final, wider part):
+df_template_rois <- subset(df_rois, roi_comment == "Substructure C")
+export_templates(
+  df_template_rois,
+  templates_path = "my_project/templates/",
+  create_dir = TRUE
+)
+df_templates <- fetch_template_metadata("my_project/templates/templates.duckdb")
+
+# The four stages below are what template_matching() runs inside itself:
+df_grid   <- fetch_match_grid(df_soundscapes, df_templates)   # 72 pairs
+df_scores <- run_matching(df_grid, score_method = "fft")
+df_detecs <- fetch_score_peaks(df_scores, min_score = 0.4)
+# The orchestrator stops here. The validation and diagnostics sections
+# below run after it, on the detections it returned.
+```
+
+Two things about the template step deserve your attention. First, the template
+identity stays tied to its source recording: the template database records the
+file, the instant and the frequency band of the cut, together with the hash of
+the source audio. This lets you check that a template matches the segment you
+drew; a loose audio file carries no such record of origin. Second, the cut is
+derived deterministically from the ROI coordinates over the original audio:
+every run produces exactly the same file, and re-exporting creates no
+divergent versions.
+
+Most workflows prefer `template_matching()` when:
+
+- every soundscape in `df_soundscapes` is searched with every template in
+  `df_templates`, which necessarily uses the full grid in `df_grid`; and
+- the complete score series in `df_scores`, which can be heavy, is not needed,
+  so retaining only the detections as the final product is enough.
+
+Before launching a long run, two helpers are worth knowing.
+`estimate_matching()` reports how big a search plan is, reading only the grid
+and never the audio, so a surprising pair count surfaces before anything
+expensive starts. `summarise_matching()` reports what a finished run produced.
+
+```{r estimate}
+data(df_grid)
+estimate_matching(df_grid)
+```
+
+It returns the same figures invisibly as a one row `data.frame`, so
+`quiet = TRUE` suits a script that wants the numbers without the report.
+
+## Validation
+
+Detections are candidates, not results: the matching measures similarity, and
+similarity is not identification. To know which detections are real, you need
+reference ROIs covering the same recordings the search went through.
+`validate_by_overlap()` makes that judgment. A detection that overlaps an ROI
+of the expected label is a true positive. One that overlaps nothing is a false
+positive. An ROI that no detection reached is a false negative, which is the
+part of the truth set the templates missed.
+
+One rule decides which recordings take part: a recording counts only when its
+review state is known. It either carries ROIs, or you marked it "no signals
+of interest" in the segmentation app (`launch_segmentation_app()`) after a
+full review. A recording with neither was never reviewed, so its detections
+are excluded with a warning and never count as absence of the species. This
+keeps "not validated yet" separate from "validated as absent".
+
+```{r validate}
+val <- validate_by_overlap(df_detecs, df_rois, validation_user = "vignette")
+
+df_validated <- val$detections_validated
+table(df_validated$validation)
+```
+
+False negatives are reported per template, because each template searched the
+whole corpus on its own.
+
+```{r false-negatives}
+fn <- val$false_negatives
+
+nrow(fn)
+table(substr(fn$template_name, 1, 11))
+```
+
+The bundled detections were produced with a deliberately permissive threshold,
+so false positives outnumber true positives by about six to one, and each
+template still missed 18 or 19 ground truth ROIs. Raising the threshold trades
+false positives for more misses. Choosing where to sit on that curve is what
+the diagnostics are for.
+
+## Diagnostics
+
+`diagnostic_validations()` sweeps every observed score as a candidate threshold
+and computes precision, recall and F1 at each one. It returns one diagnostic
+per template, because templates are not interchangeable. Two cuts of the same
+species can need very different thresholds.
+
+```{r diagnostics}
+diags <- diagnostic_validations(df_validated, build_plots = TRUE)
+
+length(diags)
+```
+
+Each element carries the sweep itself, the score cut, the fitted logistic model
+and a set of plots.
+
+```{r diagnostics-structure}
+names(diags[[1]])
+```
+
+The score cut is derived from the fitted logistic model, as the score at which
+the model gives a detection a posterior probability of `pos_prob` of being a
+true positive. That default is 0.95, which is a demanding requirement. Template
+names encode the source recording, the time and frequency bounds of the cut
+and the spectrogram parameters, so they are abbreviated below.
+
+```{r auto-cut}
+short_name <- function(x) substr(x, 1, 11)
+
+data.frame(
+  template = short_name(names(diags)),
+  auto_cut = round(sapply(diags, `[[`, "score_cut"), 3),
+  max_observed = round(
+    sapply(diags, function(d) max(d$diagnostics$peak_score)), 3
+  ),
+  row.names = NULL
+)
+```
+
+On this demo corpus the automatic cut sits above the highest score any template
+actually reached. No detection can clear it, so no operating point is flagged
+and the `selected` column of the sweep stays `FALSE` throughout. This is not a
+failure of the fit. It is the model reporting that 95% confidence is not
+attainable from six templates on twelve recordings.
+
+Lowering `pos_prob` asks for less confidence and brings the cut back inside
+the observed range.
+
+```{r relaxed-cut}
+diags_relaxed <- diagnostic_validations(
+  df_validated,
+  pos_prob = 0.5,
+  build_plots = FALSE
+)
+
+summary_rows <- lapply(diags_relaxed, function(d) {
+  best <- d$diagnostics[d$diagnostics$selected, ]
+  if (nrow(best) == 0) {
+    return(NULL)
+  }
+  best <- best[1, ]
+  data.frame(
+    template = short_name(best$template_name),
+    score_cut = round(d$score_cut, 3),
+    tp = best$tp,
+    fp = best$fp,
+    fn = best$fn,
+    precision = round(best$precision, 3),
+    recall = round(best$recall, 3),
+    F1 = round(best$F1_score, 3)
+  )
+})
+
+do.call(rbind, unname(summary_rows))
+```
+
+Five of the six templates now have an operating point, and every one of them
+sits at perfect precision with low recall. That is the conservative end of the
+curve, where a detection is almost certainly real but most of the
+vocalizations are missed. Whether that suits your study is an ecological
+question rather than a statistical one.
+
+Every diagnostic also carries ready made plots. The precision and recall curve
+shows the whole tradeoff instead of a single operating point.
+
+```{r precrec-plot, fig.alt = "Precision and recall plotted against the score threshold for one template."}
+diags[[1]]$precrec_plot
+```
+
+The density plot separates the score distribution of true positives from that
+of false positives. A wide separation means the template discriminates well,
+and a heavy overlap means no threshold will work cleanly. Both plots come from
+the default run, so their cut line sits to the right of the data, which is the
+same result the table above reported in numbers.
+
+```{r density-plot, fig.alt = "Score density of true positives compared with false positives for one template."}
+diags[[1]]$plot_dens
+```
+
+## Putting the thresholds to work
+
+The diagnostics end with one threshold per template. The last step of the
+analysis applies them to the raw detections. `filter_detections()` takes a
+threshold table (the template column plus `min_score`, `min_quant` or `top_n`)
+and keeps the detections that clear it. Build that table from the relaxed fit
+and filter the bundled detections:
+
+```{r apply-thresholds}
+thresholds <- data.frame(
+  template_name = names(diags_relaxed),
+  min_score = sapply(diags_relaxed, `[[`, "score_cut"),
+  row.names = NULL
+)
+
+df_kept <- filter_detections(df_detecs, thresholds)
+
+c(
+  candidates_before = nrow(df_detecs),
+  candidates_kept = nrow(df_kept)
+)
+```
+
+This is where the workflow closes: the kept detections are the validated
+template set, filtered at the threshold each template earned in the
+diagnostics. They are ready for use on a wider dataset. From here, the next
+step is the analysis of that wider dataset: run `template_matching()` on it
+with each template's threshold as `min_score`, and use the detections that
+clear the score as data for your biological analysis. A small reviewed sample
+of the new detections, in `launch_validation_app()`, keeps you sure the
+threshold still holds on new recording conditions.
+
+## Templates and spectrograms
+
+The six templates of this example are the Substructure C ROIs: the final
+part of each song, one per song in each focal recording. The other focal
+ROIs mark the two narrower parts of the same song, Substructure A and
+Substructure B. The song lasts about 1.5 seconds and has three parts: two
+narrow-band parts between roughly 3.5 and 6 kHz, and a final wider-band part
+that extends to about 9 kHz. The final part is Substructure C, so this
+example matches on the most striking portion of the song. To match on a
+smaller part instead, use the Substructure A or B ROIs as your templates the
+same way.
+
+Templates ship as `tuneR` `Wave` objects in `ls_templates`, so the
+spectrogram tools run without any file on disk. `extract_spectro()` computes
+the spectrogram and `plot_spectro()` draws it.
+
+```{r spectrogram, fig.alt = "Spectrogram of one Basileuterus culicivorus song template."}
+data(ls_templates)
+
+spectro <- extract_spectro(ls_templates[[1]])
+plot_spectro(spectro)
+```
+
+`fast_spectro()` goes from a `Wave` object or a file path straight to the plot
+when you do not need the intermediate object.
+
+## Reviewing detections interactively
+
+`launch_validation_app()` opens the counterpart of the segmentation app. It
+plays each detection, shows it on the spectrogram and records your verdict,
+which is how a manual validation set is built when no ground truth exists yet.
+
+```{r validation-app, eval = FALSE}
+launch_validation_app()
+```
+
+`detecs_to_rois()` converts validated detections back into ROIs, so a
+reviewed run can seed the ground truth of the next one.
+
+## What was created
+
+After you run the workflow on the downloaded project, the project folder
+contains:
+
+```
+bcu/
+├── bcu.qmd                        the walkthrough (already there)
+├── bcu.html                       the rendered document
+├── recordings/                    the 2 focal recordings (already there)
+├── soundscapes/                   the 12 search soundscapes (already there)
+├── rois.duckdb                    the 71 ROIs (already there)
+├── soundscapes_metadata.duckdb    ← created when metadata were read
+├── templates/                     ← created when templates were cut
+│   ├── templates.duckdb           the template database: 1 row per template
+│   └── Bcu_1_…wav                 the 6 audio cuts
+└── detections.duckdb              ← created only if you used output_db
+```
+
+| File | Who creates it | What it is for |
+|---|---|---|
+| `soundscapes_metadata.duckdb` | `fetch_soundscape_metadata()` | duration, sample rate, date/time and path of each recording; a fast re-read instead of scanning the audio again |
+| `templates/*.wav` | `export_templates()` | the cut templates the search uses as reference |
+| `templates/templates.duckdb` | `export_templates()` | the template database describing the cuts; `fetch_template_metadata()` reads it, directly or through the `templates/` folder |
+| `detections.duckdb` | `template_matching(output_db =)` | detections saved to disk, when the session result alone is not enough |
+
+None of these files needs to be kept: if you delete any of them, the commands
+above recreate it identically. The only irreplaceable files are the audio
+files and `rois.duckdb`, which holds the manual segmentation the templates
+depend on.
+
+## Next step
+
+The detections are candidates, not results. `validate_by_overlap()` judges
+each one against reference ROIs and `diagnostic_validations()` fits a
+threshold to that judgment; both ran above on the bundled tables, and they run
+the same way on your own. The workflow is now complete: the templates are
+validated and each one carries its threshold, applied to the raw detections
+with `filter_detections()` in the previous section. The next step is the wider
+dataset: run the matching there with the same thresholds, filter the
+resulting detections by score, and use the ones that clear the threshold as
+data for your biological analysis. Every function in the workflow also has a
+worked example on its help page: the detection engine in `?run_matching`, the
+peak picking rules in `?fetch_score_peaks` and the diagnostic definitions in
+`?diagnostic_validations`.

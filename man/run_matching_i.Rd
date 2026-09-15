@@ -2,46 +2,107 @@
 % Please edit documentation in R/run_matching_i.R
 \name{run_matching_i}
 \alias{run_matching_i}
-\title{Run one iteration of the matching algorithm to obtain the matching score
-vector between one template and one soundscape}
+\title{Match one template against one soundscape (internal)}
 \usage{
 run_matching_i(
   df_grid_i,
-  score_method = "cor",
+  score_method = "fft",
   output = "detections",
   buffer_size = "template",
   min_score = NULL,
   min_quant = NULL,
-  top_n = NULL
+  top_n = NULL,
+  dtw_slack = 0.2,
+  mat_soundscape = NULL,
+  mat_template = NULL,
+  soundscape_time = NULL
 )
 }
 \arguments{
-\item{df_grid_i}{One row of the output of the function 'fetch_match_grid()}
+\item{df_grid_i}{One row of \code{\link[=fetch_match_grid]{fetch_match_grid()}} output (a single template x
+soundscape pair).}
 
-\item{score_method}{A character string indicating the method to use for
-matching. The two methods available are: "cor" (Pearson correlation
-coefficient) or "dtw" (dynamic time warping). Defaults to "cor".}
+\item{score_method}{Character, the matching engine: \code{"fft"} (default), \code{"cor"}
+or \code{"dtw"}. See \code{\link[=run_matching]{run_matching()}} for how they differ.}
 
-\item{output}{A character string indicating the output of the function. The
-two options are: "detections" (default) or "scores".}
+\item{output}{Character. \code{"detections"} (default, via \code{\link[=fetch_score_peaks_i]{fetch_score_peaks_i()}})
+or \code{"scores"} (the raw one-row score tibble).}
 
-\item{buffer_size}{A character string indicating the size of the buffer.}
+\item{buffer_size, min_score, min_quant, top_n}{Forwarded to
+\code{\link[=fetch_score_peaks_i]{fetch_score_peaks_i()}} in detections mode (peak window and filters).}
 
-\item{min_score}{Minimum score threshold (numeric between 0 and 1).}
+\item{dtw_slack}{Numeric warping-window slack fraction for \code{score_method = "dtw"}. Default \code{0.2}. Ignored by \code{"cor"}/\code{"fft"}.}
 
-\item{min_quant}{Minimum quantile threshold (numeric between 0 and 1).}
-
-\item{top_n}{Number of top detections to return (positive integer).}
+\item{mat_soundscape, mat_template, soundscape_time}{Optional pre-computed
+spectrogram matrices (frames x bins) plus the soundscape time vector. When
+\code{NULL} (standalone use) they are built here; the batch wrapper supplies cached
+ones so spectrograms are computed once per soundscape.}
 }
 \value{
-A tibble containing either detection results or raw scores.
+A one-row tibble carrying the per-frame \code{score_vec} when \code{output = "scores"}, or a \code{\link[=fetch_score_peaks_i]{fetch_score_peaks_i()}} detections \code{data.frame} when \code{output = "detections"}.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function takes uses the metadata contained in one row of the output of
-  the function 'fetch_match_grid()' to calculate the matching score of the
-  template spectrogram and a portion of the soundscape spectrogram of same
-  dimensions. The available matching algorithms are the Pearson correlation
-  coefficient ("cor") or dynamic time warping ("dtw").
+Internal engine: \code{\link[=run_matching]{run_matching()}} is the public interface of this step.
+The per-pair engine that \code{\link[=run_matching]{run_matching()}} calls once for every row of the
+match grid: it slides a single template spectrogram across a single
+soundscape and returns either the raw per-frame score vector or its
+detections. Not exported; the batch \code{\link[=run_matching]{run_matching()}} wrapper covers the
+public use.
 }
+\details{
+It dispatches on \code{score_method} to one of three interchangeable
+scoring methods: \code{"fft"} (FFT-accelerated correlation, the fast default),
+\code{"cor"} (the Pearson reference) or \code{"dtw"} (time-warping tolerant), all
+producing the same output shape. \strong{Scores are NOT interchangeable across
+engines}: \code{"cor"}/\code{"fft"} are windowed Pearson correlations on a
+\verb{-1..1} scale, while \code{"dtw"} maps a mean per-cell L1 cost (path-normalized:
+\code{symmetric2}, \code{dist / (N + M)}, then \verb{/ bins}) to \verb{(0, 1]}. Within \code{"dtw"},
+scores are comparable across soundscapes AND templates (the warp-length
+bias of the former \code{symmetric1} form was removed, 2026-08-31). Calibrate
+\code{min_score}/\code{min_quant} per engine, and note that DTW thresholds
+calibrated before the \code{symmetric2} migration do not transfer. When the
+spectrogram matrices are not supplied it builds them from
+the grid row; the batch wrapper passes cached matrices so each soundscape
+is transformed only once. It errors clearly if the soundscape is shorter
+than the template (nothing to slide).
+}
+\section{Pipeline context}{
+
+Inner engine of step 7 (see \code{\link[=run_matching]{run_matching()}}). Reads one row of the
+\code{\link[=fetch_match_grid]{fetch_match_grid()}} grid. Produces one pair's detections or raw scores.
+}
+
+\examples{
+\dontrun{
+# Score just the first pair of a grid.
+# Load the package
+library(monitoraSom)
+# (Build a tiny grid from a synthesized recording; see
+# [fetch_match_grid()] for the full recipe. The bundled df_grid dataset
+# predates template_id and cannot feed run_matching().)
+rec_dir <- file.path(tempdir(), "recs"); dir.create(rec_dir, showWarnings = FALSE)
+rec <- tuneR::normalize(tuneR::sine(4000, duration = 10 * 16000,
+                                    samp.rate = 16000), unit = "16")
+tuneR::writeWave(rec, file.path(rec_dir, "siteA_01.wav"))
+df_rois <- data.frame(
+  soundscape_path = file.path(rec_dir, "siteA_01.wav"),
+  soundscape_file = "siteA_01.wav",
+  roi_label = "burst", roi_start = 1, roi_end = 1.5,
+  roi_min_freq = 2, roi_max_freq = 6, roi_wl = 512, roi_ovlp = 50,
+  stringsAsFactors = FALSE)
+out_dir <- file.path(tempdir(), "templates")
+export_templates(df_rois, templates_path = out_dir, create_dir = TRUE)
+df_grid <- fetch_match_grid(
+  fetch_soundscape_metadata(rec_dir),
+  fetch_template_metadata(out_dir))
+det1 <- run_matching_i(df_grid[1, ], score_method = "fft")
+head(det1)
+}
+}
+\seealso{
+\code{\link[=run_matching]{run_matching()}} (the batch wrapper), \code{\link[=fetch_match_grid]{fetch_match_grid()}},
+\code{\link[=fetch_score_peaks_i]{fetch_score_peaks_i()}}.
+}
+\keyword{internal}

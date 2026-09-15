@@ -2,163 +2,192 @@
 % Please edit documentation in R/launch_segmentation_app.R
 \name{launch_segmentation_app}
 \alias{launch_segmentation_app}
-\title{Function to launch the segmentation app}
+\title{Launch the segmentation app}
 \usage{
 launch_segmentation_app(
   project_path = NULL,
-  preset_path = NULL,
-  user = NULL,
+  roi_user = NULL,
   soundscapes_path = NULL,
-  roi_tables_path = NULL,
-  cuts_path = NULL,
+  df_soundscapes = NULL,
+  roi_db = NULL,
+  templates_path = NULL,
   labels_file = NULL,
-  roi_label_list = "Brazillian birds (Pacheco et al. 2021)",
+  roi_label_list = "Brazilian birds (Pacheco et al. 2021)",
   label_angle = 90,
   show_label = TRUE,
-  time_guide_interval = 3,
-  freq_guide_interval = 2,
+  time_guide_interval = 0,
+  freq_guide_interval = 0,
   dyn_range = c(-60, 0),
   dyn_range_bar = c(-144, 0),
   wl = 1024,
   ovlp = 0,
   color_scale = "inferno",
-  wav_player_type = "HTML player",
-  wav_player_path = "play",
   visible_bp = FALSE,
   play_norm = FALSE,
-  session_notes = NULL,
   zoom_freq = c(0, 180),
+  zoom_time = NULL,
   nav_autosave = TRUE,
   pitch_shift = 1,
   skip_path_confirmation = TRUE
 )
 }
 \arguments{
-\item{project_path}{Path to the project folder, where the segmentation
-project will be stored. It is necessary to provide this path if the
-segmentation project is being created for the first time or if the user
-wants to use relative paths for other input fields.}
+\item{project_path}{Path to the project folder where the segmentation
+project will be stored. Required for first-time setup or relative paths.}
 
-\item{preset_path}{Path to temporary files and other acessory files used by
-the app.}
+\item{roi_user}{Identification of the segmentation app user. \strong{Required}.}
 
-\item{user}{Identification of the user of the segmentation app.}
+\item{soundscapes_path}{Path to soundscape WAV files.}
 
-\item{soundscapes_path}{Path to soundscapes files.}
+\item{df_soundscapes}{Optional data.frame selecting the soundscapes to
+segment and their navigation order (table-guided mode). Rows are used
+as the navigation universe, in the order they appear; only a
+character \code{soundscape_path} column is required. When supplied, path fields start
+locked and directory scanning is skipped. Pre-filter and order the table
+with ordinary \code{dplyr} before launching, e.g.
+\code{df <- fetch_soundscape_metadata("soundscapes/") |> dplyr::arrange(soundscape_timestamp)}. Leave \code{NULL} for the classic
+directory-scan mode.}
 
-\item{roi_tables_path}{Path to the folder from which the ROI tables will be
-imported and to which they will be exported.}
+\item{roi_db}{Path to the DuckDB database for storing ROIs; detections are
+stored in this same database. Defaults to
+\code{file.path(project_path, "rois.duckdb")} when \code{project_path} is
+provided.}
 
-\item{cuts_path}{Path to the folder from which the ROI audio cuts will be
-imported and to which they will be exported.}
+\item{templates_path}{Directory for exporting template audio cuts and the
+template database (default: \verb{<project_path>/templates/}).}
 
-\item{labels_file}{Path to the file containing the list of labels to be used
-in the segmentation. This file must be a '.xlsx' spreadsheet in which
-available lists are stored as columns, identified in the app menu by their
-titles.}
+\item{labels_file}{Path to a label-list \code{.txt} file (one label per line;
+the list name is the file name without the \code{label_list_} prefix), a
+directory of such files, or, for back-compatibility, the old \code{.xlsx} file
+with one list per column.}
 
-\item{roi_label_list}{A character string with the available labels to be used in the
-current session. The default is "Brazillian birds (Pacheco et al. 2021)".}
+\item{roi_label_list}{Name of the default ROI label list column.}
 
-\item{label_angle}{Angle between 0 and 180 to draw the ROI labels in the
-spectrogram plot.}
+\item{label_angle}{Angle (0-90, multiples of 10) for ROI label display.}
 
-\item{show_label}{If TRUE, ROI labels will be displayed alongside ROI
-selections in the sepctrogram.}
+\item{show_label}{If TRUE, ROI labels are shown on the spectrogram.}
 
-\item{time_guide_interval}{A numeric value indicating the interval in seconds
-between time guides in the spectrogram.}
+\item{time_guide_interval}{Interval in seconds between time guides.
+0 disables the guides (default).}
 
-\item{freq_guide_interval}{A numeric value indicating the interval in kHz
-between frequency guides in the spectrogram.}
+\item{freq_guide_interval}{Interval in kHz between frequency guides.
+0 disables the guides (default).}
 
-\item{dyn_range}{A numeric vector of length 2 specifying the minimum and
-maximum relative amplitudes (in dBFS) to be displayed on the spectrogram.
-By default c(-100, 0).}
+\item{dyn_range}{Numeric vector of length 2: min and max amplitude (dBFS).}
 
-\item{dyn_range_bar}{A numeric vector of length 2 specifying the limits to be
-diplayed on the the bar that controls the dinamic range on the app. By
-default c(-200, 10).}
+\item{dyn_range_bar}{Numeric vector of length 2: limits for the dynamic
+range slider.}
 
-\item{wl}{An integer specifying the length of the FFT window used to
-calculate the spectrogram.}
+\item{wl}{FFT window length (power of 2, 128-16384).}
 
-\item{ovlp}{A numeric value between 0 and 90 specifying the percentage
-overlap of windows for computing the spectrogram.}
+\item{ovlp}{Overlap percentage (0-80, step 10).}
 
-\item{color_scale}{A character string specifying the color scale to be used
-in the spectrogram. Possible values are "viridis", "magma", "inferno",
-"cividis", "greyscale 1", or "greyscale 2".}
+\item{color_scale}{Color scale: "viridis", "magma", "inferno", "cividis",
+"greyscale 1", or "greyscale 2".}
 
-\item{wav_player_type}{The type of wav player. "HTML player" for an embedded
-HTML player in the interface, "R session" (experimental) for R
-session-based player, and "External player" (experimental) for playing in
-an external player. The last options becomes available only when a valid
-path to the player executable is provided in the 'wav_player_path'
-argument.}
+\item{visible_bp}{If TRUE, applies bandpass filter matching visible
+frequency band to audio playback.}
 
-\item{wav_player_path}{Path to the wav player executable (only for
-wav_player_type = "External player")}
+\item{play_norm}{If TRUE, normalizes audio playback.}
 
-\item{visible_bp}{If TRUE, the visible frequency band will be used as a
-bandpass filter for the audio playback.}
+\item{zoom_freq}{Numeric vector of length 2: initial frequency range (kHz).}
 
-\item{play_norm}{If TRUE, the audio playback will be normalized.}
+\item{zoom_time}{Numeric vector of length 2: initial time range (seconds)
+for the \code{zoom_time} slider. This argument only sets the slider's initial
+state on each recording load; it is clamped to the recording duration.
+\code{NULL} (default) keeps the current behaviour of showing the first 60
+seconds.}
 
-\item{session_notes}{A single character string with related to the current
-segmentation session.}
+\item{nav_autosave}{If TRUE, navigation saves rebuild the dropdown on the
+destination file and auto-export template ROIs. ROI edits are always
+persisted on navigation.}
 
-\item{zoom_freq}{Vector with two numeric values between 0 and the Nyquist
-Frequency of the soundscape recording, indicating the frequency values in
-kHz of the frequency band to be displayed in the spectrogram.}
+\item{pitch_shift}{Pitch shift value (-8, -6, -4, -2, or 1) for playback.}
 
-\item{nav_autosave}{If TRUE, navigating between soundscapes will
-automatically save the ROI table of the active soundscape.}
-
-\item{pitch_shift}{A numeric value indicating the pitch shift to be applied
-to the soundscape audio. The default is 1, which means no pitch shift.}
-
-\item{skip_path_confirmation}{If TRUE, it will not be necessary to confirm
-the paths setup at the app startup.}
+\item{skip_path_confirmation}{If TRUE, automatically confirms path setup.}
 }
 \value{
-A pop up with the rendered app.
+Called for its side effect: it starts an interactive Shiny app in the
+browser and returns when the app is closed. ROIs are persisted to \code{roi_db}.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function launches the segmentation app, which is a Shiny app for
-  segemntation of WAV recorcings of soundscapes into tables containing
-  regions of interest (ROIs) and audio cuts of the ROIs. The app settings can
-  be imported from presets or set manually.
+Launches an interactive Shiny app for segmenting soundscape WAV recordings
+into regions of interest (ROIs). You draw boxes on the spectrogram, label
+them, and the app stores the ROIs in a DuckDB database. Optionally exporting
+each ROI as an audio cut. It is the manual starting point of the analysis
+flow, where ground-truth ROIs and templates are created.
 }
+\details{
+The app opens a \pkg{shinydashboard} two-pane layout (a settings sidebar and
+a tabbed spectrogram/table pane); display and playback settings can be set in
+the call, adjusted live, or imported from a saved preset. Two navigation modes
+are available: the classic mode scans \code{soundscapes_path} for WAV files, while
+passing \code{df_soundscapes} drives a table-guided review of a pre-filtered,
+pre-ordered set of recordings. ROIs accumulate in \code{roi_db} across sessions.
+Being interactive, the app must be run in an R session and will be
+accessible as a pop-up on RStudio, or in the user browser of choice.
+}
+\section{Detection overlay and promotion}{
+
+The "Detections" sidebar tab draws the \code{signal_class = "detection"} rows
+of the current soundscape read from \code{roi_db} (the signals store) as
+a read-only overlay, off by default. A peak-score slider and a template
+dropdown filter which detections are drawn and selectable; left-click
+selects one and \code{Alt+P} promotes it: the detection box is copied into a
+new editable ROI (\code{signal_class = "detection_to_roi"}, \code{origin = "template_matching"}, \code{roi_type} NA) that is persisted immediately,
+while the source detection row stays untouched (additive promotion). A
+one-per-session orientation popup asks you to confirm before the first
+promotion. Promote a detection only when it satisfies the assumptions of
+a manual ROI: the box is correct and complete, and the label is the one a
+person would assign. Promoted ROIs are eligible as validation ground
+truth (\code{validate_by_overlap()}). Detections are read from \code{roi_db}; when
+they were persisted to a separate store, migrate them first with
+\code{migrate_detections_store_to_signals()}.
+
+\strong{Exhaustiveness contract (validation data).} A recording is ready to
+feed \code{validate_by_overlap()} only when its review state is known: it
+either carries ROIs, or it carries the "no signals of interest" sentinel
+(mark a fully reviewed recording with it). A recording with neither was
+never reviewed — \code{validate_by_overlap()} EXCLUDES its detections and
+warns. An unreviewed recording never counts as absence of the species.
+}
+
+\section{Pipeline context}{
+
+Step 1 of the monitoraSom analysis flow. Reads soundscape WAV recordings
+(a directory, or a \code{df_soundscapes} table). Produces ROI data in a DuckDB
+store (and optional audio cuts) that \code{\link[=fetch_rois]{fetch_rois()}} (step 2) reads.
+}
+
 \examples{
-\dontrun{
+# Step 1 of the analysis flow: segment recordings into ROIs. Interactive app;
+# run it in a session with a browser. See the segmentation-app vignette for a
+# full walkthrough.
+if (interactive()) {
+  # Load the package
+  library(monitoraSom)
 
-# Load the necessary packages to run this example
-library(monitoraSom)
+  # Synthesize a small recording with three tone bursts: a clear,
+  # segmentable signal for your first ROI boxes.
+  sr <- 44100
+  gap <- tuneR::silence(duration = 1.5 * sr, samp.rate = sr)
+  tone <- tuneR::sine(4000, duration = 0.5 * sr, samp.rate = sr)
+  rec <- tuneR::bind(gap, tone, gap, tone, gap, tone, gap)
+  rec <- tuneR::normalize(rec, unit = "16")
+  soundscapes_dir <- file.path(tempdir(), "soundscapes")
+  dir.create(soundscapes_dir, showWarnings = FALSE)
+  tuneR::writeWave(rec, file.path(soundscapes_dir, "synth_tone_bursts.wav"))
 
-# Essential setup
-launch_segmentation_app(
-  project_path = ".", user = "User",
-  soundscapes_path = "./soundscapes", roi_tables_path = "./roi_tables/",
-  cuts_path = "./roi_cuts/"
-)
-
-# Check the segmentation files produced by the segmentation app
-list.files("./roi_cuts/", pattern = "*.csv")
-
-# Check the roi cuts exported to be used as templates
-list.files("./roi_cuts/", pattern = "*.wav")
-
-# Detailed setup
-launch_segmentation_app(
-  project_path = ".", user = "User",
-  soundscapes_path = "./soundscapes", roi_tables_path = "./roi_tables/",
-  cuts_path = "./roi_cuts/",
-  dyn_range = c(-84, -48), wl = 1024, ovlp = 80, zoom_freq = c(0, 10),
-  color_scale = "greyscale 1",
-)
-
+  # Launch the app on the synthesized recording: draw boxes around the
+  # bursts, label them, and save. The ROIs persist to rois.duckdb.
+  launch_segmentation_app(
+    project_path = tempdir(), roi_user = "User",
+    soundscapes_path = soundscapes_dir
+  )
 }
+}
+\seealso{
+\code{\link[=fetch_rois]{fetch_rois()}}, \code{\link[=export_templates]{export_templates()}}, \code{\link[=launch_validation_app]{launch_validation_app()}}
 }

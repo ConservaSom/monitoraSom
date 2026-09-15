@@ -2,58 +2,124 @@
 % Please edit documentation in R/fetch_template_metadata.R
 \name{fetch_template_metadata}
 \alias{fetch_template_metadata}
-\title{Extract template metadata}
+\title{Import template metadata}
 \usage{
-fetch_template_metadata(templates_path = NULL, recursive = FALSE)
+fetch_template_metadata(
+  templates_path = NULL,
+  recursive = FALSE,
+  source = c("duckdb", "legacy_filename"),
+  resolve_references = FALSE,
+  soundscapes = NULL,
+  soundscapes_dir = NULL,
+  on_hash_mismatch = c("warn", "error", "skip")
+)
 }
 \arguments{
-\item{templates_path}{The directory path containing the template wave files.
-If no path is provided, the function will look for the templates in the
-"roi_cuts/" directory.}
+\item{templates_path}{Single character path. \code{NULL} (default) reads the
+standard templates folder (\verb{templates/}). For \code{source = "duckdb"}
+(routine): the template database \code{.duckdb} \strong{or} the cuts directory that
+holds it (the \verb{templates/} folder \code{\link[=export_templates]{export_templates()}} wrote; the
+template database inside it is read). For \code{source = "legacy_filename"}: a
+directory of old long-name template WAVs. A directory is resolved by
+content: the template database inside takes priority when present, otherwise the
+directory is read in the file-name format used before 1.2.0.}
 
-\item{recursive}{A logical value indicating whether the search for template
-files should be recursive or not. Defaults to FALSE.}
+\item{recursive}{Logical, default \code{FALSE}. Recurse into sub-directories.
+Applies only to the old-format directory path; ignored for
+\code{source = "duckdb"}.}
+
+\item{source}{\code{"duckdb"} (default, routine reader) or \code{"legacy_filename"}
+(one-off filename import). No autodetection.}
+
+\item{resolve_references}{Logical, default \code{FALSE}. When \code{TRUE}, verify each
+\code{reference_metadata} template's source recording is present and matches its
+recorded sha256, filling \code{template_resolved}. A matching hash guarantees
+the recording is exactly the one the template was cut from, so the
+on-demand cut stays faithful. It costs one file hash per template; leave
+\code{FALSE} for a fast metadata read. Requires \code{soundscapes}.}
+
+\item{soundscapes}{Source of the recordings' metadata for resolution: a
+\code{df_soundscapes} data.frame \strong{or} a soundscape-metadata \code{.duckdb} path.
+Used only when \code{resolve_references = TRUE}.}
+
+\item{soundscapes_dir}{Optional directory of source recordings, a fallback for
+users who have the audio but not the metadata \code{.duckdb} (files are
+re-hashed). Secondary to \code{soundscapes}; used only when resolving.}
+
+\item{on_hash_mismatch}{\code{"warn"} (default), \code{"error"} or \code{"skip"}, applied
+when a resolved source's sha256 differs from the recorded value. The hash
+is a fingerprint of the file content: a different hash means the recording
+was modified or replaced after the template was created, so an on-demand
+cut would no longer match the template. \code{"warn"} returns the row marked
+\code{template_resolved = FALSE} and warns; \code{"skip"} marks it the same way
+without a warning; \code{"error"} stops. Relevant only when
+\code{resolve_references = TRUE}.}
 }
 \value{
-A tibble containing the following metadata for each template file:
+A data.frame of templates in the standard \verb{template_*} column
+layout, one row per template, plus two columns that are added at fetch time
+rather than stored in the template database: \code{template_name} (character, the
+grouping label carried through the grid into the detections format --
+defaults to \code{template_file} when the template database does not supply it) and the
+trailing logical \code{template_resolved} (\code{NA} when
+\code{resolve_references = FALSE}, else \code{TRUE}/\code{FALSE} per template, located AND
+verified).
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function extracts metadata from a directory of template wave files,
-  which can be used for soundscape analysis.
+Reads the metadata for a set of templates and returns it as a single
+data.frame in the standard monitoraSom template format (\verb{template_*}
+columns). The routine input is the DuckDB template database written
+by \code{\link[=export_templates]{export_templates()}}, or by the segmentation app, when you cut
+templates from ROIs. This is the template-side counterpart of
+\code{\link[=fetch_soundscape_metadata]{fetch_soundscape_metadata()}}: the two frames are later crossed by
+\code{\link[=fetch_match_grid]{fetch_match_grid()}} to produce the search grid.
 }
-\examples{
-\dontrun{
+\details{
+Each template is one acoustic pattern you want to detect (a bird call, a
+frog note), described by its frequency band and time bounds. A template
+comes in one of two \strong{modes}: \code{standalone_audio} (a short WAV cut on
+disk) or \code{reference_metadata} (bounds only, cut on demand from the source
+recording). This reader does not open the audio of \code{standalone_audio}
+templates; it gets everything from the template database.
 
-# Load the necessary packages to run this example
-library(monitoraSom)
-library(dplyr)
+Use the default \code{source = "duckdb"} for any template set produced by the
+current pipeline. Pass either the template database \code{.duckdb} or the cuts
+directory that holds it (the \verb{templates/} folder; the template database inside it
+is found automatically). Use \code{source = "legacy_filename"} only to import
+an old template set whose parameters live in long file names (the
+alternative, \code{\link[=migrate_templates_to_db]{migrate_templates_to_db()}}, converts such a set into
+a template database once, so you never parse names again).
 
-# Load the roi data (output of `fetch_rois()`)
-data(df_rois)
-
-# Filter the rois to export as templates. Two layers of filtering are applied:
-# 1) the soundscape file paths that contain "recordings" to avoid exporting
-# ROIs obtained from the soundscapes recording segmentation.
-# 2) the roi comment contains "Substructure C", to select only the ROIs of
-# interest
-df_rois_processed <- df_rois \%>\%
-  filter(grepl("recordings", soundscape_path)) \%>\%
-  filter(grepl("Substructure C", roi_comment)) \%>\%
-  glimpse()
-
-# Create a directory to store the roi cuts
-dir.create("./templates/")
-
-# Export the roi cuts
-export_roi_cuts(
-  df_rois = df_rois_processed, roi_cuts_path = "./templates/"
-)
-
-# Import the templates metadata
-df_templates <- fetch_template_metadata(templates_path = "./templates/")
-glimpse(df_templates)
-
+Things to know:
+(1) \code{resolve_references = TRUE} verifies, for each \code{reference_metadata}
+template, that its source recording still exists and is unchanged. It
+works by hashing files, so it is slower than the plain read. It also needs
+\code{soundscapes} (a \code{df_soundscapes} frame or a metadata \code{.duckdb}).
+(2) The returned \code{template_resolved} column is a diagnostic computed at
+fetch time. It is not part of the template database, and \code{\link[=fetch_match_grid]{fetch_match_grid()}} drops
+it from the search grid.
+(3) Under the default \code{on_hash_mismatch = "warn"}, a template whose
+source hash does not match is still returned, but with
+\code{template_resolved = FALSE}.
+(4) \code{template_name} defaults to \code{template_file}, and later steps group
+detections by this column: \code{\link[=diagnostic_validations]{diagnostic_validations()}} fits one model per
+distinct value, and \code{\link[=launch_validation_app]{launch_validation_app()}} builds its template selector
+from it. So one group per template cut is the useful default. Change it
+after the fetch when you want to group several cuts together (for
+example, one model per species instead of one per cut).
 }
+\section{Pipeline context}{
+
+Step 4 of the monitoraSom analysis flow. Reads the template database
+\code{.duckdb} produced by \code{\link[=export_templates]{export_templates()}} (step 3). Produces the
+\code{df_templates} frame used, together with \code{df_soundscapes}, by
+\code{\link[=fetch_match_grid]{fetch_match_grid()}} (step 6). See also: \code{\link{export_templates}},
+\code{\link{fetch_match_grid}}.
+}
+
+\seealso{
+\code{\link[=export_templates]{export_templates()}} (upstream, step 3), \code{\link[=fetch_match_grid]{fetch_match_grid()}}
+(downstream, step 6), \code{\link[=catalog_templates]{catalog_templates()}}, \code{\link[=migrate_templates_to_db]{migrate_templates_to_db()}}.
 }

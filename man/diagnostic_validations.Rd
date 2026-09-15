@@ -2,109 +2,151 @@
 % Please edit documentation in R/diagnostic_validations.R
 \name{diagnostic_validations}
 \alias{diagnostic_validations}
-\title{Compute detection diagnostics of validated detections from multiple templates}
+\title{Score detection quality for every template in a validated run}
 \usage{
-diagnostic_validations(df_validated, pos_prob = 0.95, val_a_priori = TRUE)
+diagnostic_validations(
+  df_validated,
+  pos_prob = 0.95,
+  build_plots = TRUE,
+  theme_mode = "light"
+)
 }
 \arguments{
-\item{df_validated}{A tibble containing the validation results of the
-detections `validate_by_overlap()` function or within the validation app.}
+\item{df_validated}{The validated detections to diagnose (required). Accepts
+the \code{\link[=validate_by_overlap]{validate_by_overlap()}} split list
+(\code{list(detections_validated =, false_negatives =)}, the routine input), a
+single wide validation data.frame carrying a \code{template_name} column
+(back-compatible), or a path to a unified signals \code{.duckdb} store: the
+TP/FP verdicts are read from the \verb{val_*} columns and the false negatives
+are computed by query (DEC-24/STEP-20b).}
 
-\item{pos_prob}{A numeric value indicating the probability of a positive test}
+\item{pos_prob}{Numeric in \verb{[0, 1]} (default \code{0.95}). Target probability that
+a detection at the automatic threshold is a true positive; raise it for a
+stricter threshold (fewer higher-confidence detections), lower it for a
+more inclusive threshold (more lower-confidence detections).}
 
-\item{val_a_priori}{A logical value indicating whether the validation was
-performed with a priori method (with the `validate_by_overlap()` function),
-which defaults to TRUE. If FALSE, it will be assumed that the validation
-was performed with the a posteriori method (with the validation app).}
+\item{build_plots}{Logical (default \code{TRUE}). \code{TRUE} builds the per-template
+plots; set \code{FALSE} to return metrics only (much faster for large batches).}
+
+\item{theme_mode}{\code{"light"} (default) or \code{"dark"}, the shared plot theme,
+matching \code{\link[=plot_scores]{plot_scores()}}. Ignored when \code{build_plots = FALSE}.}
 }
 \value{
-A list of results from the diagnostic validations, or NULL if all
-  validations failed.
+A named list (one element per \code{template_name}); each element holds
+\code{diagnostics} (metrics table), \code{score_cut} (the chosen score threshold),
+\code{bin_mod} (the fitted GLM) and five diagnostic plots, or \code{NULL} when that
+template's diagnostics failed.
 }
 \description{
-#' @description `r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
+
+Turns validated detections into per-template performance diagnostics. It
+splits the validation results by template and runs the single-template
+diagnostics on each one, so a whole matching run is summarised in a single
+call. It reads the output of \code{\link[=validate_by_overlap]{validate_by_overlap()}} and produces, for
+each template, a metrics table and its diagnostic plots.
 }
 \details{
-This function performs diagnostic validations on the detections from
-`diagnostic_validations_i()` in cases where there are detections generated
-for multiple templates or classes. The diagnostic validations are used to
-determine the optimal cutpoint to be used in the detections. This function is
-a wrapper around `diagnostic_validations_i()`, and is works stricctly in the
-"auto" mode, thus cutpoints are automatically determined by the logistic
-regression model, if the data allows for it.
+Each template is evaluated independently: its detections and its false
+negatives are pulled out (matched by \code{template_name}) and diagnosed with
+the automatic score threshold, so every template gets its own
+precision/recall/F1 table and score threshold. The return value is a list named by
+\code{template_name}, letting you index a single template's diagnostics directly.
+
+Although built for template validation in the monitoraSom flow, this
+function also validates the classes of multiclass models such as BirdNET
+(imported with \code{\link[=import_birdnet_detections]{import_birdnet_detections()}}): each class is evaluated as
+if it were one template. Note the limit of this reading: the evaluation is
+per class only, never for the model as a whole.
+
+The two metrics to watch are \strong{precision} (of the detections kept, how
+many were real?) and \strong{recall} (of the real signals present, how many
+were found?). The diagnostics themselves explain each metric in
+plain terms when you read one template's report.
+
+Use this at the end of the analysis flow, once detections have been
+validated, to answer "how well did each template perform, and where should
+its score threshold sit?".
+
+Things to know: a template whose diagnostics fail (for example too few
+detections to fit the model) does \strong{not} abort the run, but returns a
+slot with \code{NULL}; a warning names the template and the reason, so always
+check for \code{NULL} slots before using a result. Set \code{build_plots = FALSE}
+when you only need the metrics tables, as it skips the plot construction
+and makes a large batch sweep much cheaper.
 }
+\section{Pipeline context}{
+
+Step 12 of the monitoraSom analysis flow (metrics). Reads the validated
+detections from \code{\link[=validate_by_overlap]{validate_by_overlap()}} (step 11). Produces one
+per-template diagnostics result (metrics table, score threshold, plots) for
+inspection or reporting. See also \code{\link[=validate_by_overlap]{validate_by_overlap()}} and
+\code{\link[=plot_scores]{plot_scores()}}.
+}
+
 \examples{
-\dontrun{
-
-# Load the necessary packages to run this example
+\donttest{
+# Step 12: diagnose a validated run (output of validate_by_overlap(), step 11).
+# Load the package
 library(monitoraSom)
-library(dplyr)
-library(ggplot2)
-library(patchwork)
-
-# Load a dataset with detections validated with the time overlap method (output
-# of `validate_by_overlap()`)
 data(df_detecs_val_tovlp)
-glimpse(df_detecs_val_tovlp)
+diags <- diagnostic_validations(df_detecs_val_tovlp)
+names(diags)                       # one result per template
+head(diags[[1]]$diagnostics)       # precision / recall / F1 table
 
-# In this type of validation it is recommended to mitigate the large number of
-# false positives. Here we filter the detections with a peak score greater than
-# 0.2, but other methods can be used for more informed decisions at this stage.
-df_detecs_val_tovlp_subset <- df_detecs_val_tovlp \%>\%
-  filter(peak_score > 0.2) \%>\%
-  glimpse()
+# Compare templates at a glance: for each template, the diagnostics row
+# with the best F1 (the operating point you would pick by hand). High
+# performance means high precision AND high recall; low values in either
+# one point to a weak template. The `selected` column, in turn, flags the
+# row chosen by the automatic threshold; it can be empty when that
+# threshold sits above every observed score.
+best <- do.call(rbind, lapply(diags, function(d)
+  d$diagnostics[which.max(d$diagnostics$F1_score),
+    c("template_name", "peak_score", "precision", "recall", "F1_score")]))
+best
 
-# Run the diagnostics on the validated detections
-ls_diag_tovlp <- diagnostic_validations(
-  df_validated = df_detecs_val_tovlp, pos_prob = 0.90, val_a_priori = TRUE
-)
+# Read the plots of one template (each slot is a ggplot object):
+d1 <- diags[[1]]
+d1$mod_plot      # score vs TP/FP: good separation supports a reliable
+                 # automatic threshold
+d1$roc_plot      # ROC: curve hugging the top-left corner means high recall
+                 # at a low false-positive cost
+d1$precrec_plot  # precision-recall: stays high as recall grows in a robust
+                 # template
+d1$f1_plot       # F1 along the threshold: a peak far from the edges marks a
+                 # clear operating point
+d1$plot_dens     # TP and FP score distributions: little overlap means the
+                 # template separates well
 
-# Check the number of templates in the diagnostics object
-length(ls_diag_tovlp)
-
-# check the diagnostics plots of the first template
-template_1 <- ls_diag_tovlp[[1]]
-template_1$mod_plot /
-  (template_1$roc_plot + template_1$precrec_plot + template_1$f1_plot) /
-  (template_1$plot_dens)
-
-# Comparing diagnostics of all templates
-template_2 <- ls_diag_tovlp[[2]]
-template_3 <- ls_diag_tovlp[[3]]
-template_4 <- ls_diag_tovlp[[4]]
-template_5 <- ls_diag_tovlp[[5]]
-template_6 <- ls_diag_tovlp[[6]]
-
-(template_1$precrec_plot + template_2$precrec_plot + template_3$precrec_plot +
-  template_4$precrec_plot + template_5$precrec_plot + template_6$precrec_plot)
-
-data(df_detecs_val_manual)
-glimpse(df_detecs_val_manual)
-
-# Run the diagnostics on the validated detections
-ls_diag_manual <- diagnostic_validations(
-  df_validated = df_detecs_val_manual, pos_prob = 0.90, val_a_priori = FALSE
-)
-
-# Check the number of templates in the diagnostics object
-length(ls_diag_manual)
-
-# check the diagnostics plots of the first template
-template_1 <- ls_diag_manual[[1]]
-template_1$mod_plot /
-  (template_1$roc_plot + template_1$precrec_plot + template_1$f1_plot) /
-  (template_1$plot_dens)
-
-# Comparing the diagnostics of the same template under different validation
-# methods
-template_A <- ls_diag_tovlp[[1]]
-template_B <- ls_diag_manual[[1]]
-
-(
-  template_A$mod_plot + labs(title = "Time overlap validation") +
-    template_B$mod_plot + labs(title = "Manual validation")
-) /
-  (template_A$precrec_plot + template_B$precrec_plot)
-
+# Simulated contrast: what a clean and a noisy template look like.
+sim_template <- function(name, n_tp, n_fp, tp_mean, sd) {
+  data.frame(
+    template_name = name,
+    peak_score    = c(rnorm(n_tp, tp_mean, sd), rnorm(n_fp, 0.15, sd)),
+    validation    = c(rep("TP", n_tp), rep("FP", n_fp)))
 }
+set.seed(1)
+df_sim <- rbind(
+  sim_template("clean", 30, 30, 0.60, 0.06),  # TP scores far above FP
+  sim_template("noisy", 30, 30, 0.35, 0.15))  # TP scores overlap FP
+diags_sim <- diagnostic_validations(df_sim)
+diags_sim$clean$f1_plot   # clear peak: an obvious working threshold
+diags_sim$noisy$f1_plot   # low, flat curve: weak template; consider
+                          # re-cutting it or building a new one
+
+# The chosen threshold is the central decision of the diagnostics, and it is
+# drawn in every plot as a dashed vertical line: mod_plot and plot_dens at
+# score_cut, f1_plot at the selected row's score, precrec_plot and roc_plot
+# at the selected operating point. Read it off the plots and check the value:
+diags_sim$clean$mod_plot   # the dashed line splits TP from FP cleanly
+diags_sim$clean$score_cut  # the numeric threshold behind the line
+diags_sim$clean$f1_plot    # the line sits at the F1 peak
+
+# Metrics only (no plots) for a fast batch sweep:
+diags_fast <- diagnostic_validations(df_detecs_val_tovlp, build_plots = FALSE)
+}
+}
+\seealso{
+\code{\link[=validate_by_overlap]{validate_by_overlap()}} (upstream, step 11), \code{\link[=plot_scores]{plot_scores()}}
+(step 13).
 }

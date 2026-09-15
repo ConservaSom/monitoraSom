@@ -1,158 +1,136 @@
-#' Run one iteration of the matching algorithm to obtain the matching score
-#' vector between one template and one soundscape
+#' Match one template against one soundscape (internal)
 #'
 #' @description `r lifecycle::badge("experimental")`
 #'
-#'   This function takes uses the metadata contained in one row of the output of
-#'   the function 'fetch_match_grid()' to calculate the matching score of the
-#'   template spectrogram and a portion of the soundscape spectrogram of same
-#'   dimensions. The available matching algorithms are the Pearson correlation
-#'   coefficient ("cor") or dynamic time warping ("dtw").
+#'   Internal engine: [run_matching()] is the public interface of this step.
+#'   The per-pair engine that [run_matching()] calls once for every row of the
+#'   match grid: it slides a single template spectrogram across a single
+#'   soundscape and returns either the raw per-frame score vector or its
+#'   detections. Not exported; the batch [run_matching()] wrapper covers the
+#'   public use.
 #'
-#' @param df_grid_i One row of the output of the function 'fetch_match_grid()
-#' @param score_method A character string indicating the method to use for
-#'   matching. The two methods available are: "cor" (Pearson correlation
-#'   coefficient) or "dtw" (dynamic time warping). Defaults to "cor".
-#' @param output A character string indicating the output of the function. The
-#'   two options are: "detections" (default) or "scores".
-#' @param buffer_size A character string indicating the size of the buffer.
-#' @param min_score Minimum score threshold (numeric between 0 and 1).
-#' @param min_quant Minimum quantile threshold (numeric between 0 and 1).
-#' @param top_n Number of top detections to return (positive integer).
+#' @details It dispatches on `score_method` to one of three interchangeable
+#'   scoring methods: `"fft"` (FFT-accelerated correlation, the fast default),
+#'   `"cor"` (the Pearson reference) or `"dtw"` (time-warping tolerant), all
+#'   producing the same output shape. **Scores are NOT interchangeable across
+#'   engines**: `"cor"`/`"fft"` are windowed Pearson correlations on a
+#'   `-1..1` scale, while `"dtw"` maps a mean per-cell L1 cost (path-normalized:
+#'   `symmetric2`, `dist / (N + M)`, then `/ bins`) to `(0, 1]`. Within `"dtw"`,
+#'   scores are comparable across soundscapes AND templates (the warp-length
+#'   bias of the former `symmetric1` form was removed, 2026-08-31). Calibrate
+#'   `min_score`/`min_quant` per engine, and note that DTW thresholds
+#'   calibrated before the `symmetric2` migration do not transfer. When the
+#'   spectrogram matrices are not supplied it builds them from
+#'   the grid row; the batch wrapper passes cached matrices so each soundscape
+#'   is transformed only once. It errors clearly if the soundscape is shorter
+#'   than the template (nothing to slide).
 #'
-#' @return A tibble containing either detection results or raw scores.
+#' @section Pipeline context:
+#'   Inner engine of step 7 (see [run_matching()]). Reads one row of the
+#'   [fetch_match_grid()] grid. Produces one pair's detections or raw scores.
 #'
-#' @export
+#' @param df_grid_i One row of [fetch_match_grid()] output (a single template x
+#'   soundscape pair).
+#' @param score_method Character, the matching engine: `"fft"` (default), `"cor"`
+#'   or `"dtw"`. See [run_matching()] for how they differ.
+#' @param output Character. `"detections"` (default, via [fetch_score_peaks_i()])
+#'   or `"scores"` (the raw one-row score tibble).
+#' @param buffer_size,min_score,min_quant,top_n Forwarded to
+#'   [fetch_score_peaks_i()] in detections mode (peak window and filters).
+#' @param dtw_slack Numeric warping-window slack fraction for `score_method =
+#'   "dtw"`. Default `0.2`. Ignored by `"cor"`/`"fft"`.
+#' @param mat_soundscape,mat_template,soundscape_time Optional pre-computed
+#'   spectrogram matrices (frames x bins) plus the soundscape time vector. When
+#'   `NULL` (standalone use) they are built here; the batch wrapper supplies cached
+#'   ones so spectrograms are computed once per soundscape.
+#'
+#' @return A one-row tibble carrying the per-frame `score_vec` when `output =
+#'   "scores"`, or a [fetch_score_peaks_i()] detections `data.frame` when `output
+#'   = "detections"`.
+#'
+#' @seealso [run_matching()] (the batch wrapper), [fetch_match_grid()],
+#'   [fetch_score_peaks_i()].
+#' @keywords internal
+#' @examples
+#' \dontrun{
+#' # Score just the first pair of a grid.
+#' # Load the package
+#' library(monitoraSom)
+#' # (Build a tiny grid from a synthesized recording; see
+#' # [fetch_match_grid()] for the full recipe. The bundled df_grid dataset
+#' # predates template_id and cannot feed run_matching().)
+#' rec_dir <- file.path(tempdir(), "recs"); dir.create(rec_dir, showWarnings = FALSE)
+#' rec <- tuneR::normalize(tuneR::sine(4000, duration = 10 * 16000,
+#'                                     samp.rate = 16000), unit = "16")
+#' tuneR::writeWave(rec, file.path(rec_dir, "siteA_01.wav"))
+#' df_rois <- data.frame(
+#'   soundscape_path = file.path(rec_dir, "siteA_01.wav"),
+#'   soundscape_file = "siteA_01.wav",
+#'   roi_label = "burst", roi_start = 1, roi_end = 1.5,
+#'   roi_min_freq = 2, roi_max_freq = 6, roi_wl = 512, roi_ovlp = 50,
+#'   stringsAsFactors = FALSE)
+#' out_dir <- file.path(tempdir(), "templates")
+#' export_templates(df_rois, templates_path = out_dir, create_dir = TRUE)
+#' df_grid <- fetch_match_grid(
+#'   fetch_soundscape_metadata(rec_dir),
+#'   fetch_template_metadata(out_dir))
+#' det1 <- run_matching_i(df_grid[1, ], score_method = "fft")
+#' head(det1)
+#' }
 run_matching_i <- function(
-  df_grid_i, score_method = "cor", output = "detections",
-  buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL
+  df_grid_i, score_method = "fft", output = "detections",
+  buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
+  dtw_slack = 0.2,
+  mat_soundscape = NULL, mat_template = NULL, soundscape_time = NULL
 ) {
-  score_method <- match.arg(score_method, c("cor", "dtw"))
+  score_method <- match.arg(score_method, c("cor", "fft", "dtw"))
   output <- match.arg(output, c("detections", "scores"))
-
-  if (
-    !is.null(min_score) &&
-      (!is.numeric(min_score) || min_score < 0 || min_score > 1)
-  ) {
-    stop("min_score must be NULL or a number between 0 and 1")
+  # AUD-40: dtw_slack reaches dtwclust::dtw_basic as window.size (RMD-03); a
+  # negative or non-scalar value is a malformed window. Validate up front.
+  if (!is.numeric(dtw_slack) || length(dtw_slack) != 1L || is.na(dtw_slack) ||
+      dtw_slack < 0) {
+    stop("'dtw_slack' must be a single non-negative numeric value.")
   }
-  if (
-    !is.null(min_quant) &&
-      (!is.numeric(min_quant) || min_quant < 0 || min_quant > 1)
-  ) {
-    stop("min_quant must be NULL or a number between 0 and 1")
-  }
-  if (!is.null(top_n) && (!is.numeric(top_n) || top_n < 1)) {
-    stop("top_n must be NULL or a positive integer")
-  }
+  .validate_score_filters(min_score, min_quant, top_n)
+  .validate_df_grid_i(df_grid_i)
 
-  spec_params <- list(
-    wl = df_grid_i$template_wl,
-    ovlp = df_grid_i$template_ovlp,
-    flim = c(df_grid_i$template_min_freq, df_grid_i$template_max_freq),
-    plot = FALSE, norm = TRUE
-  )
-
-  tryCatch(
-    {
-      soundscape_spectro <- tuneR::readWave(df_grid_i$soundscape_path)
-      soundscape_spectro <- do.call(
-        seewave::spectro,
-        c(list(soundscape_spectro), spec_params)
-      )
-      spectro_template <- tuneR::readWave(df_grid_i$template_path)
-      spectro_template <- do.call(
-        seewave::spectro,
-        c(
-          list(spectro_template),
-          spec_params,
-          list(
-            tlim = c(df_grid_i$template_start, df_grid_i$template_end)
-          )
-        )
-      )
-    },
-    error = function(e) {
-      stop(paste("Error generating spectrograms:", e$message))
-    }
-  )
-  mat_soundscape <- t(soundscape_spectro$amp)
-  mat_template <- t(spectro_template$amp)
+  if (is.null(mat_soundscape) || is.null(mat_template) || is.null(soundscape_time)) {
+    spec <- .build_match_spectrograms(df_grid_i)
+    mat_soundscape <- spec$mat_soundscape
+    mat_template <- spec$mat_template
+    soundscape_time <- spec$soundscape_time
+  }
   sliding_window <- nrow(mat_template)
-  sw_start <- sliding_window %/% 2
-  sw_end <- (sliding_window - sw_start) - 1
-  ind <- slider::slide(
-    1:nrow(mat_soundscape),
-    ~.x, .before = sw_start, .after = sw_end, .complete = TRUE
-  ) %>%
-    base::Filter(f = base::Negate(is.null), x = .)
-
-  if (score_method == "cor") {
-    score_vec <- lapply(
-      1:length(ind),
-      function(x) {
-        cor(
-          c(mat_soundscape[ind[[x]], ]),
-          c(mat_template),
-          method = "pearson", use = "complete.obs"
-        )
-      }
+  if (nrow(mat_soundscape) < sliding_window) {
+    stop(
+      "Soundscape (", nrow(mat_soundscape), " frames) is shorter than the ",
+      "template (", sliding_window, " frames); cannot slide (RMC-13)."
     )
-    score_vec <- unlist(score_vec)
-    score_vec <- c(
-      rep(min(score_vec), sw_start - 1),
-      score_vec,
-      rep(min(score_vec), sw_end + 1)
-    )
-    score_vec <- tidyr::replace_na(score_vec, min(score_vec, na.rm = TRUE))
-  } else if (score_method == "dtw") {
-    if (!requireNamespace("dtw", quietly = TRUE)) {
-      stop("Package 'dtw' is required for 'dtw' method. Please install it.")
-    }
-    stretch <- 0.2
-    norm <- "L1"
-    step.pattern <- dtw::symmetric1
-    score_vec <- lapply(
-      1:length(ind),
-      function(x) {
-        dtwclust::dtw_basic(
-          mat_soundscape[ind[[x]], ], mat_template, backtrack = FALSE,
-          norm = norm, step.pattern = step.pattern,
-          window.size = round(sliding_window + (stretch * sliding_window), 0),
-          normalize = FALSE
-        )
-      }
-    )
-    score_vec <- unlist(score_vec)
-    # 1 - dtw score to match the format of the cor score
-    score_vec <- 1 - (score_vec / max(score_vec))
-    score_vec <- c(
-      rep(min(score_vec), sw_start - 1),
-      score_vec,
-      rep(min(score_vec), sw_end + 1)
-    )
-    score_vec <- tidyr::replace_na(score_vec, min(score_vec, na.rm = TRUE))
   }
 
-  if (length(score_vec) > length(soundscape_spectro$time)) {
-    score_vec <- head(score_vec, -1)
-  }
+  score_unpadded <- switch(
+    score_method,
+    cor = .score_cor(mat_soundscape, mat_template),
+    fft = .score_fft(mat_soundscape, mat_template),
+    dtw = .score_dtw(mat_soundscape, mat_template, dtw_slack = dtw_slack)
+  )
+  score_vec <- .pad_score_to_length(
+    score_unpadded, sliding_window, length(soundscape_time)
+  )
 
   res_raw <- tibble::as_tibble(df_grid_i)
   res_raw$score_sliding_window <- sliding_window
   res_raw$score_method <- score_method
   res_raw$score_vec <- list(
-    data.frame(
-      time_vec = soundscape_spectro$time,
-      score_vec = score_vec
-    )
+    data.frame(time_vec = soundscape_time, score_vec = score_vec)
   )
 
   if (output == "detections") {
-    fetch_score_peaks_i(
-      res_raw, buffer_size = buffer_size, min_score = min_score,
-      min_quant = min_quant, top_n = top_n
-    )
+    # Pure per-pair capture, then the composable filter (FSPB-10 option C); a
+    # single pair is `scope = "pair"`.
+    det <- fetch_score_peaks_i(res_raw, buffer_size = buffer_size)
+    filter_detections_i(det, min_score = min_score, min_quant = min_quant,
+                      top_n = top_n, scope = "pair")
   } else {
     res_raw
   }

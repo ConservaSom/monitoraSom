@@ -1,0 +1,31 @@
+# real_t092_default
+error: NA
+nrow: 10
+ncol: 21
+names: soundscape_path, soundscape_file, template_path, template_file, template_name, template_min_freq, template_max_freq, template_start, template_end, detection_start, detection_end, detection_wl, detection_ovlp, detection_sample_rate, detection_buffer, detection_min_score, detection_min_quant, detection_top_n, peak_index, peak_score, peak_quant
+warnings: (none)
+messages: (none)
+
+## key columns:
+ peak_index peak_score peak_quant detection_start detection_end
+        270 0.78759769      1.000        4.633452      6.854093
+        446 0.09329444      0.749        8.391459     10.612100
+        658 0.32121654      0.946       12.918149     15.138790
+        834 0.09490219      0.753       16.676157     18.896797
+       1051 0.76305417      0.999       21.309609     23.530249
+       1420 0.31043511      0.944       29.188612     31.409253
+       1750 0.99114785      1.000       36.234875     38.455516
+       2077 0.30797238      0.943       43.217082     45.437722
+       2294 0.17844462      0.890       47.850534     50.071174
+       2503 0.74872501      0.998       52.313167     54.533808
+ detection_buffer detection_min_score detection_min_quant detection_top_n
+              104                  NA                  NA              NA
+              104                  NA                  NA              NA
+              104                  NA                  NA              NA
+              104                  NA                  NA              NA
+              104                  NA                  NA              NA
+              104                  NA                  NA              NA
+              104                  NA                  NA              NA
+              104                  NA                  NA              NA
+              104                  NA                  NA              NA
+              104                  NA                  NA              NA

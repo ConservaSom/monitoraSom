@@ -5,16 +5,18 @@
 \alias{df_soundscapes}
 \title{Metadata of soundscape recordings}
 \format{
-## `df_soundscapes` A data frame with 12 rows and 6 columns
-  containing metadata from soundscape recordings, including file paths,
-  durations, sample rates, bit rates, and audio channel layouts.
+\subsection{\code{df_soundscapes} A data frame with 12 rows and 6 columns}{
+
+containing metadata from soundscape recordings, including file paths,
+durations, sample rates, bit rates, and audio channel layouts.
+}
 }
 \usage{
 data(df_soundscapes)
 }
 \description{
 A data frame containing the metadata of the soundscape recordings to run the
-examples of the `monitoraSom` package. The metadata was extracted from the
-soundscape recordings with the `fetch_soundscape_metadata()` function.
+examples of the \code{monitoraSom} package. The metadata was extracted from the
+soundscape recordings with the \code{fetch_soundscape_metadata()} function.
 }
 \keyword{datasets}

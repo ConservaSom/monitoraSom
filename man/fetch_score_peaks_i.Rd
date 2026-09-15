@@ -2,53 +2,102 @@
 % Please edit documentation in R/fetch_score_peaks_i.R
 \name{fetch_score_peaks_i}
 \alias{fetch_score_peaks_i}
-\title{Find and filter detections from one score vector}
+\title{Capture detections from a single match-score vector (internal)}
 \usage{
-fetch_score_peaks_i(
-  df_scores_i,
-  buffer_size = "template",
-  min_score = NULL,
-  min_quant = NULL,
-  top_n = NULL
-)
+fetch_score_peaks_i(df_scores_i, buffer_size = "template")
 }
 \arguments{
-\item{df_scores_i}{One row of the output of the function 'run_matching()' or the
-output of 'run_matching_i()', which contain score vector the result of a template
-matching operation performed with a specific template and soundscape
-recording.}
+\item{df_scores_i}{One row of \code{\link[=run_matching]{run_matching()}}'s \code{scores} output, or the
+\code{\link[=run_matching_i]{run_matching_i()}} result: a list or one-row tibble carrying \code{score_vec} (a
+list-column whose single element is a \code{data.frame(time_vec, score_vec)}),
+\code{score_sliding_window}, \code{score_method}, and the template/soundscape metadata
+columns. \code{template_id} is used when present (else \code{NA}). There is no
+default: pass the object you want to capture peaks from.}
 
-\item{buffer_size}{A numeric value specifying the number of frames of the
-buffer within which overlap between detections is avoided. Defaults to
-"template", which means that the buffer size equals the number of frames
-present in the template spectrogram. The buffer exclusion is oriented by
-score quantiles, so that the highest scoring detections are always kept.
-Setting the buffer size to 0 disables the exclusion buffer.}
-
-\item{min_score}{A numeric value between 0 and 0.99 indicating the minimum
-score of the detections that will be kept. Defaults to NULL, which returns
-all available detections.}
-
-\item{min_quant}{A numeric value between 0 and 1 indicating the minimum score
-quantile of the kept detections. Defaults to NULL, which returns all
-available detections.}
-
-\item{top_n}{An integer indicating the maximum number of peaks to be
-returned, selected according to the highest scores available. Defaults to
-NULL, which return all available detections. It should be noted that
-because the peak quantiles are callculated within each score vector, the
-top_n parameter is applied to each score vector separately, and not to the
-whole matching grid.}
+\item{buffer_size}{Exclusion buffer, in spectrogram frames, within which
+overlapping detections are suppressed (greedy NMS keeps the higher score).
+Default \code{"template"} uses the template's own frame count
+(\code{score_sliding_window}), a sensible non-overlap rule. Pass a
+non-negative whole number to set the buffer explicitly; \code{0} disables
+suppression and keeps every robust local maximum, that is, every local
+peak with no merging and no filtering at all. A larger value yields
+fewer, more spread-out detections.}
 }
 \value{
-A data frame in which each row is a detection and has the follwing
-  attributes:
+A \code{data.frame} in the standard detections format (26 columns): one
+row per captured peak (columns include \code{detection_start}/\code{detection_end} in
+seconds, \code{peak_index}, \code{peak_score}, \code{peak_quant}, \code{detection_id}), or a
+typed zero-row frame when no peak survives. The filter columns
+(\code{detection_min_score}, \code{detection_min_quant}, \code{detection_top_n}) are \code{NA}
+here and are filled later by \code{filter_detections_i()}.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function detects peaks in the score vector resulting from one
-  iteration of template matching, i.e. the output of 'run_matching_i()' or one row
-  of the output of 'run_matching()' . The peaks represent potential detections of
-  a template in a soundscape recording.
+Internal engine: \code{\link[=fetch_score_peaks]{fetch_score_peaks()}} is the public interface of this
+step. Finds the peaks of \strong{one} match-score vector (the per-frame similarity
+trace) produced for a single soundscape-template pair by
+\code{\link[=run_matching_i]{run_matching_i()}} (or one row of \code{\link[=run_matching]{run_matching()}}), and returns them as
+rows of the standard \strong{detections} table. Each peak is one candidate
+occurrence of the template in the recording. This is the per-pair core
+that the batch entry point \code{\link[=fetch_score_peaks]{fetch_score_peaks()}} calls once per pair.
 }
+\details{
+A monitoraSom user can think of the score vector as a numeric time series:
+one value per spectrogram frame. Peak capture proceeds in three steps.
+First it finds the robust local maxima (a flat plateau counts as a
+single peak at its centre, and \code{NA}s never qualify). Then it trims peaks
+too close to the edges to have a valid time window. Finally it runs a
+greedy non-maximum suppression (NMS): no two surviving detections sit
+within \code{buffer_size} frames of each other. On a conflict the higher
+score wins.
+
+This step is deliberately \strong{pure capture}: it applies no score, quantile
+or top-n threshold. Thresholds live in the separate
+\code{filter_detections_i()}, so you can capture once and then re-filter
+cheaply. Use this function directly only when you already hold a single
+per-pair score vector and want its peaks; for a whole \code{scores} table use
+\code{\link[=fetch_score_peaks]{fetch_score_peaks()}}, and for the end-to-end path let \code{\link[=run_matching]{run_matching()}}
+or \code{\link[=template_matching]{template_matching()}} handle it.
+
+Things to know: (1) \code{buffer_size} is an exclusion buffer counted in
+spectrogram frames, not a duration in seconds. The \code{"template"} default
+equals the template's frame count, which is usually what you want. (2)
+The reported detection time is read straight from \code{time_vec}, so a time
+axis that is not monotone, or does not match the vector, is rejected;
+otherwise peaks would map to wrong times. (3) \code{peak_quant} is an
+empirical quantile computed over the valid (non-padding) region of this
+one vector, so it is comparable within a template-soundscape pair but
+not necessarily across pairs.
+}
+\section{Pipeline context}{
+
+Step 8 of the monitoraSom analysis flow (per-pair core). Reads one
+match-score vector from \code{\link[=run_matching_i]{run_matching_i()}} (or a single row of
+\code{\link[=run_matching]{run_matching()}}'s \code{scores} output). Produces candidate detection rows
+in the standard detections format.
+}
+
+\examples{
+\dontrun{
+# Step 8 (per-pair core): capture peaks from a single match-score vector.
+# Build a tiny synthetic score vector with two clear peaks (no files needed).
+n <- 200L
+score <- 0.1 + 0.8 * exp(-((seq_len(n) - 60)^2) / 50) +
+               0.6 * exp(-((seq_len(n) - 140)^2) / 50)
+df_scores_i <- data.frame(score_sliding_window = 20L)
+df_scores_i$score_vec <- list(data.frame(
+  time_vec = seq_len(n) / 100, score_vec = score))
+
+dets <- fetch_score_peaks_i(df_scores_i)
+dets[, c("detection_start", "detection_end", "peak_score", "peak_quant")]
+
+# Disable the exclusion buffer to keep every robust local maximum:
+fetch_score_peaks_i(df_scores_i, buffer_size = 0)
+}
+}
+\seealso{
+\code{\link[=run_matching_i]{run_matching_i()}} (previous step), \code{\link[=fetch_score_peaks]{fetch_score_peaks()}} (the batch
+wrapper), \code{filter_detections_i()}, \code{\link[=detecs_to_rois]{detecs_to_rois()}} (next step).
+}
+\keyword{internal}

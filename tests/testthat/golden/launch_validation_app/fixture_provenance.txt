@@ -1,0 +1,7 @@
+Fixture provenance (temporary — regenerated each run):
+  All directories and files created under tempdir()/lva_golden_fixtures/
+  Minimal valid CSV with header row only
+  Dummy WAV files in soundscapes/ and templates/ for LVA-100 tests
+  Fake player executable for External player test
+
+Baseline: R/original/alt_validation_app/launch_validation_app.R (LVA-100 pre-applied)

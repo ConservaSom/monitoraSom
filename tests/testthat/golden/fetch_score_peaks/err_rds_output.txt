@@ -1,0 +1,8 @@
+# err_rds_output
+error: Output file must have .csv extension
+class: NULL
+nrow: NULL
+ncol: NULL
+names: 
+messages: Detections extracted from scores
+warnings: (none)

@@ -1,0 +1,6 @@
+"case","cut_name","n_samples","sample_rate","channels","md5","case_id","matches_fixture","fixture_md5"
+"fixture_template_cuts","W04870903S2027082_20231215_075000_009.247-011.470s_02.161-06.880kHz_1024wl_40ovlp_Myiothlypis flaveola.wav",106672,48000,"mono","732f1014536cb4d20941be130831ae11","ERC-G1",TRUE,"732f1014536cb4d20941be130831ae11"
+"fixture_template_cuts","W04870903S2027082_20231215_080000_026.944-028.927s_01.964-06.903kHz_1024wl_0ovlp_Myiothlypis flaveola.wav",95185,48000,"mono","52f62cd1814d617017bd6509b8300b0a","ERC-G1",NA,NA
+"fixture_template_cuts","W04870903S2027082_20231215_081000_009.253-011.502s_02.264-06.668kHz_2048wl_50ovlp_Myiothlypis flaveola.wav",107950,48000,"mono","2883ff59eb1064cb651b048d29b9eab9","ERC-G1",NA,NA
+"fixture_template_cuts","W04870903S2027082_20231215_092000_036.225-038.483s_01.768-07.546kHz_2048wl_50ovlp_Myiothlypis flaveola.wav",108382,48000,"mono","385d62bc205687c8c8460302356637cf","ERC-G1",TRUE,"385d62bc205687c8c8460302356637cf"
+"stereo_channel_bug","W50940S22938_20240116_141000_000.000-001.960s_01.392-03.410kHz_2048wl_50ovlp_Turdus leucomelas.wav",94080,48000,"stereo","ab168aad0b74f0e1ee508b459c2ab036","ERC-G2",NA,NA

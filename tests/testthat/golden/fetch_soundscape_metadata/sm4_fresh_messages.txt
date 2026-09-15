@@ -1,0 +1,6 @@
+## messages
+Error reading file: data/soundscapes_SM4/Data/W50940S22938_20240222_152000.wav
+Error reading file: data/soundscapes_SM4/Data/W50940S22938_20240222_153000.wav
+Error reading file: data/soundscapes_SM4/Data/W50940S22938_20240222_154000.wav
+
+## warnings

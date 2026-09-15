@@ -1,2 +1,0 @@
-"","soundscape_path","soundscape_file","roi_user","roi_input_timestamp","roi_label","roi_start","roi_end","roi_min_freq","roi_max_freq","roi_type","roi_label_confidence","roi_is_complete","roi_comment","roi_wl","roi_ovlp","roi_sample_rate","roi_pitch_shift"
-"1","soundscapes//W54448S25623_20191102_064000.wav","W54448S25623_20191102_064000.wav","User.","2025-03-07 10:16:56","no signals of interest",0,59.9945416666667,0,11,NA,NA,NA,NA,1024,60,24000,1

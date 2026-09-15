@@ -1,0 +1,6 @@
+## messages
+
+## warnings
+
+## error
+Could not determine project path automatically. Please provide project_path parameter.

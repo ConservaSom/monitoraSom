@@ -1,0 +1,39 @@
+# real_t075_top_n1000
+error: NA
+nrow: 14
+ncol: 21
+names: soundscape_path, soundscape_file, template_path, template_file, template_name, template_min_freq, template_max_freq, template_start, template_end, detection_start, detection_end, detection_wl, detection_ovlp, detection_sample_rate, detection_buffer, detection_min_score, detection_min_quant, detection_top_n, peak_index, peak_score, peak_quant
+warnings: (none)
+messages: (none)
+
+## key columns:
+ peak_index peak_score peak_quant detection_start detection_end
+        262 0.21219567      0.913        2.241195      4.443970
+        538 0.12198031      0.832        5.775880      7.978655
+        808 0.82117367      1.000        9.233725     11.436499
+       1326 0.45185499      0.991       15.867663     18.070438
+       1520 0.70272572      0.999       18.352188     20.554963
+       2049 0.34005695      0.961       25.127001     27.329776
+       2244 0.74256405      1.000       27.624333     29.827108
+       2529 0.19084972      0.897       31.274280     33.477054
+       2932 0.06272578      0.747       36.435432     38.638207
+       3327 0.14162998      0.852       41.494130     43.696905
+       3748 0.42036327      0.988       46.885806     49.088581
+       4070 0.38754472      0.979       51.009605     53.212380
+       4274 0.64921635      0.998       53.622199     55.824973
+       4497 0.02588761      0.613       56.478122     58.680896
+ detection_buffer detection_min_score detection_min_quant detection_top_n
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA
+              172                  NA                  NA              NA

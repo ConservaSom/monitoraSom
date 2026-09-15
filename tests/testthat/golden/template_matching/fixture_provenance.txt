@@ -1,0 +1,3 @@
+Fixture provenance (temp copies of committed fixtures; never mutated):
+  soundscapes: data/soundscapes_audiomoth/{W04870903S2027082_20231215_075000.WAV, W04870903S2027082_20231215_092000.WAV}
+  templates:   R/sandbox/shared_inputs/template_trio/roi_cuts_legacy/ (2 WAVs)

@@ -1,0 +1,4 @@
+"id","label","error","n_warnings","warnings","n_messages"
+"RMC-13","soundscape shorter than template window","subscript out of bounds",0,"",0
+"RMC-14","missing df_grid_i column (template_wl)","Error generating spectrograms: argument is of length zero",1,"Unknown or uninitialised column: `template_wl`.",0
+"RMC-11","flim max_freq above Nyquist (unchecked)","Error generating spectrograms: subscript out of bounds",0,"",0

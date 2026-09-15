@@ -1,0 +1,5 @@
+"case_id","case","n_rows","n_cols","cols","labels","n_warnings","errored"
+"FTM-G1","bundled_ls_templates",6,11,"template_path;template_file;template_name;template_label;template_start;template_end;template_sample_rate;template_min_freq;template_max_freq;template_wl;template_ovlp","Basileuterus culicivorus",0,FALSE
+"FTM-G2","fixture_legacy_cuts",2,11,"template_path;template_file;template_name;template_label;template_start;template_end;template_sample_rate;template_min_freq;template_max_freq;template_wl;template_ovlp","Myiothlypis flaveola",0,FALSE
+"FTM-G3","mixed_warn",2,11,"template_path;template_file;template_name;template_label;template_start;template_end;template_sample_rate;template_min_freq;template_max_freq;template_wl;template_ovlp","Myiothlypis flaveola",1,FALSE
+"FTM-G3n","none_match",0,0,"","",1,TRUE

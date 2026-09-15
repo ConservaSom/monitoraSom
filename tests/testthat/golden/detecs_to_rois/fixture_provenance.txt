@@ -1,0 +1,4 @@
+Fixture provenance (deterministic subset; committed fixtures never mutated):
+  source: data/df_detecs_val_manual.rda (validated detections, 4363 rows)
+  subset: first 2 template_files x (TP/FP/NV) x slice_head(2) -> small multi-template frame
+  legacy view: the 21 legacy detection columns only (no validation app columns)

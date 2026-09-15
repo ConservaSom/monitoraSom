@@ -1,0 +1,5 @@
+## messages
+Some cuts were not made. Check the output for more information
+
+## warnings
+File does not exist: data/does_not_exist/NOPE.wav

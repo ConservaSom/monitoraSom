@@ -1,0 +1,6 @@
+Fixture provenance (committed example datasets; never mutated):
+  G1/G2: data(df_detecs_val_tovlp), first template (cutpointr branch).
+  G3: that template trimmed to 3 FP rows (forces the manual-sweep branch).
+  G4: data(df_detecs_val_manual), first template, val_a_priori = FALSE.
+  a-priori template: Bcu_1_004.236-004.742s_03.151-09.201kHz_1024wl_70ovlp_Basileuterus culicivorus.wav
+  a-posteriori template: Bcu_1_004.236-004.742s_03.151-09.201kHz_1024wl_70ovlp_Basileuterus culicivorus.wav

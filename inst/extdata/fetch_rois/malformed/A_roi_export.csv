@@ -1,0 +1,3 @@
+"soundscape_path","soundscape_file","roi_label","roi_start","roi_wl"
+"data/x/A.wav","A.wav","sp1","1.5","1024"
+"data/x/A.wav","A.wav","sp2","not_a_number",""

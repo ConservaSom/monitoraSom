@@ -5,17 +5,19 @@
 \alias{df_detecs_val_manual}
 \title{Manually validated detections}
 \format{
-## `df_detecs_val_manual` A data frame containing detections with
-  validation labels and all the standard detection variables from the
-  `run_matching()` function output.
+\subsection{\code{df_detecs_val_manual} A data frame containing detections with}{
+
+validation labels and all the standard detection variables from the
+\code{run_matching()} function output.
+}
 }
 \usage{
 data(df_detecs_val_manual)
 }
 \description{
 A data frame containing detections that were manually validated to run the
-examples of the `monitoraSom` package. The detections were extracted from
-soundscape recordings with the `run_matching()` function and validated by an
+examples of the \code{monitoraSom} package. The detections were extracted from
+soundscape recordings with the \code{run_matching()} function and validated by an
 expert to classify them as true positives (TP) or false positives (FP).
 }
 \keyword{datasets}

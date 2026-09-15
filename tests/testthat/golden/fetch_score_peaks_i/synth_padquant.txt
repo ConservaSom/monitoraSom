@@ -1,0 +1,13 @@
+# synth_padquant
+error: NA
+nrow: 1
+ncol: 21
+names: soundscape_path, soundscape_file, template_path, template_file, template_name, template_min_freq, template_max_freq, template_start, template_end, detection_start, detection_end, detection_wl, detection_ovlp, detection_sample_rate, detection_buffer, detection_min_score, detection_min_quant, detection_top_n, peak_index, peak_score, peak_quant
+warnings: (none)
+messages: (none)
+
+## key columns:
+ peak_index peak_score peak_quant detection_start detection_end
+         11        0.6          1               9            13
+ detection_buffer detection_min_score detection_min_quant detection_top_n
+                4                  NA                  NA              NA

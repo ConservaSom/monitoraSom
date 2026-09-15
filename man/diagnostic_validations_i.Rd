@@ -2,48 +2,128 @@
 % Please edit documentation in R/diagnostic_validations_i.R
 \name{diagnostic_validations_i}
 \alias{diagnostic_validations_i}
-\title{Compute detection diagnostics of validated detections from one template}
+\title{Diagnose detection quality for a single template (internal)}
 \usage{
 diagnostic_validations_i(
   val_i,
-  diag_method = "auto",
+  diag_method = c("auto", "manual"),
   pos_prob = 0.95,
   diag_cut = NULL,
-  val_a_priori = TRUE
+  build_plots = TRUE,
+  theme_mode = "light"
 )
 }
 \arguments{
-\item{val_i}{A tibble containing the validation results of the detections.
-This function takes data from a single template only, otherwise it will
-return an error.}
+\item{val_i}{The validated detections of one template (required). Accepts
+the \code{\link[=validate_by_overlap]{validate_by_overlap()}} split list
+(\code{list(detections_validated =, false_negatives =)}, the routine input) or a
+single-template wide validation data.frame with a \code{validation} column
+(back-compatible). Must contain exactly one \code{template_name}.}
 
-\item{diag_method}{A character string indicating the method to use for
-diagnostic validations. The two methods available are: "auto" (default) or
-"manual". If "auto" is selected, the function will automatically determine
-the cutpoint to be used in the diagnostic validations. If "manual" is
-selected, the user must explicitly pass the cutpoint to be used in the
-diagnostic validations to the `diag_cut` argument.}
+\item{diag_method}{\code{"auto"} (default) picks the threshold from the model
+where the true-positive probability crosses \code{pos_prob}; \code{"manual"} uses
+the explicit \code{diag_cut} you supply. Switch to \code{"manual"} when the
+automatic fit is flagged as unreliable.}
 
-\item{pos_prob}{A numeric value indicating the probability of a positive
-test, if `diag_method` is set to "auto", otherwise it is ignored. It
-defaults to 0.95.}
+\item{pos_prob}{Numeric in \verb{[0, 1]} (default \code{0.95}). Target true-positive
+probability for the \code{"auto"} threshold; higher is stricter. Used only
+when \code{diag_method = "auto"}.}
 
-\item{diag_cut}{A numeric value indicating the cutpoint to be used in the
-diagnostic, if `diag_method` is set to "manual", otherwise it is ignored.
-It defaults to NULL.}
+\item{diag_cut}{Numeric in \verb{[0, 1]} (default \code{NULL}). Explicit score
+threshold; required when \code{diag_method = "manual"}, ignored otherwise.}
 
-\item{val_a_priori}{A logical value indicating whether the validation was
-performed with a priori method (with the `validate_by_overlap()` function),
-which defaults to TRUE. If FALSE, it will be assumed that the validation
-was performed with the a posteriori method (with the validation app).}
+\item{build_plots}{Logical (default \code{TRUE}). \code{TRUE} builds the five plots;
+set \code{FALSE} to skip the plot construction, which takes most of the run
+time, and leave the plot slots \code{NULL} when you only need \code{diagnostics} /
+\code{score_cut} / \code{bin_mod}.}
+
+\item{theme_mode}{\code{"light"} (default) or \code{"dark"}, the shared plot theme,
+matching \code{\link[=plot_scores]{plot_scores()}}. Ignored when \code{build_plots = FALSE}.}
 }
 \value{
-A list containing the diagnostic results
+A named list: \code{diagnostics} (the precision/recall/specificity/F1
+table, one row per distinct score threshold, with the selected row flagged),
+\code{score_cut} (the chosen threshold), \code{bin_mod} (the fitted binomial GLM), and
+the five \code{ggplot} objects \code{mod_plot}, \code{roc_plot}, \code{precrec_plot}, \code{f1_plot},
+\code{plot_dens} (each \code{NULL} when \code{build_plots = FALSE}).
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function performs diagnostic validations on the detections. The
-  diagnostic validations are used to determine the optimal cutpoint to be
-  used in the detections.
+Internal engine: \code{\link[=diagnostic_validations]{diagnostic_validations()}} is the public interface of
+this step. Computes the performance diagnostics for the validated detections
+obtained from a single template. It relates each detection's matching
+score to whether it was a true or false positive, derives a score
+threshold, and returns a precision / recall / F1 table together with five
+diagnostic plots. This is the single-template engine behind
+\code{\link[=diagnostic_validations]{diagnostic_validations()}}, and reads the output of
+\code{\link[=validate_by_overlap]{validate_by_overlap()}}.
 }
+\details{
+Each validated detection carries a matching score. The function fits a
+binomial model (a logistic GLM) that estimates, for every score value, the
+probability that a detection with that score is a true positive. From the
+model a score threshold is chosen: in \code{"auto"} mode the threshold is the
+lowest score whose modelled probability of being a true positive reaches
+\code{pos_prob}; in \code{"manual"} mode you supply \code{diag_cut} directly. The
+diagnostics table is then built by testing every observed score as a
+threshold and counting the resulting true/false positives and negatives,
+giving the exact data-driven precision / recall / specificity / F1 curve.
+
+Two metrics carry most of the meaning. \strong{Precision} answers: of the
+detections kept, how many were real? \strong{Recall} answers: of the real
+signals present, how many were found? They are the main metrics to
+maximize in template matching over long passive-acoustic recordings: low
+precision means hours spent discarding false detections by hand, and low
+recall means target signals pass unnoticed. The two usually trade off
+through the score threshold: raising it favors precision, lowering it
+favors recall.
+
+Use this to inspect one template in detail: where its score threshold
+should sit, and how precision trades off against recall. For a whole run
+(many templates at once) use \code{\link[=diagnostic_validations]{diagnostic_validations()}}, which calls this
+for each template. Multiclass imports such as BirdNET (via
+\code{\link[=import_birdnet_detections]{import_birdnet_detections()}}) are read the same way: each class works as
+one "template", evaluated on its own.
+
+Things to know: the automatic threshold is only as reliable as the model
+fit behind it. Sometimes the model cannot learn from the data: all
+detections fall in one class (only TPs or only FPs), there are too few
+detections, the estimation does not converge, or some score separates TP
+from FP perfectly. In these cases a warning is raised and you should
+switch to \code{diag_method = "manual"} with an explicit \code{diag_cut}. False
+negatives are counted per template (they enter the table as
+recall-affecting rows with no score), so pass this function a single
+template's data only. More than one \code{template_name} is an error.
+}
+\section{Pipeline context}{
+
+Step 12 of the monitoraSom analysis flow (metrics), single-template engine.
+Reads one template's validated detections from \code{\link[=validate_by_overlap]{validate_by_overlap()}}
+(step 11). Produces a metrics table, a score threshold, and diagnostic
+plots. See also \code{\link{validate_by_overlap}},
+\code{\link{diagnostic_validations}}, \code{\link{plot_scores}}.
+}
+
+\examples{
+\dontrun{
+# Step 12: diagnose ONE template's validated detections (from step 11).
+# Load the package
+library(monitoraSom)
+data(df_detecs_val_tovlp)
+one <- df_detecs_val_tovlp[df_detecs_val_tovlp$template_name ==
+                             df_detecs_val_tovlp$template_name[1], ]
+res <- diagnostic_validations_i(one)
+res$score_cut                      # the automatic score threshold
+head(res$diagnostics)              # precision / recall / F1 table
+
+# Set the threshold by hand instead of letting the model choose it:
+res_manual <- diagnostic_validations_i(one, diag_method = "manual",
+                                       diag_cut = 0.5)
+}
+}
+\seealso{
+\code{\link[=diagnostic_validations]{diagnostic_validations()}} (the multi-template wrapper),
+\code{\link[=validate_by_overlap]{validate_by_overlap()}} (upstream, step 11), \code{\link[=plot_scores]{plot_scores()}} (step 13).
+}
+\keyword{internal}

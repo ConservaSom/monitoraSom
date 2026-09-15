@@ -1,0 +1,3 @@
+R/sandbox/shared_inputs/fetch_soundscape_metadata/corpus_basic/SITE_20240101_000000.wav
+R/sandbox/shared_inputs/fetch_soundscape_metadata/corpus_basic/SITE_20240101_001000.wav
+R/sandbox/shared_inputs/fetch_soundscape_metadata/corpus_basic/SITE_20240101_002000.wav

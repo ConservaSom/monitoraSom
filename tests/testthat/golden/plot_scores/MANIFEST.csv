@@ -1,0 +1,7 @@
+"label","detecs_nrow","n_panels","buffer","sel_color","n_warn","n_msg","error"
+"G1_default",54,2,"36","white",1,2,""
+"G2_filtered",4,2,"36","white",0,1,""
+"G3_nofilter",684,2,"0","white",0,1,""
+"G4_zoom",4,2,"36","white",0,1,""
+"G5_greyscale",4,2,"36","black",0,1,""
+"G6_top_n",5,2,"36","white",0,1,""

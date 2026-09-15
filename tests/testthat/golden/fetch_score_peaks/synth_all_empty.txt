@@ -1,0 +1,8 @@
+# synth_all_empty
+error: NA
+class: data.frame
+nrow: 0
+ncol: 0
+names: 
+messages: Detections extracted from scores
+warnings: (none)

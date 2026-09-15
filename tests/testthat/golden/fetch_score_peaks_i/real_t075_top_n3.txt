@@ -1,0 +1,17 @@
+# real_t075_top_n3
+error: NA
+nrow: 3
+ncol: 21
+names: soundscape_path, soundscape_file, template_path, template_file, template_name, template_min_freq, template_max_freq, template_start, template_end, detection_start, detection_end, detection_wl, detection_ovlp, detection_sample_rate, detection_buffer, detection_min_score, detection_min_quant, detection_top_n, peak_index, peak_score, peak_quant
+warnings: (none)
+messages: (none)
+
+## key columns:
+ peak_index peak_score peak_quant detection_start detection_end
+        808  0.8211737      1.000        9.233725      11.43650
+       1520  0.7027257      0.999       18.352188      20.55496
+       2244  0.7425640      1.000       27.624333      29.82711
+ detection_buffer detection_min_score detection_min_quant detection_top_n
+              172                  NA                  NA               3
+              172                  NA                  NA               3
+              172                  NA                  NA               3

@@ -1,0 +1,4 @@
+"artifact","returns_df","n_rows","messages","warnings","error"
+"G1_validated",TRUE,1198,"All detected species have ROIs for validation | Validation results have been returned to the R session","",""
+"G2_persisted",TRUE,1198,"All detected species have ROIs for validation | Validation results have been saved to /tmp/RtmphFUbG9/vbo_41ad47f5e472a/validated.csv","",""
+"G3_no_user",FALSE,NA,"","","Please, identify yourself by setting the validation_user argument"

@@ -1,0 +1,6 @@
+## messages
+Template metadata successfully extracted
+
+## warnings
+The following files do not match the template naming convention and were not included in the result:
+ not_a_template_name.wav

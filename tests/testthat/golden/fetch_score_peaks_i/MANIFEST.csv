@@ -1,0 +1,14 @@
+"label","nrow","ncol","error"
+"real_t075_default",14,21,NA
+"real_t092_default",10,21,NA
+"real_t075_min_score",4,21,NA
+"real_t075_min_quant",9,21,NA
+"real_t075_top_n3",3,21,NA
+"real_t075_top_n1000",14,21,NA
+"real_t075_buffer0",911,21,NA
+"synth_plateau",2,21,NA
+"synth_tie",2,21,NA
+"synth_edge",0,0,NA
+"synth_padquant",1,21,NA
+"synth_alltrimmed",0,0,NA
+"synth_monotone",NA,NA,"invalid subscript type 'list'"

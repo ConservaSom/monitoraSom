@@ -1,0 +1,10 @@
+## messages
+
+## warnings
+The following files do not match the template naming convention and were not included in the result:
+ plain_audio.wav
+
+## error
+ℹ In argument: `template_path = as.character(template_path)`.
+Caused by error:
+! object 'template_path' not found

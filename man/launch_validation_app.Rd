@@ -2,7 +2,7 @@
 % Please edit documentation in R/launch_validation_app.R
 \name{launch_validation_app}
 \alias{launch_validation_app}
-\title{Launch validation app}
+\title{Launch the validation app}
 \usage{
 launch_validation_app(
   project_path = ".",
@@ -11,7 +11,7 @@ launch_validation_app(
   templates_path = NULL,
   soundscapes_path = NULL,
   input_path = NULL,
-  output_path = NULL,
+  mode = c("detections", "rois"),
   detec_spec_path = NULL,
   detec_cuts_path = NULL,
   wav_player_path = "play",
@@ -25,149 +25,287 @@ launch_validation_app(
   dyn_range_detec = c(-84, 0),
   color_scale = "inferno",
   zoom_freq = c(0, 23),
-  time_guide_interval = 1,
-  freq_guide_interval = 1,
+  time_guide_interval = 0,
+  freq_guide_interval = 0,
   subset_seed = 123,
   auto_next = TRUE,
   nav_autosave = TRUE,
-  overwrite = FALSE,
+  overwrite = TRUE,
   pitch_shift = 1,
   visible_bp = FALSE,
   play_norm = FALSE,
-  skip_path_confirmation = TRUE
+  skip_path_confirmation = TRUE,
+  grid_dim = 3L,
+  labels_file = NULL,
+  roi_label_list = "Brazilian birds (Pacheco et al. 2021)"
 )
 }
 \arguments{
-\item{project_path}{Path to the project folder. Defaults to ".".}
+\item{project_path}{Character path to the project folder. Defaults to \code{"."}.
+Created if it does not exist.}
 
-\item{preset_path}{Path from which presets can be imported and to which new
-presets can be exported.}
+\item{preset_path}{Character path from which presets can be imported and to
+which new presets can be exported. \code{NULL} (default) auto-derives it from
+\code{project_path} as \verb{<project_path>/app_presets/}.}
 
-\item{validation_user}{User name.}
+\item{validation_user}{Character tag identifying who is validating; stamped on
+every validation row (\code{validation_user}). Required.}
 
-\item{templates_path}{Path to the template wave files. Defaults to
-"roi_cuts/". This directory must contain at least one `.wav` file for the
-app to work.}
+\item{templates_path}{Character path to the template wave files. This parameter
+is OPTIONAL; the app works without templates (the template comparison panel
+is disabled). When \code{NULL} (default), looks for \code{"templates/"} under
+\code{project_path} and simply stays without templates when the folder is
+absent.}
 
-\item{soundscapes_path}{Path to the soundscape wave files. Defaults to
-"soundscapes/". This directory must contain at least one `.wav` file for
-the app to work.}
+\item{soundscapes_path}{Character path to the soundscape wave files. OPTIONAL
+relocation root. Each row under review is read at the \code{soundscape_path}
+recorded in the store; this folder is scanned (once) only for rows whose
+recorded path no longer resolves, and only as a fallback. A basename that
+matches more than one file there is left unresolved (the cell is shown
+without audio) rather than risk reviewing the wrong recording. When \code{NULL}
+(default), uses \code{"soundscapes/"} under \code{project_path} when it exists; if it
+does not, the app runs with no fallback at all. A supplied path that does
+not exist is an error.}
 
-\item{input_path}{Path to the input file containing detections.}
+\item{input_path}{Character path to the \code{signals} store to validate:
+a \code{.duckdb} database whose \code{signals} table holds the rows under review
+(ROIs and detections plus their \verb{val_*} verdicts). In \code{mode = "detections"} the
+\code{signal_class = "detection"} rows are read; in \code{mode = "rois"} the
+\code{"roi"} + \code{"detection_to_roi"} rows. A \code{detections}-only database and a
+\code{.csv} from earlier versions (deprecated) are tolerated. Format is
+autodetected by file extension. When \code{NULL} (default), uses the standard
+\code{"detections/detections.duckdb"} under \code{project_path} (errors when the
+file does not exist). Validations are persisted BACK to this same
+database (there is no separate output database).}
 
-\item{output_path}{Path to the output file. Defaults to NULL.}
+\item{mode}{Character, the review mode: \code{"detections"} (default) or
+\code{"rois"}. It only sets the starting mode; inside the app you can switch
+between the two at any time. In \code{"rois"} mode the detections-only
+arguments (\code{detec_spec_path}, \code{detec_cuts_path}) are ignored.}
 
-\item{detec_spec_path}{Path to the folder containing the spectrogram images.
-Defaults to "detection_spectrograms/".}
+\item{detec_spec_path}{Character path to the folder for exported detection
+spectrogram images. Defaults to \code{"detection_spectrograms/"} (auto-created).}
 
-\item{detec_cuts_path}{Path to the folder containing the cut wave files.
-Defaults to "detection_cuts/".}
+\item{detec_cuts_path}{Character path to the folder for exported detection
+cut WAV files. Defaults to \code{"detection_cuts/"} (auto-created if missing).}
 
-\item{wav_player_path}{Path to the wav player executable (only for system
-player). Defaults to "play".}
+\item{wav_player_path}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Ignored; audio
+playback uses the built-in HTML player.}
 
-\item{wav_player_type}{The type of wav player. "R session" for R
-session-based player, "system" for system player. Defaults to "HTML
-player".}
+\item{wav_player_type}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Ignored; audio
+playback uses the built-in HTML player.}
 
-\item{val_subset}{Subset of detections to be validated.}
+\item{val_subset}{Character vector selecting which validation statuses are
+included in the review set. Accepted values: \code{"NV"} (unvalidated, the
+default inclusion), \code{"TP"}, \code{"FP"}, \code{"UN"}. Multiple values can be combined
+(e.g. \code{c("NV", "TP")} shows unvalidated plus previously marked TP
+detections). Default \code{c("NV", "TP", "FP", "UN")} includes everything.
+The filter only changes what is displayed for review: no detection or
+ROI row is excluded from, or added to, the input data.}
 
-\item{time_pads}{Time pads to be added to the start and end of the cut wave
-files.}
+\item{time_pads}{Numeric seconds of context added before and after each
+detection when cutting the audio for review. Default \code{1}. Useful for
+playback and spectrogram visualization of the sound before and after the
+detected event.}
 
-\item{ovlp}{Overlap between consecutive cuts.}
+\item{ovlp}{Overlap percentage (0-80, step 10). Default \code{0}. Higher values
+give smoother time resolution; same meaning as everywhere else in the
+package.}
 
-\item{wl}{Window length for the spectrogram.}
+\item{wl}{FFT window length (power of 2, 128-16384). Default \code{2048}. Larger
+values give finer frequency resolution at the cost of coarser time
+resolution.}
 
-\item{dyn_range_bar}{Adjustment of the maximum range of the dynamic range
-slider.}
+\item{dyn_range_bar}{Numeric length-2 in dB (\code{c(-144, 0)} default). Sets the
+maximum range of the dynamic-range sliders in the UI; the per-panel
+\code{dyn_range_templ}/\code{dyn_range_detec} must fall within this interval.}
 
-\item{dyn_range_templ}{Dynamic range for the template spectrogram.}
+\item{dyn_range_templ}{Numeric length-2, display dynamic range in dB for the
+template spectrogram panel (e.g. \code{c(-84, 0)}). Values are sorted
+automatically; defaults to the range of the \code{dyn_range_bar} slider.}
 
-\item{dyn_range_detec}{Dynamic range for the detection spectrogram.}
+\item{dyn_range_detec}{Numeric length-2, display dynamic range in dB for the
+detection spectrogram panel (e.g. \code{c(-84, 0)}).}
 
-\item{color_scale}{Color scale for the spectrogram.}
+\item{color_scale}{Color scale: "viridis", "magma", "inferno" (default),
+"cividis", "greyscale 1", "greyscale 2".}
 
-\item{zoom_freq}{Frequency range to zoom in the spectrogram.}
+\item{zoom_freq}{Numeric vector of length 2: initial frequency range (kHz).
+Default \code{c(0, 23)}. Values are sorted and rounded to 0.1 kHz.}
 
-\item{time_guide_interval}{A numeric value indicating the interval in seconds
-between time guides in the spectrogram.}
+\item{time_guide_interval}{Interval in seconds between time guides.
+Default \code{0} (disables the guides).}
 
-\item{freq_guide_interval}{A numeric value indicating the interval in kHz
-between frequency guides in the spectrogram.}
+\item{freq_guide_interval}{Interval in kHz between frequency guides.
+Default \code{0} (disables the guides).}
 
-\item{subset_seed}{Seed for the random shuffling.}
+\item{subset_seed}{Integer seed for the random shuffling of the detection
+review order when \code{"Random"} is the selected ordering. A fixed seed makes
+the review order reproducible across sessions. Default \code{123}.}
 
-\item{auto_next}{If TRUE, the next file is automatically displayed when the
-user validates a cut.}
+\item{auto_next}{Logical, default \code{TRUE}. When \code{TRUE}, the next detection is
+automatically displayed after you validate the current one.}
 
-\item{nav_autosave}{If TRUE, the current validation is saved when the user
-navigates to another file.}
+\item{nav_autosave}{Logical, default \code{TRUE}. When \code{TRUE}, validations are
+saved automatically when you advance to a new page (hotkeys \code{Z}/\code{C}, the
+on-screen page arrows, or the \code{NV} button).}
 
-\item{overwrite}{If TRUE, the output file is overwritten.}
+\item{overwrite}{Logical, default \code{TRUE}. When \code{TRUE}, an existing \verb{val_*}
+verdict on a row under review is replaced on save; when \code{FALSE}, existing
+validated rows are kept unchanged, but new verdicts are added (e.g. when
+resuming an earlier session).}
 
-\item{pitch_shift}{Pitch shift for the audio cuts.}
+\item{pitch_shift}{Pitch shift value in octaves for playback: \code{-8}, \code{-6},
+\code{-4}, \code{-2} (slow down / lower pitch) or \code{1} (no shift, default).}
 
-\item{visible_bp}{If TRUE, the bandpass filter is visible in the spectrogram.}
+\item{visible_bp}{Logical, default \code{FALSE}. When \code{TRUE}, applies a bandpass
+filter matching the visible frequency band (\code{zoom_freq}) to the audio
+playback: you hear only the sound within that band.}
 
-\item{play_norm}{If TRUE, the played audio is normalized.}
+\item{play_norm}{Logical, default \code{FALSE}. When \code{TRUE}, the played audio is
+normalized before playback.}
 
-\item{skip_path_confirmation}{If TRUE, it will not be necessary to confirm
-the paths setup at the app startup.}
+\item{skip_path_confirmation}{Logical, default \code{TRUE}. When \code{TRUE}, the paths
+setup is confirmed automatically at startup without user interaction.}
+
+\item{grid_dim}{Integer grid dimension for the detection panel:
+\code{1L}-\code{4L}, default \code{3L} (3x3 = 9 cells per page). \code{1L} shows
+one large detection cell beside the reference (template) column - the
+old single-detection view; hide the reference column with the
+\dQuote{Template} toggle to see the detection even wider. The page size is
+\code{grid_dim^2}; navigation, hotkeys and prefetch adapt automatically. A
+UI selector can change it during the session.}
+
+\item{labels_file}{Path to a label-list \code{.txt} file (one label per line;
+the list name is the file name without the \code{label_list_} prefix), a
+directory of such files, or, for back-compatibility, the old \code{.xlsx} file
+with one list per column. When \code{NULL} (the default), the loader falls back
+to the project preset (\verb{app_presets/label_list/}, then the legacy
+\code{app_presets/roi_label_lists.xlsx}) and then to the bundled dataset; if
+none is available the ROI-label field degrades to an empty choice list
+(typed labels still work).}
+
+\item{roi_label_list}{Name of the default ROI label list column.}
+}
+\value{
+Called for its side effect: it starts an interactive Shiny app in the
+browser and returns when the app is closed. Validations are persisted back
+to the \code{signals} store at \code{input_path}.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function launches the validation app, which is a Shiny app to validate
-  for segemntation of WAV recorcings of soundscapes into tables containing
-  regions of interest (ROIs) and audio cuts of the ROIs.
+Launches an interactive Shiny app for reviewing the detections produced by
+the template-matching pipeline. For each detection you see its spectrogram
+(and, when templates are provided, the template beside it), listen to the
+audio, and mark it True Positive (TP), False Positive (FP), Unknown (UN) or
+leave it Not Validated (NV). The validated labels are written to a
+database you can carry into the diagnostics step.
 }
+\details{
+The app reads the rows under review from \code{input_path} and writes your
+validations back to the SAME database: the
+raw rows are never destroyed - only their \verb{val_*} columns (and, in ROI
+mode, \code{roi_label}) are updated by \code{signal_id}. The path accepts a DuckDB
+database (the routine format) or a CSV from earlier versions (deprecated;
+the app warns on use), autodetected by file extension. In a DuckDB
+database the app works on the \code{signals} table: \code{mode = "detections"}
+reads \code{signal_class = "detection"} rows, \code{mode = "rois"} reads \code{"roi"} +
+\code{"detection_to_roi"} rows; the old \code{detections}/\code{validations} layouts are
+tolerated on read. \code{templates_path} is optional: without it the
+interactive, it must run in an R session with a browser and is not scriptable.
+A step-by-step walkthrough is planned for the validation-app vignette. The UI
+is built on a \pkg{shinydashboard} shell. Since monitoraSom 1.2.0,
+every relative path is anchored under \code{project_path} and every standard
+default is resolved from \code{.monitora_db_names()}/\code{.monitora_db_homes()}, so
+a workspace laid out by \code{\link[=set_workspace]{set_workspace()}} works with all path arguments
+omitted (except \code{validation_user}).
+
+Bringing data from versions before 1.2.0: a CSV detections table first
+moves into a DuckDB detections database with
+\code{\link[=migrate_detections_csv_to_duckdb]{migrate_detections_csv_to_duckdb()}}, and a detections database from a
+separate store moves into the unified \code{signals.duckdb} database with
+\code{migrate_detections_store_to_signals()}. The signals database it writes
+is the \code{input_path} this app reads. Old \code{detections}/\code{validations}
+database layouts are also tolerated on read (see \code{input_path}).
+}
+\section{Pipeline context}{
+
+Step 14 of the monitoraSom analysis flow. Reads detections from
+\code{\link[=template_matching]{template_matching()}} / \code{\link[=run_matching]{run_matching()}} (step 7), as a DuckDB database.
+Produces a validations database (TP/FP/UN/NV labels) for the diagnostics
+step (\code{\link[=diagnostic_validations]{diagnostic_validations()}}).
+}
+
 \examples{
-\dontrun{
+# Step 14 of the analysis flow: review and label the pipeline's detections.
+# Interactive app; run it in a session with a browser. See the validation-app
+# vignette for a full walkthrough.
+# The example is self-contained: it synthesizes a short recording with two
+# tone bursts, runs the detection steps on it, and opens the app on the
+# resulting detections. Each launch needs an interactive session; the
+# example is written to be run twice (first launch, then a second one that
+# resumes with `overwrite = FALSE`).
+if (interactive()) {
+  # Load the package
+  library(monitoraSom)
 
-# Load the necessary packages to run this example
-library(monitoraSom)
+  project_path <- tempfile("lva_example")
+  dir.create(project_path)
 
-# Load and save the soundscape recordings to be rendered in the validation app.
-data(ls_soundscapes)
-dir.create("./soundscapes")
-invisible(lapply(1:length(ls_soundscapes), function(i) {
-  tuneR::writeWave(
-    ls_soundscapes[[i]],
-    file.path("./soundscapes", names(ls_soundscapes)[i])
+  # 1. Synthesize one 8 s soundscape with two 4 kHz bursts.
+  sr <- 16000
+  tt <- seq_len(8 * sr) / sr
+  rec_x <- 0.6 * sin(2 * pi * 4000 * tt)
+  rec_x[tt < 0.5 | (tt >= 1.5 & tt < 3) | tt >= 3.5] <- 0
+  rec <- tuneR::normalize(tuneR::Wave(rec_x, samp.rate = sr, bit = 16),
+                          unit = "16")
+  soundscapes_dir <- file.path(project_path, "soundscapes")
+  dir.create(soundscapes_dir, showWarnings = FALSE)
+  tuneR::writeWave(rec, file.path(soundscapes_dir, "siteA_01.wav"))
+
+  # 2. Cut one 4 kHz burst as the template.
+  df_rois <- data.frame(
+    soundscape_path = file.path(soundscapes_dir, "siteA_01.wav"),
+    soundscape_file = "siteA_01.wav",
+    roi_label = "burst", roi_start = 0.5, roi_end = 1,
+    roi_min_freq = 3, roi_max_freq = 5, roi_wl = 512, roi_ovlp = 50,
+    stringsAsFactors = FALSE)
+  templates_dir <- file.path(project_path, "templates")
+  export_templates(df_rois, templates_path = templates_dir,
+                  create_dir = TRUE)
+
+  # 3. Run the matching step and save the detections into the signals store
+  #    the app reads (min_score keeps the two real bursts).
+  df_grid <- fetch_match_grid(
+    fetch_soundscape_metadata(soundscapes_dir),
+    fetch_template_metadata(templates_dir))
+  input_path <- file.path(project_path, "signals.duckdb")
+  run_matching(df_grid, score_method = "fft", min_score = 0.5,
+              output_db = input_path)
+
+  # 4. Launch the app on the detections and validate them.
+  launch_validation_app(
+    project_path = project_path, validation_user = "User",
+    soundscapes_path = soundscapes_dir,
+    input_path = input_path,
+    mode = "detections"
   )
-}))
 
-# Load and save the template recordings to be rendered in the validation app.
-data(ls_templates)
-dir.create("./templates")
-invisible(lapply(1:length(ls_templates), function(i) {
-  tuneR::writeWave(
-    ls_templates[[i]],
-    file.path("./templates", names(ls_templates)[i])
+  # A standardized, reproducible validation session: fix the seed so the
+  # "Random" review order is the same in every session (two people, or two
+  # runs, review the detections in the same order), and keep your previous
+  # verdicts while adding new ones (resume after the first launch above).
+  launch_validation_app(
+    project_path = project_path, validation_user = "User",
+    soundscapes_path = soundscapes_dir,
+    input_path = input_path,
+    mode = "detections",
+    subset_seed = 2026, overwrite = FALSE
   )
-}))
-
-# Load and save the detection data. We recommend to save an external copy of the
-# detection data to store validations to avoid overwriting it.
-data(df_detecs)
-write.csv(
-  df_detecs,
-  file.path("./validation_outputs", "df_detecs_validation_app_test.csv"),
-  row.names = FALSE
-)
-
-# Launch the validation app. We recommendo to use the same file for input and
-# output to avoid overwriting the original detection data and to store the
-# validation results across multiple sessions of the validation app.
-launch_validation_app(
-  project_path = ".", validation_user = "User",
-  templates_path = "./templates/", soundscapes_path = "./soundscapes/",
-  input_path = "./validation_outputs/df_detecs_validation_app_test.csv",
-  output_path = "./validation_outputs/df_detecs_validation_app_test.csv",
-  dyn_range_templ = c(-48, 0), dyn_range_detec = c(-90, -48), wl = 512,
-  ovlp = 50, time_guide_interval = 0, freq_guide_interval = 0
-)
-
 }
+}
+\seealso{
+\code{\link[=template_matching]{template_matching()}}, \code{\link[=diagnostic_validations]{diagnostic_validations()}},
+\code{\link[=launch_segmentation_app]{launch_segmentation_app()}}
 }

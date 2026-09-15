@@ -1,0 +1,32 @@
+## messages
+- The 'app_presets' directory ALREADY EXISTS at './app_presets/'
+- The 'soundscapes' directory ALREADY EXISTS at './soundscapes/'
+- The 'soundscapes_metadata' directory ALREADY EXISTS at './soundscapes_metadata/'
+- The 'recordings' directory ALREADY EXISTS at './recordings/'
+- The 'templates' directory ALREADY EXISTS at './templates/'
+- The 'templates_metadata' directory ALREADY EXISTS at './templates_metadata/'
+- The 'match_grid_metadata' directory ALREADY EXISTS at './match_grid_metadata/'
+- The 'roi_tables' directory ALREADY EXISTS at './roi_tables/'
+- The 'roi_cuts' directory ALREADY EXISTS at './roi_cuts/'
+- The 'detections' directory ALREADY EXISTS at './detections/'
+- The 'match_scores' directory ALREADY EXISTS at './match_scores/'
+- The 'detection_spectrograms' directory ALREADY EXISTS at './detection_spectrograms/'
+- The 'detection_cuts' directory ALREADY EXISTS at './detection_cuts/'
+- The 'validation_outputs' directory ALREADY EXISTS at './validation_outputs/'
+- The 'validation_diagnostics' directory ALREADY EXISTS at './validation_diagnostics/'
+- The labels file already exists. It will not be overwritten.
+- At least one of the soundscape recordings ALREADY EXISTS at './soundscapes/'. They will not be overwritten.
+- At least one of the recordings ALREADY EXISTS at './recordings/'. They will not be overwritten.
+- At least one of the templates ALREADY EXISTS at './templates/'. They will not be overwritten.
+- At least one of the ROI tables ALREADY EXISTS at './roi_tables/'. They will not be overwritten.
+- The soundscapes metadata file ALREADY EXISTS at './soundscapes_metadata/'. It will not be overwritten.
+- The templates metadata file ALREADY EXISTS at './templates_metadata/'. It will not be overwritten.
+- The match grid metadata file ALREADY EXISTS at './match_grid_metadata/'. It will not be overwritten.
+- The detections file ALREADY EXISTS at './detections/'. It will not be overwritten.
+- The match scores file ALREADY EXISTS at './match_scores/'. It will not be overwritten.
+- The detections file ALREADY EXISTS at './detections/'. It will not be overwritten.
+- The validated detections file ALREADY EXISTS at './detections/'. It will not be overwritten.
+Workspace and example data set successfully. Check the workspace and start another R session within the project to start using the monitoraSom package.
+
+## warnings
+An R project already exists at the provided project path. For replacing the existing project, please delete the existing project and run the function again.

@@ -2,67 +2,129 @@
 % Please edit documentation in R/validate_by_overlap.R
 \name{validate_by_overlap}
 \alias{validate_by_overlap}
-\title{Batch validation of detections by overlap with Regions of Interest (ROIs)}
+\title{Validate detections against ground-truth ROIs by temporal overlap}
 \usage{
 validate_by_overlap(
-  df_detecs,
-  df_rois,
+  df_detecs = NULL,
+  df_rois = NULL,
   validation_user = NULL,
   recursive = FALSE,
-  output_path = NULL
+  output_db = NULL,
+  output_path = NULL,
+  source = c("duckdb", "csv"),
+  include_detection_to_roi = FALSE,
+  roi_label_source = c("effective", "original"),
+  promote_to_roi = TRUE
 )
 }
 \arguments{
-\item{df_detecs}{A data frame containing detections as in the output of
-`fetch_score_peaks()`. Alternatively, a path to a CSV file containing the
-detections (it accepts only one CSV file at a time).}
+\item{df_detecs}{Detections: a \code{data.frame} in the standard layout (the
+layout from earlier versions is coerced), a
+detections \code{.duckdb} path, or \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} a CSV path.
+\code{NULL} (default) falls back to the standard database
+\code{detections/detections.duckdb} and stops if it is absent.}
 
-\item{df_rois}{A data frame containing Regions of Interest (ROIs) as in the
-output of `fetch_rois()`. Alternatively, a path to a directory containing
-the ROI tables as CSV files can be provided.}
+\item{df_rois}{Ground-truth ROIs: a \code{data.frame} as from \code{\link[=fetch_rois]{fetch_rois()}}, or a
+path forwarded to \code{\link[=fetch_rois]{fetch_rois()}}. \code{NULL} (default) falls back to the
+standard database \code{rois.duckdb} at the project root and stops if it is
+absent. Must be hand-segmented ground truth (see Details).}
 
-\item{validation_user}{A character string specifying the user name.}
+\item{validation_user}{Character tag identifying the validator. Required, must
+be non-empty.}
 
-\item{recursive}{A logical value indicating whether to search for ROIs
-recursively when a path is provided instead of a data frame. Defaults to
-FALSE.}
+\item{recursive}{Logical. Search ROI subdirectories when \code{df_rois} is a path.
+Default \code{FALSE}. Ignored when \code{df_rois} is a \code{data.frame}.}
 
-\item{output_path}{A character string specifying the path to the output file.
-Defaults to NULL. it is recommended to export it as a CSV file to the
-"validation_output/" directory to avoid replacement of existing detection
-files.}
+\item{output_db}{Optional validations DuckDB database; the TP/FP rows are
+written there by \code{detection_id} (updated when they already exist), and,
+when \code{promote_to_roi = TRUE} (default), every TP is also promoted to a
+\code{signal_class = "detection_to_roi"} ROI row in the same store.
+\code{NULL} (default) persists nothing structured (FN rows always stay in
+\verb{$false_negatives}).}
+
+\item{output_path}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Old CSV target. Writes
+the union of TP/FP + FN rows (with a deprecation warning), approximating the
+old wide frame. Prefer \code{output_db}.}
+
+\item{source}{Character, ROI source when \code{df_rois} is a path: \code{"duckdb"}
+(default) or \code{"csv"}. Ignored when \code{df_rois} is a \code{data.frame}.}
+
+\item{include_detection_to_roi}{Logical. Whether \code{signal_class = "detection_to_roi"} rows in \code{df_rois} are admitted as ground truth. Default
+\code{FALSE}: promoted rows are excluded from the reference set, so metrics
+stay comparable to a manual-only run. When \code{TRUE}, they are admitted
+and reported in the composition note. Only meaningful when \code{df_rois} is a
+signals-layout frame carrying \code{signal_class}; ignored otherwise.}
+
+\item{roi_label_source}{Character. Which ROI label the overlap engine uses as
+the ground-truth species: \code{"effective"} (default) uses \code{roi_label_updated}
+when present, else the creation-time \code{roi_label}; \code{"original"} uses the
+creation-time \code{roi_label} only. The correction becomes the new ground
+truth with \code{"effective"}.}
+
+\item{promote_to_roi}{Logical, default \code{TRUE}. Promote every TP detection to
+a ROI row (\code{signal_class = "detection_to_roi"}) in \code{output_db}, so the
+detection->ROI cycle closes automatically. The promoted rows are excluded
+from ground truth by design. Requires \code{output_db}.}
 }
 \value{
-A data frame with the validated detections.
+A named list of two tibbles: \code{detections_validated} (TP/FP, one row per
+detection) and \code{false_negatives} (one row per (template, missed ROI), tagged
+with \code{template_name} / \code{template_file}). Returned invisibly when persisted.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function takes in two data frames, one containing Regions of Interest
-  (ROIs) and another containing detections. It then validates the detections
-  by checking for overlaps with the ROIs. The function returns a data frame
-  with the validated detections.
+Scores a detection run against hand-segmented ground truth. Each detection
+is labelled a true positive (TP) or false positive (FP) by whether it
+overlaps a ground-truth ROI of the same species in the same soundscape,
+and every ground-truth ROI that no detection overlapped is reconstructed
+as a false negative (FN), the raw material for precision/recall
+diagnostics.
 }
+\details{
+FN is counted \strong{per template}: an ROI is a false negative for
+template \emph{t} when no detection of \emph{t} overlapped it (matching the downstream
+per-template diagnostics). Detections of a species that has no ground-truth
+ROIs at all are labelled FP rather than silently dropped, so nothing is lost.
+
+The result is deliberately split into two tidy tables rather than one wide
+frame: \verb{$detections_validated} (one row per detection, TP/FP) and
+\verb{$false_negatives} (one row per missed ROI, tagged with its template).
+The single most important thing to know is that \code{df_rois} must be genuine
+\strong{hand-segmented} ground truth, because validating against ROIs that were
+themselves derived from the same detections (\code{\link[=detecs_to_rois]{detecs_to_rois()}}) is
+circular and inflates every metric.
+
+Exhaustiveness contract: only recordings with a KNOWN review state are
+validated — those that carry ROIs, or the "no signals of interest"
+sentinel in \code{df_rois}. Detections on recordings with neither state were
+never reviewed; they are excluded with a warning and never count as
+species absence (see \code{\link[=launch_segmentation_app]{launch_segmentation_app()}} to review recordings).
+}
+\section{Pipeline context}{
+
+Step 11 of the monitoraSom analysis flow. Reads detections from
+\code{\link[=run_matching]{run_matching()}} / \code{\link[=template_matching]{template_matching()}} (steps 7/9) and ground-truth ROIs
+from \code{\link[=fetch_rois]{fetch_rois()}}. Produces TP/FP + FN validation tables for
+\code{\link[=diagnostic_validations]{diagnostic_validations()}} (step 12).
+}
+
 \examples{
-\dontrun{
-
-# Load the necessary packages to run this example
+\donttest{
+# Step 11: label bundled detections TP/FP against bundled ground-truth ROIs.
+# Load the package
 library(monitoraSom)
-library(dplyr)
-
-# Load the detections to populate the example data
 data(df_detecs)
-glimpse(df_detecs)
-
-# Load the rois to populate the example data
 data(df_rois)
-glimpse(df_rois)
-
-# Run the validation by overlap.
-df_detecs_val_tovlp <- validate_by_overlap(
-  df_detecs = df_detecs, df_rois, validation_user = "User"
-)
-glimpse(df_detecs_val_tovlp)
-
+val <- validate_by_overlap(df_detecs, df_rois, validation_user = "User")
+class(val)    # the result is a list...
+names(val)    # ...of two data frames:
+head(val$detections_validated)    # $detections_validated: TP/FP per detection
+head(val$false_negatives)         # $false_negatives: missed ROIs per template
 }
+}
+\seealso{
+\code{\link[=run_matching]{run_matching()}} / \code{\link[=template_matching]{template_matching()}} (produce detections),
+\code{\link[=fetch_rois]{fetch_rois()}} (ground truth), \code{\link[=diagnostic_validations]{diagnostic_validations()}} (next step),
+\code{\link[=detecs_to_rois]{detecs_to_rois()}}.
 }

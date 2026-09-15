@@ -1,0 +1,8 @@
+# err_bad_path
+error: The path to the score RDS file does not exist
+class: NULL
+nrow: NULL
+ncol: NULL
+names: 
+messages: (none)
+warnings: (none)

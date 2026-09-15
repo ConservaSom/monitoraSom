@@ -2,74 +2,204 @@
 % Please edit documentation in R/fetch_soundscape_metadata.R
 \name{fetch_soundscape_metadata}
 \alias{fetch_soundscape_metadata}
-\title{Extract Soundscape Metadata}
+\title{Read recording metadata for soundscape recordings}
 \usage{
 fetch_soundscape_metadata(
   soundscapes_path = NULL,
   recursive = TRUE,
   output_file = NULL,
-  skip_processed = TRUE,
-  ncores = 1
+  output_format = "auto",
+  cache_policy = "incremental",
+  recorder = "auto",
+  filename_metadata = NULL,
+  external_geo = NULL,
+  errors_log_file = NULL,
+  on_error = "warn",
+  min_duration_s = 1,
+  ncores = 1,
+  compute_sha256 = TRUE,
+  pb = TRUE
 )
 }
 \arguments{
-\item{soundscapes_path}{A character string specifying the directory path
-where all WAV files are located. If no path is provided, the function will
-look for the soundscapes in the "soundscapes/" directory, or create it if
-it does not exist.}
+\item{soundscapes_path}{Directory holding the recordings. When \code{NULL}
+(default), uses \code{"soundscapes/"} if it exists, otherwise the function
+stops with an error.}
 
-\item{recursive}{A logical value indicating whether the search for WAV files
-should be recursive or not. Defaults to TRUE.}
+\item{recursive}{Logical, default \code{TRUE}. Also search for recordings inside
+sub-directories.}
 
-\item{output_file}{A character string specifying the path to the output file.
-Defaults to NULL. If there is a CSV table with metadata, a check of missing
-recordings will be performed. If there are missing recordings, a log file
-with a timestamp will be created with the names of the missing recordings.
-We recommend importing the metadata from the CSV file directly to the R
-session when no changes are expected in the metadata.}
+\item{output_file}{Path of the cache database, or \code{NULL} for no cache. The
+storage follows the extension (see \code{output_format}): \code{.duckdb}/\code{.db}
+selects DuckDB, any other extension selects CSV. Without \code{output_file}
+the incremental cache cannot work.}
 
-\item{skip_processed}{A logical value indicating whether to check the
-recordings present in the provided CSV file were already processed, and
-avoid processing them again. Defaults to TRUE.}
+\item{output_format}{\code{"auto"} (default; follows the extension of
+\code{output_file}), \code{"duckdb"} or \code{"csv"}.}
 
-\item{ncores}{An integer indicating the number of cores to be used for
-parallelization. Defaults to 1.}
+\item{cache_policy}{\code{"incremental"} (default; process only new or changed
+files), \code{"force_refresh"} (reprocess all) or \code{"verify_only"} (report
+which files are new, changed or missing, without writing). Needs
+\code{output_file} to have any effect.}
+
+\item{recorder}{\code{"auto"} (default, detect), \code{"audiomoth"}, \code{"sm4"} or
+\code{"generic"}. Set explicitly only when auto-detection guesses wrong.}
+
+\item{filename_metadata}{Optional \code{list(sep, fields, parse)} to read extra
+columns out of the recording file names (useful for generic recorders).
+\code{sep} splits the file name into fields, \code{fields} names them, and \code{parse}
+converts named fields with a function. Example:
+\code{list(sep = "_", fields = c("site", "temp_c"), parse = list(temp_c = as.numeric))} turns \code{siteA_23.5.wav} into \code{site = "siteA"} and
+\code{temp_c = 23.5}. The first field has no fixed meaning and is never
+treated as coordinates. See the last example below.}
+
+\item{external_geo}{Optional data.frame of decimal coordinates for recordings
+whose GPS is not embedded, with columns \code{soundscape_file}, \code{latitude},
+\code{longitude} (decimal degrees, range-checked). Lowest-priority source: it
+only fills \code{soundscape_lat}/\code{soundscape_lon} left \code{NA} by the reader; a
+GPS found in an SM4 summary or in the WAV header always wins.}
+
+\item{errors_log_file}{Optional explicit path for the per-file error log.
+When \code{NULL} (the default), the log is derived from \code{output_file}: a
+sibling CSV file for the CSV backend, or the \code{metadata_errors} table
+inside the cache database for the DuckDB backend.}
+
+\item{on_error}{\code{"warn"} (default), \code{"stop"} or \code{"skip"} for individual read
+failures.}
+
+\item{min_duration_s}{Numeric, default \code{1}. Minimum recording duration (in
+seconds) a readable file must have to stay in the flow; shorter recordings
+are routed to the error log and excluded from the result. Set \code{0} to
+disable the floor. (DEC-9/STEP-10: a too-short recording is one of the
+problem-recording classes; see Things to know.)}
+
+\item{ncores}{Positive integer, default \code{1}. Number of CPU cores used to
+scan the recordings in parallel (multiple cores work on macOS and Linux).
+Raise it to speed up large scans.}
+
+\item{compute_sha256}{Logical, default \code{TRUE}. Compute the sha256 hash of
+each file's full content into \code{soundscape_sha256}. Later steps use this
+hash to check that recordings did not change (\code{\link[=fetch_match_grid]{fetch_match_grid()}} can
+verify it). Set \code{FALSE} to skip the hashing for a large speedup, at the
+cost of an \code{NA} hash column; the cache still notices new or changed files
+by their modification time.}
+
+\item{pb}{Logical, default \code{TRUE}. Show the progress bar. Set \code{FALSE} for
+non-interactive pipelines, such as rendering rmarkdown reports.}
 }
 \value{
-A data frame in the R session with the soundscapes metadata. If an
-  output path is provided, the function will save the metadata in a CSV file
-  in the provided path.
+A data.frame in the standard \verb{soundscape_*} column layout, one row
+per recording, carrying attributes \code{"new"}, \code{"changed"} and \code{"missing"} that
+list the diff against the cache.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  Extracts metadata from all WAV files found in a directory and its
-  subdirectories.
+Scans a directory of field recordings and returns them as one data.frame
+in the standard \verb{soundscape_*} column layout: one row per recording with
+its duration, sample rate, timestamp, GPS data and content hash. It finds
+the
+WAV files, detects the recorder type (or you set it), reads each file's
+metadata with the matching reader, and stores the result in a cache
+database so later scans are fast. This is the soundscape-side counterpart
+of \code{\link[=fetch_template_metadata]{fetch_template_metadata()}}; the two frames are later crossed by
+the
+\code{\link[=fetch_match_grid]{fetch_match_grid()}} to produce the search grid.
 }
+\details{
+A "soundscape" here means one continuous field recording, usually made
+with an autonomous recording unit (ARU). Recordings from other devices
+work too, as long as they are WAV files. Metadata comes from different
+places depending on the recorder: AudioMoth embeds it in a WAV comment
+chunk, Wildlife Acoustics SM4 writes a \verb{*_Summary.txt} next to the WAV,
+and a generic recorder can have fields read out of its file name. Leave
+\code{recorder = "auto"}; set it manually only when the automatic detection
+guesses wrong.
+
+The scan is \strong{incremental} by default: only new or changed files are
+re-read, and the rest are served from the cache database at
+\code{output_file}. So scanning a growing folder again is fast. Use
+\code{cache_policy = "force_refresh"} to reprocess everything, or
+\code{"verify_only"} to report which files are new or changed without
+writing. Things to know: (1) the first file-name field has \strong{no fixed
+meaning} and is never assumed to be coordinates. Supply coordinates via
+\code{external_geo} if the recorder did not embed GPS. (2) \code{compute_sha256 = TRUE} (default) takes most of the scan time. Set it \code{FALSE} for a large
+speedup when you do not need the content hash in later steps. (3)
+recordings shorter than \code{min_duration_s} (default 1 second) are routed
+to the error log (\code{error_class = "duration_below_minimum"}) and stay out
+of the flow; a scan that reads zero usable recordings stops with an
+error that says where
+the per-file reasons were logged.
+}
+\section{Pipeline context}{
+
+Step 5 of the monitoraSom analysis flow. Reads a directory of field
+recordings (WAVs). Produces the \code{df_soundscapes} frame used, together
+with \code{df_templates}, by \code{\link[=fetch_match_grid]{fetch_match_grid()}} (step 6). See also:
+\code{\link{fetch_template_metadata}}, \code{\link{fetch_match_grid}}.
+}
+
 \examples{
 \dontrun{
-
-# Load the necessary packages to run this example
+# Load the package
 library(monitoraSom)
-library(dplyr)
+# Step 5: scan a folder of recordings into df_soundscapes.
+# (The package ships no field recordings, so this example synthesizes two;
+# for the same steps on real data see [fetch_example_data()].)
+rec_dir <- file.path(tempdir(), "recs"); dir.create(rec_dir, showWarnings = FALSE)
+rec <- tuneR::normalize(tuneR::sine(4000, duration = 10 * 16000,
+                                    samp.rate = 16000), unit = "16")
+for (f in c("siteA_01.wav", "siteA_02.wav"))
+  tuneR::writeWave(rec, file.path(rec_dir, f))
+df_soundscapes <- fetch_soundscape_metadata(rec_dir)
+head(df_soundscapes[, c("soundscape_file", "soundscape_duration",
+                        "soundscape_sample_rate")])
 
-# Load the soundscape list to populate the example data
-data(ls_soundscapes)
+# Faster scan when you do not need the content-integrity hash:
+df_soundscapes <- fetch_soundscape_metadata(rec_dir, compute_sha256 = FALSE)
 
-# Create a directory and export the soundscapes
-soundscapes_path <- "./soundscapes"
-dir.create(soundscapes_path)
-invisible(lapply(1:length(ls_soundscapes), function(i) {
-  tuneR::writeWave(
-    ls_soundscapes[[i]], file.path(soundscapes_path, names(ls_soundscapes)[i])
-  )
-}))
+# Read extra columns out of the file names (generic recorder):
+# "siteA_01.wav" -> a site column ("siteA") and a numeric id column (1).
+df <- fetch_soundscape_metadata(
+  rec_dir,
+  filename_metadata = list(sep = "_",
+                           fields = c("site", "id"),
+                           parse = list(id = as.numeric)))
+df[, c("soundscape_file", "site", "id")]
 
-# Import the soundscapes metadata
-df_soundscapes <- fetch_soundscape_metadata(
-  soundscapes_path = soundscapes_path
-)
-glimpse(df_soundscapes)
-
+# Demo: the incremental cache. Scan 4 readable 60 s recordings twice; the
+# second scan re-reads only new or changed files (none here), so it is much
+# faster.
+demo_dir <- file.path(tempdir(), "recs"); dir.create(demo_dir, showWarnings = FALSE)
+synth <- function(sec, file) {
+  r <- tuneR::normalize(tuneR::sine(4000, duration = sec * 16000,
+                                    samp.rate = 16000), unit = "16")
+  tuneR::writeWave(r, file.path(demo_dir, file))
 }
+for (i in 1:4) synth(60, sprintf("rec_\%02d.wav", i))   # good 60 s recordings
+
+cache_db <- file.path(tempdir(), "soundscapes_metadata.duckdb")
+t_first  <- system.time(df <- fetch_soundscape_metadata(
+  demo_dir, output_file = cache_db))
+t_second <- system.time(df <- fetch_soundscape_metadata(
+  demo_dir, output_file = cache_db))   # re-reads only new/changed files
+t_first; t_second    # the gain grows with the folder size
+
+# The scan diff (vs the cache) travels as attributes:
+attr(df, "new"); attr(df, "changed"); attr(df, "missing")
+
+# Demo: the error log. Add one broken file and rescan with on_error = "warn":
+# the scan keeps the good recordings and reports the bad file. The per-file
+# reasons live in the cache database's metadata_errors table, read back with
+# [fetch_metadata_errors()] (no SQL needed).
+writeLines("not a wav", file.path(demo_dir, "rec_05_broken.wav"))
+df <- fetch_soundscape_metadata(demo_dir, output_file = cache_db,
+                               on_error = "warn")
+attr(df, "new")             # the broken file is retried on every scan
+fetch_metadata_errors(cache_db)
+}
+}
+\seealso{
+\code{\link[=fetch_template_metadata]{fetch_template_metadata()}} (step 4), \code{\link[=fetch_match_grid]{fetch_match_grid()}}
+(downstream, step 6).
 }

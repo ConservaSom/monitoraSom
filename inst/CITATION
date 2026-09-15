@@ -1,0 +1,39 @@
+citHeader("To cite monitoraSom in publications, please use the published article:")
+
+bibentry(
+  bibtype  = "Article",
+  title    = "MonitoraSom: an easy path from soundscapes to ecology",
+  author   = c(
+    person("Gabriel L. M.", "Rosa"),
+    person("Juan P.", "Zurano"),
+    person("Ingrid M. D.", "Torres"),
+    person("Cassio R.", "Simoes"),
+    person("Luiz dos", "Anjos"),
+    person("Carlos B.", "de Araujo")
+  ),
+  year     = "2026",
+  journal  = "Bioacoustics",
+  volume   = "35",
+  number   = "3",
+  pages    = "257-276",
+  doi      = "10.1080/09524622.2026.2642040",
+  url      = "https://www.tandfonline.com/doi/full/10.1080/09524622.2026.2642040"
+)
+
+bibentry(
+  bibtype  = "Article",
+  title    = "monitoraSom: a toolbox for automated sound detection applied to bioacoustics and passive acoustic monitoring",
+  author   = c(
+    person("Gabriel L. M.", "Rosa"),
+    person("Juan P.", "Zurano"),
+    person("Ingrid M. D.", "Torres"),
+    person("Cassio R.", "Simoes"),
+    person("Carlos B.", "de Araujo"),
+    person("Luiz dos", "Anjos")
+  ),
+  year     = "2025",
+  journal  = "bioRxiv",
+  doi      = "10.1101/2025.06.23.661148",
+  url      = "https://www.biorxiv.org/content/10.1101/2025.06.23.661148v1",
+  note     = "Preprint"
+)

@@ -1,0 +1,8 @@
+# err_single_row
+error: The input must be a tibble with at least two rows
+class: NULL
+nrow: NULL
+ncol: NULL
+names: 
+messages: (none)
+warnings: (none)

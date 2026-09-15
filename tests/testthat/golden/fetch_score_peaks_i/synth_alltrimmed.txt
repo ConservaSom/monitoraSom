@@ -1,0 +1,7 @@
+# synth_alltrimmed
+error: NA
+nrow: 0
+ncol: 0
+names: 
+warnings: (none)
+messages: (none)

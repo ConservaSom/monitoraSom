@@ -1,0 +1,6 @@
+"artifact","n_rows","messages","warnings","error","note"
+"G1_detections_inmem",24,"Template matching finished. Detections have been returned to the R session","","","do.call(rbind) of per-row fetch_score_peaks_i; message to session"
+"G2_detections_replace.csv",NA,"Template matching finished. Detections have been saved to /tmp/Rtmpqtcu4Y/rm_gold_1994e6f457ef9/G2_detections.csv","","","CSV: writeLines 21-col header then per-row sink/write.table(col.names=FALSE)"
+"G3_append_dedup",NA,"All matches have already been processed. No new detections were computed.","","","RMB-04: a NEW template against an already-seen soundscape_file is dropped -> NULL 'already processed'"
+"G4_scores_inmem",2,"Template matching finished. Raw scores have been returned to the R session","","","purrr::list_rbind of per-row run_matching_i scores; 2-row tibble"
+"G5_scores.rds",NA,"Template matching finished. Raw scores have been saved to /tmp/Rtmpqtcu4Y/rm_gold_1994e6f457ef9/G5_scores.rds","","","saveRDS path; message 'saved to <file>'"

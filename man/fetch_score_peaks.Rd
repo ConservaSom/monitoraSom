@@ -2,7 +2,7 @@
 % Please edit documentation in R/fetch_score_peaks.R
 \name{fetch_score_peaks}
 \alias{fetch_score_peaks}
-\title{Batch find and filter detections from score vectors}
+\title{Capture and filter detections from scores of multiple matches}
 \usage{
 fetch_score_peaks(
   df_scores,
@@ -10,68 +10,130 @@ fetch_score_peaks(
   min_score = NULL,
   min_quant = NULL,
   top_n = NULL,
-  output_file = NULL,
-  ncores = 1
+  scope = c("pair", "grid"),
+  output_db = NULL,
+  autosave_action = c("replace", "append")
 )
 }
 \arguments{
-\item{df_scores}{A tibble containing the `scores` output of 'run_matching' or a
-filtered subset of it with at least two rows that is already within the
-environement of the current R session. Alternatively, a path to a folder
-containing the output of 'run_matching' as .rds files for importing multiple
-match objects from outside the current R session.}
+\item{df_scores}{The \code{scores} output of \code{\link[=run_matching]{run_matching()}}: a tibble in the
+R session with one or more rows, or a path to an \code{.rds} file holding it
+(a convenience from earlier versions). No default; this is the table to
+detect peaks in.}
 
-\item{buffer_size}{A numeric value specifying the number of frames of the
-buffer within which overlap between detections is avoided. Defaults to
-"template", which means that the buffer size equals the number of frames
-present in the template spectrogram. The buffer exclusion priority is
-oriented by score quantiles, so that the highest scoring detections are
-always kept. Setting the buffer size to 0 disables the exclusion buffer.}
+\item{buffer_size}{Exclusion buffer in spectrogram frames. Default
+\code{"template"} uses each template's frame
+count; a non-negative whole number sets it explicitly, \code{0} disables
+suppression. Larger values give fewer, more spread-out detections. Use
+it to avoid many overlapping detections of the same event: a peak
+suppresses its neighbours inside the buffer, so the surviving detections
+stay spread out. That keeps redundant detections away whether they are
+true or false positives, which is especially valuable when you will
+review the detections by hand in the validation app.}
 
-\item{min_score}{A numeric value between 0 and 0.99 indicating the minimum
-score of the detections that will be kept. Defaults to NULL, which returns
-all available detections.}
+\item{min_score, min_quant, top_n}{Optional thresholds: keep detections with
+peak score at or above
+\code{min_score} (\verb{[0, 1]}), with score quantile at or above \code{min_quant}
+(\verb{[0, 1]}), and at most \code{top_n} detections by raw score. Each defaults to
+\code{NULL} (no threshold); they compose (all supplied thresholds must pass).}
 
-\item{min_quant}{A numeric value between 0 and 1 indicating the minimum score
-quantile of the kept detections. Defaults to NULL, which returns all
-available detections.}
+\item{scope}{How \code{min_quant}/\code{top_n} are applied: \code{"pair"} (default; within
+each soundscape-template score vector) or \code{"grid"} (across the whole
+table). \code{min_score} always applies to every detection, regardless of
+\code{scope}.}
 
-\item{top_n}{An integer indicating the maximum number of peaks to be
-returned, selected according to the highest scores available. Defaults to
-NULL, which return all available detections. It should be noted that
-because the peak quantiles are callculated within each score vector, the
-top_n parameter is applied to each score vector separately, and not to the
-whole matching grid.}
+\item{output_db}{Optional path to a detections DuckDB database; detections
+are written there (rows are updated when they already exist, in one
+transaction keyed on \code{detection_id}). \code{NULL} (default) returns them in
+the R session only.}
 
-\item{output_file}{Character. Path to save the result as an .rds or .csv
-file. Defaults to NULL, which does not save the result.}
-
-\item{ncores}{An integer indicating the number of cores to be used for
-parallelization. Default is 1.}
+\item{autosave_action}{\code{"replace"} (default; clear the detections table and
+insert the new rows) or \code{"append"} (update existing rows and keep prior
+ones). Applies only when \code{output_db} is set.}
 }
 \value{
-A Tibble containing the detections of all audio scores.
+A tibble of detections in the standard detections format (26
+columns), one row per surviving detection (zero rows, typed, when none pass
+the filters). Returned in memory; also written to \code{output_db} when supplied.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function is wrapper of 'fetch_score_peaks' for detection of peaks in
-  score vectors from matches between multiple templates and soundscapes, i.e.
-  the `scores` output of 'run_matching'.
+Captures the detections for \strong{every} soundscape-template pair in the
+\code{scores} table produced by \code{\link[=run_matching]{run_matching()}}, then applies the optional
+detection filters (minimum score, minimum quantile, top-n). It is the
+batch entry point to peak detection. This is the same path
+\code{\link[=run_matching]{run_matching()}} runs internally when asked for detections, so calling it
+here or through \code{\link[=run_matching]{run_matching()}} gives identical results.
 }
+\details{
+Use this function when you kept the raw per-frame \code{scores} from
+\code{\link[=run_matching]{run_matching()}} (via \code{output = "scores"}) and want to (re)threshold them
+without re-running the expensive matching engine (for example, sweeping
+\code{min_score} or \code{top_n} and comparing detection counts). If you do not
+need the raw scores, the one-call \code{\link[=template_matching]{template_matching()}} or
+\code{run_matching(output = "detections")} gives you detections directly.
+
+Capture and filtering are separate steps on purpose: capturing peaks is a
+cheap pass, so re-filtering an already-captured table is fast. The \code{scope}
+argument decides whether \code{min_quant}/\code{top_n} apply within each pair
+(\code{"pair"}, the classic behaviour) or across the whole grid (\code{"grid"}).
+
+Things to know: (1) the input must be a real \code{\link[=run_matching]{run_matching()}} \code{scores}
+table: it must carry the \code{score_vec}/\code{score_sliding_window} columns. A
+detections table is not accepted. (2) A single soundscape-template pair
+is valid input: one row is enough. (3) When \code{output_db} is set, the
+detections are written to a DuckDB database in one transaction, keyed on
+\code{detection_id}. Use \code{\link[=export_detections_duckdb_to_csv]{export_detections_duckdb_to_csv()}} if you later
+need a CSV.
+}
+\section{Pipeline context}{
+
+Step 8 of the monitoraSom analysis flow (batch entry point). Reads the
+\code{scores} table from \code{\link[=run_matching]{run_matching()}} (\code{output = "scores"}). Produces a
+filtered detections tibble in the standard format, fed to \code{\link[=detecs_to_rois]{detecs_to_rois()}}
+(step 10) or \code{\link[=validate_by_overlap]{validate_by_overlap()}} (step 11).
+}
+
 \examples{
 \dontrun{
-
-# Load the necessary packages to run this example
+# Load the package
 library(monitoraSom)
-library(dplyr)
-
-# Load the scores (output of `run_matching()`)
-data(df_scores)
-
-# Get detections from raw scores
-df_detecs <- fetch_score_peaks(df_scores = df_scores)
-glimpse(df_detecs)
-
+# Step 8: capture + filter detections from a run_matching() scores table.
+# Build a small synthetic score table: two soundscape-template pairs, each
+# with two clear peaks (no files needed).
+mk_row <- function(tid, peaks_at, heights, n = 200L) {
+  sc <- 0.1
+  for (k in seq_along(peaks_at))
+    sc <- sc + heights[k] * exp(-((seq_len(n) - peaks_at[k])^2) / 50)
+  row <- data.frame(template_id = tid, score_sliding_window = 20L,
+                    score_method = "cor", stringsAsFactors = FALSE)
+  row$score_vec <- list(data.frame(time_vec = seq_len(n) / 100, score_vec = sc))
+  row
 }
+scores <- rbind(mk_row("t1", c(60, 140), c(0.8, 0.5)),
+                mk_row("t2", c(30, 120), c(0.9, 0.7)))
+
+# 1) No filters: every captured peak survives.
+df_detecs <- fetch_score_peaks(scores)
+df_detecs[, c("template_id", "detection_start", "peak_score", "peak_quant")]
+
+# 2) Absolute floor: keep only detections scoring at least 0.7.
+fetch_score_peaks(scores, min_score = 0.7)[, c("template_id", "peak_score")]
+
+# 3) Relative floor: keep the top quarter of scores within each pair.
+fetch_score_peaks(scores, min_quant = 0.75)[, c("template_id", "peak_score")]
+
+# 4) Top-n per pair: the single strongest detection of each template.
+fetch_score_peaks(scores, top_n = 1)[, c("template_id", "peak_score")]
+
+# 5) Top-n across the whole grid: the single strongest detection overall.
+fetch_score_peaks(scores, top_n = 1, scope = "grid")
+
+# 6) A larger exclusion buffer keeps overlapping detections apart:
+fetch_score_peaks(scores, buffer_size = 80)[, c("template_id", "detection_start")]
+}
+}
+\seealso{
+\code{\link[=run_matching]{run_matching()}} (previous step), \code{\link[=detecs_to_rois]{detecs_to_rois()}} (next step).
 }

@@ -1,0 +1,29 @@
+# real_t075_min_quant
+error: NA
+nrow: 9
+ncol: 21
+names: soundscape_path, soundscape_file, template_path, template_file, template_name, template_min_freq, template_max_freq, template_start, template_end, detection_start, detection_end, detection_wl, detection_ovlp, detection_sample_rate, detection_buffer, detection_min_score, detection_min_quant, detection_top_n, peak_index, peak_score, peak_quant
+warnings: (none)
+messages: (none)
+
+## key columns:
+ peak_index peak_score peak_quant detection_start detection_end
+        262  0.2121957      0.913        2.241195       4.44397
+        808  0.8211737      1.000        9.233725      11.43650
+       1326  0.4518550      0.991       15.867663      18.07044
+       1520  0.7027257      0.999       18.352188      20.55496
+       2049  0.3400570      0.961       25.127001      27.32978
+       2244  0.7425640      1.000       27.624333      29.82711
+       3748  0.4203633      0.988       46.885806      49.08858
+       4070  0.3875447      0.979       51.009605      53.21238
+       4274  0.6492163      0.998       53.622199      55.82497
+ detection_buffer detection_min_score detection_min_quant detection_top_n
+              172                  NA                 0.9              NA
+              172                  NA                 0.9              NA
+              172                  NA                 0.9              NA
+              172                  NA                 0.9              NA
+              172                  NA                 0.9              NA
+              172                  NA                 0.9              NA
+              172                  NA                 0.9              NA
+              172                  NA                 0.9              NA
+              172                  NA                 0.9              NA

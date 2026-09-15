@@ -1,0 +1,32 @@
+## messages
+If an answer is required below, the current directory may already be within another R project. Do you want to create it here anyway? (not recommended)
+Created new R project at: <TMP>/sw_golden/g2/project
+- The 'app_presets' directory WAS CREATED at './app_presets/'
+- The 'soundscapes' directory WAS CREATED at './soundscapes/'
+- The 'soundscapes_metadata' directory WAS CREATED at './soundscapes_metadata/'
+- The 'recordings' directory WAS CREATED at './recordings/'
+- The 'templates' directory WAS CREATED at './templates/'
+- The 'templates_metadata' directory WAS CREATED at './templates_metadata/'
+- The 'match_grid_metadata' directory WAS CREATED at './match_grid_metadata/'
+- The 'roi_tables' directory WAS CREATED at './roi_tables/'
+- The 'roi_cuts' directory WAS CREATED at './roi_cuts/'
+- The 'detections' directory WAS CREATED at './detections/'
+- The 'match_scores' directory WAS CREATED at './match_scores/'
+- The 'detection_spectrograms' directory WAS CREATED at './detection_spectrograms/'
+- The 'detection_cuts' directory WAS CREATED at './detection_cuts/'
+- The 'validation_outputs' directory WAS CREATED at './validation_outputs/'
+- The 'validation_diagnostics' directory WAS CREATED at './validation_diagnostics/'
+- The soundscape recordings WERE CREATED at './soundscapes/'.
+- The recordings WERE CREATED at './recordings/'.
+- The templates WERE CREATED at './templates/'.
+- The ROI tables WERE CREATED at './roi_tables/'.
+- The soundscapes metadata file WAS CREATED at './soundscapes_metadata/'.
+- The templates metadata file WAS CREATED at './templates_metadata/'.
+- The match grid metadata file WAS CREATED at './match_grid_metadata/'.
+- The detections file WAS CREATED at './detections/'.
+- The match scores file WAS CREATED at './match_scores/'.
+- The validated detections file WAS CREATED at './detections/'.
+- The validated detections file WAS CREATED at './detections/'.
+Workspace and example data set successfully. Check the workspace and start another R session within the project to start using the monitoraSom package.
+
+## warnings

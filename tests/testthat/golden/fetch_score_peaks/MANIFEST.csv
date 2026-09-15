@@ -1,0 +1,12 @@
+"label","class","nrow","ncol","error"
+"real_batch_default","data.frame",24,21,NA
+"real_batch_min_score","data.frame",8,21,NA
+"real_batch_min_quant","data.frame",16,21,NA
+"real_batch_top_n3","data.frame",6,21,NA
+"real_batch_csv","data.frame",24,21,NA
+"real_batch_path_input","data.frame",24,21,NA
+"err_single_row","NULL",NA,NA,"The input must be a tibble with at least two rows"
+"err_bad_path","NULL",NA,NA,"The path to the score RDS file does not exist"
+"err_rds_output","NULL",NA,NA,"Output file must have .csv extension"
+"synth_mixed_empty","data.frame",2,21,NA
+"synth_all_empty","data.frame",0,0,NA

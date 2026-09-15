@@ -1,0 +1,6 @@
+## messages
+
+## warnings
+
+## error
+No ROIs available in the provided ROI table

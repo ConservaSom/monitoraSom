@@ -1,0 +1,12 @@
+data/soundscapes_SM4/Data/W50940S22938_20240116_135000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_140000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_141000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_142000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_143000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_144000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_145000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_150000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_151000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_152000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_153000.wav
+data/soundscapes_SM4/Data/W50940S22938_20240116_154000.wav

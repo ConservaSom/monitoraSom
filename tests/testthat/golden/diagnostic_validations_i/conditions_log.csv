@@ -1,0 +1,11 @@
+"artifact","returns_list","error","warnings"
+"G1_auto_cutpointr",TRUE,"","no non-missing arguments to max; returning -Inf"
+"G2_manual_cut",TRUE,"",""
+"G3_manual_sweep",TRUE,"","There were 2 warnings in `dplyr::mutate()`.
+The first warning was:
+ℹ In argument: `dplyr::across(...)`.
+Caused by warning in `max()`:
+! no non-missing arguments to max; returning -Inf
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 1 remaining warning. | no non-missing arguments to max; returning -Inf"
+"G4_aposteriori",TRUE,"",""
+"G5_multi_template",FALSE,"The data contains detections from more than one template or class.  Use the 'diagnostic_validations()' function to perform diagnostic validations on multiple templates.",""

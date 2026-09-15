@@ -2,17 +2,16 @@
 % Please edit documentation in R/fast_spectro.R
 \name{fast_spectro}
 \alias{fast_spectro}
-\title{Fast spectrogram rendering with ggplot2}
+\title{Draw a fast spectrogram of a recording}
 \usage{
 fast_spectro(
   rec,
-  f,
   flim = NULL,
   tlim = NULL,
   ovlp = 50,
   wl = 1024,
   norm = FALSE,
-  dyn_range = c(-80, 0),
+  dyn_range = c(-100, -20),
   color_scale = "inferno",
   n_colors = 124,
   interpolate = FALSE,
@@ -20,90 +19,137 @@ fast_spectro(
   theme_mode = "light",
   time_guide_interval = 3,
   freq_guide_interval = 1,
+  channel = c("left", "right", "mix"),
+  invert_colormap = FALSE,
+  font_scale = 1,
+  use_fftw = FALSE,
   ...
 )
 }
 \arguments{
-\item{rec}{An object of class "Wave" as implemented in the tuneR package}
-
-\item{f}{The sampling frequency of the recording, in Hz}
+\item{rec}{An object of class \code{"Wave"} (tuneR). Must be PCM-encoded; float
+WAVs are rejected (see Details).}
 
 \item{flim}{A numeric vector of length 2 giving the minimum and maximum
-frequency limits to be displayed in the spectrogram, in kHz.}
+frequency limits to compute, in kHz. Must satisfy \code{flim[1] < flim[2]}.}
 
-\item{tlim}{A numeric vector of length 2 giving the minimum and maximum.}
+\item{tlim}{A numeric vector of length 2 giving the minimum and maximum
+time limits to compute, in seconds. Must satisfy \code{tlim[1] < tlim[2]}.}
 
-\item{ovlp}{A numeric value specifying the percentage overlap of windows for
-computing the spectrogram.}
+\item{ovlp}{A numeric value specifying the percentage overlap of windows
+(0-100).}
 
-\item{wl}{An integer specifying the length of the FFT window used to
-calculate the spectrogram.}
+\item{wl}{An integer FFT window length. Coerced to integer; a warning is
+issued when it is not a power of 2 (FFTW is fastest with powers of 2).}
 
-\item{norm}{A logical value indicating whether the amplitude values should be
-normalized or not.}
+\item{norm}{A logical; if \code{TRUE}, amplitude is normalised by \code{seewave} so
+the loudest bin is 0 dB and the per-bit-depth scaling is skipped.}
 
 \item{dyn_range}{A numeric vector of length 2 giving the minimum and maximum
-values of relative amplitude to be displayed in the spectrogram.}
+relative amplitude (dB) to display.}
 
-\item{color_scale}{A character string specifying the color scale to be used
-in the spectrogram. Possible values are "viridis", "magma", "inferno",
-"cividis", "greyscale 1", or "greyscale 2".}
+\item{color_scale}{A character colour scale: \code{"viridis"}, \code{"magma"},
+\code{"inferno"}, \code{"cividis"}, \code{"greyscale 1"} or \code{"greyscale 2"}.}
 
-\item{n_colors}{An integer specifying the number of colors to be used in the
-color scale. Smaller values will result in lower resolution color scales,
-but will also result in faster rendering times.}
+\item{n_colors}{An integer number of colours in the scale. Smaller values
+render faster at lower colour resolution.}
 
-\item{interpolate}{A logical value indicating whether the raster should be
-interpolated or not.}
+\item{interpolate}{A logical passed to \code{annotation_raster()}.}
 
-\item{pitch_shift}{A numeric value indicating the pitch shift to be applied
-  to the recording. The value must be among the expected alternatives: -8,
--6, -4, -2, or 1.}
+\item{pitch_shift}{A numeric display pitch factor; one of -8, -6, -4, -2, 1.
+The size of the number (\code{abs()}) sets how much the time and frequency
+axes are stretched. By convention, a negative sign also flips the
+playback direction.}
 
-\item{theme_mode}{A character string indicating the theme mode to be used in
-the spectrogram. Possible values are "dark" or "light".}
+\item{theme_mode}{A character theme: \code{"dark"} or \code{"light"}.}
 
-\item{time_guide_interval}{A numeric value indicating the interval between
-time guides in seconds.}
+\item{time_guide_interval}{A numeric interval between time guides (seconds).
+\code{0} disables time guides (no layer is drawn).}
 
-\item{freq_guide_interval}{A numeric value indicating the interval between
-frequency guides in kHz.}
+\item{freq_guide_interval}{A numeric interval between frequency guides (kHz).
+\code{0} disables frequency guides (no layer is drawn).}
 
-\item{...}{Additional arguments to be passed internally to the
-'seeave::spectro' function.}
+\item{channel}{One of \code{"left"}, \code{"right"}, \code{"mix"}. Selects the channel of a
+stereo recording (\code{"mix"} averages both). Ignored for mono input, except
+\code{"right"} on mono input which emits a warning.}
+
+\item{invert_colormap}{A logical; if \code{TRUE}, reverse the colour scale so
+quiet regions take the "high" colour.}
+
+\item{font_scale}{A single positive numeric multiplier applied to every text
+element in the plot (axis text/titles and legend text/title). \code{1} (default)
+reproduces the default sizes; values \verb{> 1} enlarge and \verb{< 1} shrink all
+spectrogram text together.}
+
+\item{use_fftw}{A logical; if \code{TRUE}, use the \code{fftw} library (via \code{seewave})
+for the FFT. Requires the \code{fftw} package. Defaults to \code{FALSE}.}
+
+\item{...}{Additional arguments passed to \code{seewave::spectro()}.}
 }
 \value{
-This function returns a ggplot2 object.
+A \code{ggplot2} object.
 }
 \description{
-`r lifecycle::badge("experimental")`
-
-  This function creates a spectrogram plot using ggplot2 nearly ten times
-  faster by introducing the spectrogram layer with 'annotation_raster'
-  instead of 'geom_raster' or 'geom_tile'. Credits to Sergio Oller in
-  <https://github.com/tidyverse/ggplot2/issues/4989>
+Draws a \code{ggplot2} spectrogram directly from a \code{Wave} recording:
+the one-shot convenience wrapper that runs \code{\link[=extract_spectro]{extract_spectro()}} (compute) and
+\code{\link[=plot_spectro]{plot_spectro()}} (render) in a single call. Use it when you just want the
+picture; use the two halves separately when you need the numeric data or want
+to re-render the same computation several ways.
 }
+\details{
+This is the workhorse spectrogram function used throughout the package (the
+apps, \code{\link[=plot_scores]{plot_scores()}}) and the natural entry point for a quick look at a
+recording. Every argument is forwarded to one of the two halves, so their
+Details apply here too: the input must be integer-PCM (float WAVs are
+rejected), \code{flim}/\code{tlim} restrict the computed band/window, \code{dyn_range} sets
+the dB-to-colour window, and a guide interval of \code{0} omits that set of guide
+lines. If you plan to redraw the same recording under different colour or
+theme settings, call \code{\link[=extract_spectro]{extract_spectro()}} once and feed the result to
+\code{\link[=plot_spectro]{plot_spectro()}} repeatedly instead of paying for the FFT each time.
+}
+\section{Pipeline context}{
+
+A utility used across the flow, outside the numbered steps. Reads a
+\code{Wave} recording (from \code{tuneR::readWave()}). Produces a \code{ggplot2}
+spectrogram.
+}
+
 \examples{
+# Off-flow utility: the one-call spectrogram of a bundled recording.
 \dontrun{
-# Load the necessary packages to run this example
-
+# Load the package
 library(monitoraSom)
-library(dplyr)
+# (The package ships no field recordings; synthesize one to draw.)
+wav <- file.path(tempdir(), "rec_01.wav")
+rec <- tuneR::normalize(tuneR::sine(4000, duration = 3 * 16000,
+                                    samp.rate = 16000), unit = "16")
+tuneR::writeWave(rec, wav)
+rec <- tuneR::readWave(wav)
 
-# Load the soundscape list stored in the package to populate the example data
-data(ls_soundscapes)
+# Defaults: inferno colours, light theme, 3 s / 1 kHz guides.
+fast_spectro(rec, flim = c(0, 10), ovlp = 50, wl = 1024)
 
-# Get the second soundscape in the list
-soundscape_2 <- ls_soundscapes[[2]]
-glimpse(soundscape_2)
+# Dark theme with guide lines every second and every kHz:
+fast_spectro(rec, flim = c(0, 10), theme_mode = "dark",
+             time_guide_interval = 1, freq_guide_interval = 1)
 
-# Render the spectrogram
-fast_spectro(
-  rec = soundscape_2, f = soundscape_2@samp.rate,
-  flim = c(0, 10), tlim = c(10, 30), ovlp = 90, wl = 2048,
-  dyn_range = c(-80, -40), color_scale = "inferno", theme_mode = "dark",
-  time_guide_interval = 1, freq_guide_interval = 1
-)
+# Quieter picture: raise the dyn_range floor to suppress background noise,
+# or lower it to reveal faint sounds.
+fast_spectro(rec, flim = c(0, 10), dyn_range = c(-70, -20))
 
+# Colour scales: magma, viridis, cividis, or greyscale (reversed here).
+fast_spectro(rec, flim = c(0, 10), color_scale = "magma")
+fast_spectro(rec, flim = c(0, 10), color_scale = "greyscale 1",
+             invert_colormap = TRUE)
+
+# Zoom: compute only a 2 s window of the 2-8 kHz band (faster, sharper),
+# with a higher window overlap for more time detail.
+fast_spectro(rec, flim = c(2, 8), tlim = c(0, 2), ovlp = 75, wl = 512)
+
+# Text size: shrink all spectrogram text together (e.g. for reports).
+fast_spectro(rec, flim = c(0, 10), font_scale = 0.8)
 }
+}
+\seealso{
+\code{\link[=extract_spectro]{extract_spectro()}}, \code{\link[=plot_spectro]{plot_spectro()}}, \code{\link[=plot_scores]{plot_scores()}}
 }

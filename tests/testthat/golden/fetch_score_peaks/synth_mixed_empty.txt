@@ -1,0 +1,8 @@
+# synth_mixed_empty
+error: NA
+class: data.frame
+nrow: 2
+ncol: 21
+names: soundscape_path, soundscape_file, template_path, template_file, template_name, template_min_freq, template_max_freq, template_start, template_end, detection_start, detection_end, detection_wl, detection_ovlp, detection_sample_rate, detection_buffer, detection_min_score, detection_min_quant, detection_top_n, peak_index, peak_score, peak_quant
+messages: Detections extracted from scores
+warnings: (none)

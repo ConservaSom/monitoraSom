@@ -5,17 +5,19 @@
 \alias{ls_templates}
 \title{List of templates}
 \format{
-## `ls_templates` A list of six `tuneR::Wave` objects containing
-  templates to run the examples of the `monitoraSom` package. All templates
-  contain signals correspoding to the last two notes of Basileuterus
-  culicivorus' song. Names of the list elements are the names of the `.wav`
-  files, and correspondo to the name code for templates in the `monitoraSom`
-  workflow.
+\subsection{\code{ls_templates} A list of six \code{tuneR::Wave} objects containing}{
+
+templates to run the examples of the \code{monitoraSom} package. All templates
+contain signals corresponding to the last two notes of Basileuterus
+culicivorus' song. Names of the list elements are the names of the \code{.wav}
+files, and correspond to the name code for templates in the \code{monitoraSom}
+workflow.
+}
 }
 \usage{
 data(ls_templates)
 }
 \description{
-A list of templates to run the examples of the `monitoraSom` package.
+A list of templates to run the examples of the \code{monitoraSom} package.
 }
 \keyword{datasets}

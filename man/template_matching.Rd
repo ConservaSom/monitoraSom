@@ -2,123 +2,171 @@
 % Please edit documentation in R/template_matching.R
 \name{template_matching}
 \alias{template_matching}
-\title{Perform template matching on a set of soundscapes using a set of templates}
+\title{Run the whole template-matching pipeline in one call}
 \usage{
 template_matching(
   soundscapes_path = "soundscapes/",
   recursive_soundscapes = FALSE,
-  templates_path = "roi_cuts/",
+  templates_path = "templates/templates.duckdb",
   recursive_templates = FALSE,
-  score_method = "cor",
-  output_file = NULL,
-  autosave_action = "replace",
-  skip_processed = FALSE,
-  buffer_size = "template",
+  score_method = c("fft", "cor", "dtw"),
   min_score = NULL,
   min_quant = NULL,
   top_n = NULL,
-  ncores = 1
+  scope = c("pair", "grid"),
+  output_db = NULL,
+  autosave_action = c("replace", "append"),
+  output_file = NULL,
+  ncores = 1,
+  ...
 )
 }
 \arguments{
-\item{soundscapes_path}{Path to a directory containing the soundscapes to be
-analyzed. It defaults to "soundscapes/".}
+\item{soundscapes_path}{Directory holding the soundscape recordings to analyze.
+Default \code{"soundscapes/"}.}
 
-\item{recursive_soundscapes}{A logical value indicating whether to search
-soundscapes recursively. It defaults to FALSE.}
+\item{recursive_soundscapes}{Logical. Search \code{soundscapes_path} recursively.
+Default \code{FALSE}.}
 
-\item{templates_path}{Path to a directory containing the templates to be used
-for matching. It defaults to "roi_cuts/".}
+\item{templates_path}{Either a template database \code{.duckdb} written by
+\code{\link[=export_templates]{export_templates()}} (the routine path; the default
+\code{"templates/templates.duckdb"} is where \code{\link[=export_templates]{export_templates()}} writes it), the
+cuts \strong{directory} that holds it (\code{"templates"}: its template database is read), or
+a directory of old long-name template WAV files (migration path, when
+the directory holds no template database).}
 
-\item{recursive_templates}{A logical value indicating whether to search
-templates recursively. It defaults to FALSE.}
+\item{recursive_templates}{Logical. Search an old-format template directory
+recursively (ignored for a template database \code{.duckdb}). Default \code{FALSE}.}
 
-\item{score_method}{The method used for template matching, either "cor" or
-"dtw". It defaults to "cor".}
+\item{score_method}{Character, the matching engine: \code{"fft"} (default,
+FFT-accelerated, roughly 10× faster than and numerically equal to
+\code{"cor"} within 1e-6), \code{"cor"} (Pearson reference) or \code{"dtw"}
+(time-warping tolerant, experimental).}
 
-\item{output_file}{Path to the file where the results will be saved. It
-defaults to NULL. We recommend to export detection or raw score files to
-the "detections/" subdirectory. If the file already exists, the action
-specified in the `autosave_action` parameter will be taken.}
+\item{min_score}{Numeric in \verb{[0, 1]} or \code{NULL}. Keep only detections with a
+peak score at or above this. \code{NULL} (default) keeps all.}
 
-\item{autosave_action}{A character string indicating the action to be taken
-if the output file already exists. Possible values are "append" and
-"replace". To avoid overwriting existing files, set to "append", but be
-aware that it can result in duplicated entries in the output file if the
-function is run again. It defaults to "replace".}
+\item{min_quant}{Numeric in \verb{[0, 1]} or \code{NULL}. Keep only detections at or
+above this score quantile. \code{NULL} (default) keeps all. Applied within the
+region set by \code{scope}.}
 
-\item{skip_processed}{A logical value indicating whether to skip the
-processed soundscapes. It defaults to FALSE.}
+\item{top_n}{Integer or \code{NULL}. Keep at most this many detections, by raw
+score. \code{NULL} (default) keeps all. Applied within the region set by \code{scope}.}
 
-\item{buffer_size}{The size of the buffer used to calculate the scores for
-the template matches, either "template" or "event". It defaults to
-"template".}
+\item{scope}{Character, how \code{min_quant}/\code{top_n} are applied: \code{"pair"}
+(default; within each soundscape-template score vector) or \code{"grid"}
+(across the whole grid).}
 
-\item{min_score}{A numeric value between 0 and 0.99 indicating the minimum
-score of the detections that will be kept. It defaults to NULL, which
-returns all available detections.}
+\item{output_db}{Optional path to a detections DuckDB database. When
+supplied the detections are written there (updated when they already
+exist); \code{NULL} (default) persists nothing. Use
+\code{\link[=export_detections_duckdb_to_csv]{export_detections_duckdb_to_csv()}} to get a CSV out of the store.}
 
-\item{min_quant}{A numeric value between 0 and 1 indicating the minimum score
-quantile of the kept detections. It defaults to NULL, which returns all
-available detections.}
+\item{autosave_action}{Character. \code{"replace"} (default; clear the
+detections table and insert the new rows) or \code{"append"} (update rows
+keyed on \code{detection_id}, keeping prior rows). Both run in one
+transaction. Only used when \code{output_db} is set.}
 
-\item{top_n}{An integer indicating the maximum number of peaks to be
-returned, selected according to the highest scores available. It defaults
-to NULL, which return all available detections. It should be noted that
-because the peak quantiles are callculated within each score vector, the
-top_n parameter is applied to each score vector separately, and not to the
-whole matching grid.}
+\item{output_file}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Old CSV target. When
+supplied, the detections are additionally written to this path in the
+21-column layout from earlier versions, with a deprecation warning.
+Prefer \code{output_db}.}
 
-\item{ncores}{An integer indicating the number of cores to be used for
-parallelization. It defaults to 1.}
+\item{ncores}{Positive integer, default \code{1}. Number of CPU cores used by
+the parallel stages (the soundscape-metadata scan and the matching
+engine). Raise it to speed up large collections; it is capped at the
+number of available cores.}
+
+\item{...}{Further engine arguments forwarded to \code{\link[=run_matching]{run_matching()}}:
+\code{buffer_size}, \code{stream_threshold_s}, \code{dtw_slack}. Scores-storage options
+(\code{scores_format}, \code{output = "scores"}) do not apply here and are rejected;
+call \code{\link[=run_matching]{run_matching()}} directly for scores.}
 }
 \value{
-A dataframe with the detected events.
+A tibble of detections in the standard detections format, always
+returned; invisibly when persisted via \code{output_db} and/or \code{output_file}.
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function performs template matching on a set of soundscapes using a
-  set of templates, and returns a dataframe with the detected events.
+The one-call simplification of the analysis flow: point it at a folder of
+soundscape recordings and a template database, and it returns the
+detections. It is a \strong{wrapper}: one function that chains other
+functions for you, in the correct order and wiring. The four stages it
+chains are template metadata (\code{\link[=fetch_template_metadata]{fetch_template_metadata()}}), soundscape
+metadata (\code{\link[=fetch_soundscape_metadata]{fetch_soundscape_metadata()}}), the search grid
+(\code{\link[=fetch_match_grid]{fetch_match_grid()}}) and the matching engine (\code{\link[=run_matching]{run_matching()}}).
 }
+\details{
+Internally it runs, in order: \code{\link[=fetch_template_metadata]{fetch_template_metadata()}} (read
+the template database, or migrate an old template directory),
+\code{\link[=fetch_soundscape_metadata]{fetch_soundscape_metadata()}} (scan the recordings), \code{\link[=fetch_match_grid]{fetch_match_grid()}}
+(cross templates with soundscapes, dropping incompatible pairs) and
+\code{\link[=run_matching]{run_matching()}} (score every pair and reduce scores to detections).
+
+Use this wrapper for the common end-to-end case. When you need to
+inspect or tune the intermediate results (the search grid, or the raw
+score vectors), call the four stages yourself instead (see Examples).
+Raw scores are reachable only through \code{run_matching(output = "scores")},
+never through this wrapper.
+
+Two things to watch. (1) \code{templates_path} is dispatched by path type: a
+\code{.duckdb} \strong{file} is read as a template database. A \strong{directory} is resolved to
+the template database inside it when present (the \verb{templates/} folder
+\code{\link[=export_templates]{export_templates()}} wrote); only when there is no template database does it fall
+back to the old long-name template WAVs. (2) The detection filters (\code{min_score},
+\code{min_quant}, \code{top_n}, \code{scope}) are the main knobs that decide how many
+detections you get back: start permissive and tighten.
+}
+\section{Pipeline context}{
+
+Step 9 of the monitoraSom analysis flow, the top-level orchestrator. It
+subsumes steps 4-7 (template metadata, soundscape metadata,
+\code{\link[=fetch_match_grid]{fetch_match_grid()}}, \code{\link[=run_matching]{run_matching()}}). Reads a soundscape folder and
+a template database from \code{\link[=export_templates]{export_templates()}}. Produces a detections
+table for \code{\link[=detecs_to_rois]{detecs_to_rois()}} (step 10) / \code{\link[=validate_by_overlap]{validate_by_overlap()}}
+(step 11).
+}
+
 \examples{
 \dontrun{
-
-# Load the necessary packages to run this example
+# Load the package
 library(monitoraSom)
-library(dplyr)
-library(tuneR)
+# Step 9: one call from a soundscape folder + template database to detections.
+# (The package ships no field recordings, so this example synthesizes them;
+# for the same steps on real data see [fetch_example_data()].)
+ss <- file.path(tempdir(), "recs"); dir.create(ss, showWarnings = FALSE)
+rec <- tuneR::normalize(tuneR::sine(4000, duration = 10 * 16000,
+                                    samp.rate = 16000), unit = "16")
+for (f in c("siteA_01.wav", "siteA_02.wav"))
+  tuneR::writeWave(rec, file.path(ss, f))
+df_rois <- data.frame(
+  soundscape_path = file.path(ss, "siteA_01.wav"),
+  soundscape_file = "siteA_01.wav",
+  roi_label = "burst", roi_start = 1, roi_end = 1.5,
+  roi_min_freq = 2, roi_max_freq = 6, roi_wl = 512, roi_ovlp = 50,
+  stringsAsFactors = FALSE)
+tpl <- file.path(tempdir(), "templates")
+export_templates(df_rois, templates_path = tpl, create_dir = TRUE)
+tpl <- file.path(tpl, "templates.duckdb")
+out <- file.path(tempdir(), "detections.duckdb")
+df_detecs <- template_matching(soundscapes_path = ss, templates_path = tpl,
+                               min_score = 0.3, output_db = out)
+head(df_detecs)
 
-# Load the soundscape list to populate the example data
-data(ls_soundscapes)
+# Granular workflow: run the same four stages yourself to inspect the grid.
+df_templates   <- fetch_template_metadata(tpl)
+df_soundscapes <- fetch_soundscape_metadata(ss)
+df_grid        <- fetch_match_grid(df_soundscapes, df_templates)
+df_detecs2     <- run_matching(df_grid, score_method = "fft", min_score = 0.3)
 
-# Create a directory to store the soundscapes
-soundscapes_path <- "./soundscapes"
-dir.create(soundscapes_path)
-invisible(lapply(1:length(ls_soundscapes), function(i) {
-  writeWave(
-    ls_soundscapes[[i]],
-    file.path(soundscapes_path, names(ls_soundscapes)[i])
-  )
-}))
-
-# Load the templates to populate the example data
-data(ls_templates)
-
-# Create a directory to store the templates
-templates_path <- "./templates"
-dir.create(templates_path)
-invisible(lapply(1:length(ls_templates), function(i) {
-  writeWave(
-    ls_templates[[i]], file.path(templates_path, names(ls_templates)[i])
-  )
-}))
-
-df_detecs <- template_matching(
-  soundscapes_path = soundscapes_path,
-  templates_path = templates_path,
-)
-glimpse(df_detecs)
-
+# The wrapper and the four stages give the same detections:
+identical(sort(df_detecs$detection_id), sort(df_detecs2$detection_id))
+nrow(df_detecs); nrow(df_detecs2)
 }
+}
+\seealso{
+\code{\link[=fetch_match_grid]{fetch_match_grid()}}, \code{\link[=run_matching]{run_matching()}} (the stages it wraps),
+\code{\link[=detecs_to_rois]{detecs_to_rois()}} and \code{\link[=validate_by_overlap]{validate_by_overlap()}} (next steps),
+\code{\link[=export_templates]{export_templates()}} (writes the template database).
 }

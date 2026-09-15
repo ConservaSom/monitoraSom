@@ -1,0 +1,4 @@
+## messages
+A list of the soundscapes in the metadata, but missing files was saved in /home/grosa/Projects/006_monitoraSom_to_Julialang/R/sandbox/outputs/fetch_soundscape_metadata/cache_g5_missing_recordings_log_20260525_214019.csv
+
+## warnings

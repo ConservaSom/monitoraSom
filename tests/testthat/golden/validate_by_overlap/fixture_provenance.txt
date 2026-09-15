@@ -1,0 +1,4 @@
+Fixture provenance (deterministic subset; committed fixtures never mutated):
+  detections: data/df_detecs.rda restricted to 3 shared soundscape_files
+  rois: data/df_rois.rda for those soundscapes + the Bcu_1/Bcu_2 hand cuts
+  soundscape_files: W54431S25613_20191102_055000.wav, W54431S25613_20191102_064000.wav, W54431S25613_20191104_154000.wav

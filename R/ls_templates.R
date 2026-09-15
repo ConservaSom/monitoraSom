@@ -4,8 +4,8 @@
 #'
 #' @format ## `ls_templates` A list of six `tuneR::Wave` objects containing
 #'   templates to run the examples of the `monitoraSom` package. All templates
-#'   contain signals correspoding to the last two notes of Basileuterus
+#'   contain signals corresponding to the last two notes of Basileuterus
 #'   culicivorus' song. Names of the list elements are the names of the `.wav`
-#'   files, and correspondo to the name code for templates in the `monitoraSom`
+#'   files, and correspond to the name code for templates in the `monitoraSom`
 #'   workflow.
 "ls_templates"

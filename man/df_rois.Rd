@@ -5,9 +5,11 @@
 \alias{df_rois}
 \title{Concatenated ROI table}
 \format{
-## `df_rois` A data frame with 79 rows and 19 columns containing ROI
-  (region of interest) data from soundscape recordings, including file paths,
-  temporal and frequency bounds, labels, and segmentation parameters.
+\subsection{\code{df_rois} A data frame with 79 rows and 19 columns containing ROI}{
+
+(region of interest) data from soundscape recordings, including file paths,
+temporal and frequency bounds, labels, and segmentation parameters.
+}
 }
 \usage{
 data(df_rois)
@@ -15,6 +17,6 @@ data(df_rois)
 \description{
 A data frame containing the concatenated ROI tables for the soundscape
 recordings after segmentation on the segmentation app, after importing it
-back to the R session with the `fetch_roi_tables()` function.
+back to the R session with the \code{fetch_roi_tables()} function.
 }
 \keyword{datasets}

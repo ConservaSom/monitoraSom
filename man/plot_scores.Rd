@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_scores.R
 \name{plot_scores}
 \alias{plot_scores}
-\title{Plot scores and detections of one template match run}
+\title{Plot the scores and detections of one template-match pair}
 \usage{
 plot_scores(
   df_scores_i,
@@ -17,135 +17,159 @@ plot_scores(
   wl = NULL,
   dyn_range = NULL,
   color_scale = "inferno",
-  n_colors = 124,
+  n_colors = .PS_DEFAULT_N_COLORS,
   interpolate = FALSE,
+  theme_mode = "light",
+  time_guide_interval = 3,
+  freq_guide_interval = 1,
+  font_scale = 1,
+  channel = c("left", "right", "mix"),
+  invert_colormap = FALSE,
   ...
 )
 }
 \arguments{
-\item{df_scores_i}{One row of the output of `run_matching` containing the raw
-scores of a template match run.}
+\item{df_scores_i}{One row of \code{\link[=run_matching]{run_matching()}} output in the
+\code{output = "scores"} mode: the raw \code{score_vec} list-column plus
+template/soundscape metadata. Already-captured detections (as from
+\code{\link[=fetch_score_peaks]{fetch_score_peaks()}}) are not accepted: they carry no complete score
+vector.}
 
-\item{buffer_size}{A numeric value specifying the number of frames of the
-buffer within which overlap between detections is avoided. Defaults to
-"template", which means that the buffer size equals the number of frames
-present in the template spectrogram. The buffer exclusion priority is
-oriented by score quantiles, so that the highest scoring detections are
-always kept. Setting the buffer size to 0 disables the exclusion buffer.}
+\item{buffer_size}{Exclusion buffer in spectrogram frames. Default
+\code{"template"} uses the template's frame
+count (\code{score_sliding_window}); a non-negative whole number sets it
+explicitly, \code{0} disables suppression. Larger values give fewer, more
+spread-out detections.}
 
-\item{min_score}{A numeric value between 0 and 0.99 indicating the minimum
-score of the detections that will be kept. Defaults to NULL, which returns
-all available detections.}
+\item{min_score, min_quant, top_n}{Optional thresholds with \code{scope = "pair"}: mark peaks with score at
+or above \code{min_score}, score quantile at or above \code{min_quant}, and at most
+\code{top_n} peaks by raw score. Each defaults to \code{NULL} (no threshold); they
+compose.}
 
-\item{min_quant}{A numeric value between 0 and 1 indicating the minimum score
-quantile of the kept detections. Defaults to NULL, which returns all
-available detections.}
+\item{zoom_freq, zoom_time}{Length-2 numeric panel limits (kHz / seconds).
+\code{NULL} uses the full recording extent.}
 
-\item{top_n}{An integer indicating the maximum number of peaks to be
-returned, selected according to the highest scores available. Defaults to
-NULL, which return all available detections. It should be noted that
-because the peak quantiles are callculated within each score vector, the
-top_n parameter is applied to each score vector separately, and not to the
-whole matching grid.}
+\item{zoom_score}{Length-2 numeric score-axis limits. \code{NULL} uses the score
+range.}
 
-\item{zoom_freq}{Set frequency limits for the spectrogram panel}
+\item{ovlp, wl}{Spectrogram FFT overlap (\\%) and window length. \code{NULL} uses the
+values from \code{df_scores_i} (\code{template_ovlp} / \code{template_wl}).}
 
-\item{zoom_time}{Set time limits for the spectrogram panel.}
+\item{dyn_range}{Length-2 numeric relative-amplitude display range (dB).
+\code{NULL} uses \code{c(-60, 0)}.}
 
-\item{zoom_score}{A numeric vector of length 2 specifying the score range to
-be displayed.}
+\item{color_scale}{One of \code{"viridis"}, \code{"magma"}, \code{"inferno"}, \code{"cividis"},
+\code{"greyscale 1"}, \code{"greyscale 2"}.}
 
-\item{ovlp}{A numeric value specifying the percentage overlap of windows in
-the spectrogram calculation. Defaults to NULL, which uses the value
-obtained from df_scores_i, but overrides it if a value is provided.}
+\item{n_colors}{Integer number of colours in the colour scale.}
 
-\item{wl}{An integer specifying the length of the FFT window used to
-calculate the spectrogram. Defaults to NULL, which uses the value obtained
-from df_scores_i, but overrides it if a value is provided.}
+\item{interpolate}{Logical; raster interpolation.}
 
-\item{dyn_range}{A numeric vector of length 2 giving the minimum and maximum
-values of relative amplitude to be displayed in the spectrogram.}
+\item{theme_mode, time_guide_interval, freq_guide_interval, font_scale, channel, invert_colormap}{Presentation controls forwarded to \code{\link[=fast_spectro]{fast_spectro()}}. \code{theme_mode}
+(\code{"light"} default or \code{"dark"}) is the shared plot theme of the two
+panels, and \code{time_guide_interval} additionally themes the score panel so
+both panels match.}
 
-\item{color_scale}{A character string specifying the color scale to be used
-in the spectrogram. Possible values are "viridis", "magma", "inferno",
-"cividis", "greyscale 1", or "greyscale 2".}
-
-\item{n_colors}{An integer specifying the number of colors to be used in the
-color scale. Smaller values will result in lower resolution color scales,
-but will also result in faster rendering times.}
-
-\item{interpolate}{A logical value indicating whether the raster should be
-interpolated or not.}
-
-\item{...}{Other arguments passed to the seewave::spectro() function}
+\item{...}{Other arguments forwarded to \code{\link[=fast_spectro]{fast_spectro()}} (hence
+\code{\link[=extract_spectro]{extract_spectro()}}).}
 }
 \value{
-A ggplot object containing the spectrogram and the score vector.
+A \code{patchwork} composite of a spectrogram panel (top) and a
+score-vector panel (bottom).
 }
 \description{
-`r lifecycle::badge("experimental")`
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 
-  This function plots a spectrogram of the soundscape and the results of the
-  run_matching_i() and fetch_score_peaks() functions.
+Renders a stacked two-panel figure for a single soundscape-template match
+row: the top panel is the soundscape spectrogram overlaid with detection
+rectangles and a soundscape label; the bottom panel is the matching-score
+line with peak points, detection bands, an optional \code{min_score} threshold
+rule and a template label. It is the visual-inspection tool for the pipeline
+output, the point where you look at \emph{why} a detection fired.
 }
+\details{
+The function takes exactly one row of \code{\link[=run_matching]{run_matching()}} output in the
+\code{output = "scores"} mode (subset it yourself, e.g. \code{df_scores[i, ]}; more
+than one row is an error) and runs the detection step itself, so the
+plotted detections match what the pipeline would keep under the same
+thresholds. The
+\code{output = "detections"} result cannot be plotted: captured detections
+carry no complete score vector. The two panels share a single light/dark
+theme and the same vertical time guides, so they read as one figure.
+Things to know: the soundscape WAV named in the row is re-read from disk,
+so the recording must still be at \code{soundscape_path}; \code{ovlp}/\code{wl} default
+to the values recorded in the match row (\code{template_ovlp}/\code{template_wl}) so
+the spectrogram matches the one that was scored. Override them only to
+re-inspect, not to reproduce the run. For an overview of a whole run
+across many pairs, use \code{\link[=plot_scores_overview]{plot_scores_overview()}}.
+}
+\section{Pipeline context}{
+
+Step 13 of the monitoraSom analysis flow (visualization). Reads one row
+of the scored matches from \code{\link[=run_matching]{run_matching()}} / \code{\link[=template_matching]{template_matching()}} (step 7).
+Produces a \code{patchwork} figure for human inspection, a leaf of the flow,
+feeding nothing downstream.
+}
+
 \examples{
-\dontrun{
-
-# Load the necessary packages to run this example
+# Step 13 of the analysis flow: inspect one scored soundscape-template pair
+# from run_matching (step 7), saved with output = "scores". The soundscape
+# WAV named in the row must be readable at its soundscape_path.
+# (Build a tiny grid from a synthesized recording; see [fetch_match_grid()]
+# for the full recipe. The bundled df_grid dataset predates template_id and
+# cannot feed the pipeline.)
+\donttest{
+# Load the package
 library(monitoraSom)
-library(dplyr)
-library(tuneR)
+rec_dir <- file.path(tempdir(), "recs"); dir.create(rec_dir, showWarnings = FALSE)
+# A 20 s soundscape with a varied 4 kHz content: one clear burst (the
+# template), a longer copy, a fainter copy, plus a 5.5 kHz distractor and a
+# low noise floor. This gives a score vector with peaks of different
+# heights, so the filter choices below are visible.
+sr <- 16000
+set.seed(7)
+tt <- seq_len(20 * sr) / sr
+x <- rnorm(length(tt), 0, 0.02)
+m4 <- function(tt) 0.6 * sin(2 * pi * 4000 * tt)
+m55 <- function(tt) 0.5 * sin(2 * pi * 5500 * tt)
+x[(tt >= 1) & (tt < 1.4)]   <- x[(tt >= 1) & (tt < 1.4)] + m4(tt[(tt >= 1) & (tt < 1.4)])
+x[(tt >= 3) & (tt < 4.2)]   <- x[(tt >= 3) & (tt < 4.2)] + m4(tt[(tt >= 3) & (tt < 4.2)])
+x[(tt >= 7) & (tt < 7.4)]   <- x[(tt >= 7) & (tt < 7.4)] + 0.25 * m4(tt[(tt >= 7) & (tt < 7.4)])
+x[(tt >= 4.5) & (tt < 5.1)] <- x[(tt >= 4.5) & (tt < 5.1)] + m55(tt[(tt >= 4.5) & (tt < 5.1)])
+rec <- tuneR::normalize(tuneR::Wave(x, samp.rate = sr, bit = 16), unit = "16")
+tuneR::writeWave(rec, file.path(rec_dir, "siteA_01.wav"))
+df_rois <- data.frame(
+  soundscape_path = file.path(rec_dir, "siteA_01.wav"),
+  soundscape_file = "siteA_01.wav",
+  roi_label = "burst", roi_start = 0.8, roi_end = 1.2,
+  roi_min_freq = 3, roi_max_freq = 5, roi_wl = 512, roi_ovlp = 50,
+  stringsAsFactors = FALSE)
+out_dir <- file.path(tempdir(), "templates")
+export_templates(df_rois, templates_path = out_dir, create_dir = TRUE)
+df_scores <- run_matching(
+  fetch_match_grid(fetch_soundscape_metadata(rec_dir),
+                   fetch_template_metadata(out_dir)),
+  output = "scores", score_method = "fft")
 
-# Load the soundscape list to populate the example data
-data(ls_soundscapes)
+# The two-panel figure of one match row: spectrogram on top, score line
+# with detection bands below. The score panel marks every captured peak
+# (exclusion buffer applied) with a red point.
+p <- plot_scores(df_scores[1, ])   # one match row -> two-panel figure
+class(p)                           # "patchwork" / "gg"
 
-# Create a directory to store the soundscapes
-soundscapes_path <- "./soundscapes"
-dir.create(soundscapes_path)
-invisible(lapply(1:length(ls_soundscapes), function(i) {
-  writeWave(
-    ls_soundscapes[[i]],
-    file.path(soundscapes_path, names(ls_soundscapes)[i])
-  )
-}))
+# Apply a score threshold so only strong peaks are kept as detections:
+# the two clear 4 kHz hits pass, the fainter copy and the distractor do not.
+plot_scores(df_scores[1, ], min_score = 0.6)
 
-data(df_scores)
+# Keep only the 3 best peaks, whatever their score:
+plot_scores(df_scores[1, ], top_n = 3)
 
-# Plot the scores of the 20th match with the default parameters. It gets most
-# peaks, but several false positives and the spectrogram is not very
-# informative.
-plot_scores(df_scores_i = df_scores[20, ])
-
-# Now with filtered scores and adjusted spectrogram parameters. Now we can see
-# the target signals more clearly, but we still have some false positives.
-plot_scores(
-  df_scores_i = df_scores[20, ], ovlp = 50, wl = 512, dyn_range = c(-90, -30)
-)
-
-# Now lets turn of the default detection filters to have a look at the
-# detections obtained without any filtering. We can barely see the target
-# signals among so many false positives.
-plot_scores(
-  df_scores_i = df_scores[20, ], ovlp = 50, wl = 512, dyn_range = c(-90, -30),
-  buffer_size = 0, min_score = NULL, min_quant = NULL, top_n = NULL
-)
-
-# Now lets improve the filters so that only true positives are shown as
-# detections. We set a minimum score of 0.3 and a minimum quantile of 0.9.
-plot_scores(
-  df_scores_i = df_scores[20, ], ovlp = 50, wl = 512, dyn_range = c(-90, -30),
-  buffer_size = 0, min_score = 0.3, min_quant = 0.9, top_n = NULL
-)
-
-# Now lets zoom in one detection to see the details. We can notice that the
-# template has a target siognal that matches the final two notes of the target
-# species' song
-plot_scores(
-  df_scores_i = df_scores[20, ],
-  buffer_size = "template", min_score = 0.3, min_quant = NULL, top_n = NULL,
-  ovlp = 50, wl = 512, dyn_range = c(-90, -30),
-  zoom_freq = c(2, 10), zoom_time = c(20, 25)
-)
-
+# Zoom into the first 4 seconds and the 0-8 kHz band, dark theme:
+plot_scores(df_scores[1, ], zoom_time = c(0, 4), zoom_freq = c(0, 8),
+            theme_mode = "dark")
 }
+}
+\seealso{
+\code{\link[=run_matching]{run_matching()}}, \code{\link[=template_matching]{template_matching()}}, \code{\link[=fetch_score_peaks]{fetch_score_peaks()}},
+\code{\link[=fast_spectro]{fast_spectro()}}, \code{\link[=plot_scores_overview]{plot_scores_overview()}}
 }

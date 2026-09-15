@@ -1,0 +1,3 @@
+"soundscape_path","soundscape_file","soundscape_duration","soundscape_sample_rate","soundscape_bitrate","soundscape_layout"
+"R/sandbox/shared_inputs/fetch_soundscape_metadata/corpus_missing/SITE_20240301_000000.wav","SITE_20240301_000000.wav",2,8000,16,"mono"
+"R/sandbox/shared_inputs/fetch_soundscape_metadata/corpus_missing/SITE_20240301_001000.wav","SITE_20240301_001000.wav",2,8000,16,"mono"
