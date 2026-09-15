@@ -35,6 +35,45 @@ Please follow the code below to install the latest released version:
 devtools::install_github("ConservaSom/monitoraSom", dependencies = TRUE)
 ```
 
+## The example project
+
+The package has a complete example project: 14 soundscape and recording WAV
+files of the bird *Basileuterus culicivorus*, a database of manually drawn
+ROIs, and a walkthrough script. The package would grow too large if all of
+this travelled inside it, so the example is a separate download of about
+39 MB, hosted in
+[ConservaSom/monitoraSom-example-data](https://github.com/ConservaSom/monitoraSom-example-data).
+
+Get it with one call:
+
+```r
+library(monitoraSom)
+
+is_example_data_cached()                # FALSE on a fresh install
+example_project <- fetch_example_data() # downloads once
+setwd(example_project)                  # or pass it as project_path
+```
+
+The first call downloads the project to a cache folder on your computer
+(`tools::R_user_dir("monitoraSom", "cache")`) and unpacks it. The download
+happens only once: later calls find the files there and return the same
+path, and the folder survives R restarts. To download again, pass
+`overwrite = TRUE`. If the download fails, the function prints a message
+and returns `NULL`. It never raises an error.
+
+If you cannot reach the internet, or prefer your own copy, point the
+function at a local bundle first:
+
+```r
+options(monitoraSom.data_url = "file:///path/to/monitoraSom-example-basileuterus-culicivorus.tar.gz")
+example_project <- fetch_example_data()
+```
+
+The walkthrough inside the project (`basileuterus-culicivorus.Rmd`, also in
+`.qmd` and `.R`) repeats the whole pipeline on these files.
+`vignette("monitoraSom")` runs the validation and diagnostics steps on the
+bundled result tables, and it needs no download.
+
 ## Upgrading from 1.0.x
 
 Version 1.2.0 brings the largest change in the package so far. The function
