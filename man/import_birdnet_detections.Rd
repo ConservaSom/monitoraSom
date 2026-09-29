@@ -9,7 +9,8 @@ import_birdnet_detections(
   signals_db,
   min_conf = 0,
   format = NULL,
-  origin = "birdnet"
+  origin = "birdnet",
+  csv_mirror = NULL
 )
 }
 \arguments{
@@ -26,6 +27,13 @@ decision).}
 extension and header sniff.}
 
 \item{origin}{Origin stamp for the \code{origin} column (default \code{"birdnet"}).}
+
+\item{csv_mirror}{Optional CSV copy of the signals database. \code{NULL}
+(default) writes no copy. \code{TRUE} writes \verb{<database name>_mirror.csv} in
+the folder of \code{signals_db}; a string is the CSV path. The copy is written
+once, after the last write to the database, and holds the standard
+columns of the database, with \code{NA} as an empty field. It is a snapshot
+for reading only. Edits to the CSV never reach the database.}
 }
 \value{
 The imported signals frame, invisibly.
@@ -86,6 +94,14 @@ writeLines(c(hdr,
 db <- tempfile(fileext = ".duckdb")
 sig <- import_birdnet_detections(f, db)
 sig[, c("roi_label", "roi_comment", "det_peak_score")]
+
+# Import again with a CSV copy of the database, written to a path you
+# choose. The import updates the rows that already exist, so the copy has
+# one row. Read it back; an empty field is NA.
+csv <- tempfile(fileext = ".csv")
+sig <- import_birdnet_detections(f, db, csv_mirror = csv)
+df_copy <- utils::read.csv(csv, na.strings = "")
+df_copy[, c("roi_label", "det_peak_score")]
 }
 }
 \seealso{

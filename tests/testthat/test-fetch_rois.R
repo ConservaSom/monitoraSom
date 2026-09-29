@@ -34,7 +34,7 @@ fixture_copy <- function() {
 test_that("FR-101: reads the DuckDB ROI store (single file)", {
   skip_if_deps_missing()
   db <- fixture_copy(); on.exit(unlink(db))
-  df <- fetch_rois(db, source = "duckdb")
+  df <- fetch_rois(db, source = "duckdb", shape = "rois")
   # Golden FR-G2 fixed the fixture at 161 ROIs.
   expect_equal(nrow(df), 161L)
 })
@@ -45,14 +45,14 @@ test_that("FR-101: unifies several .duckdb files in a directory", {
   file.copy(fixture_db, file.path(d, "a.duckdb"))
   file.copy(fixture_db, file.path(d, "b.duckdb"))
   on.exit(unlink(d, recursive = TRUE))
-  df <- fetch_rois(d, source = "duckdb")
+  df <- fetch_rois(d, source = "duckdb", shape = "rois")
   expect_equal(nrow(df), 322L)            # 2 x 161
 })
 
 test_that("FR-102: output is exactly the canonical 18-column schema", {
   skip_if_deps_missing()
   db <- fixture_copy(); on.exit(unlink(db))
-  df <- fetch_rois(db, source = "duckdb")
+  df <- fetch_rois(db, source = "duckdb", shape = "rois")
   # Diverges from the golden 19-col legacy frame: drops roi_path/roi_file,
   # adds roi_channel.
   expect_identical(names(df), names(.roi_schema_spec()))
@@ -80,12 +80,12 @@ test_that("AFL-02: roi_source filters by provenance (NA = manual)", {
   .roi_duckdb_save(con, mk("ss/n.wav", "SpN", NA_character_, "song"), "ss/n.wav")
   DBI::dbDisconnect(con, shutdown = TRUE)
 
-  expect_equal(nrow(fetch_rois(db, source = "duckdb")), 3L)            # NULL = all
-  det <- fetch_rois(db, source = "duckdb", roi_source = "detection")
+  expect_equal(nrow(fetch_rois(db, source = "duckdb", shape = "rois")), 3L)            # NULL = all
+  det <- fetch_rois(db, source = "duckdb", roi_source = "detection", shape = "rois")
   expect_equal(det$roi_label, "SpD")
-  man <- fetch_rois(db, source = "duckdb", roi_source = "manual")      # manual + NA
+  man <- fetch_rois(db, source = "duckdb", roi_source = "manual", shape = "rois")      # manual + NA
   expect_setequal(man$roi_label, c("SpM", "SpN"))
-  expect_error(fetch_rois(db, source = "duckdb", roi_source = "bogus"),
+  expect_error(fetch_rois(db, source = "duckdb", roi_source = "bogus", shape = "rois"),
                "should be one of")
 })
 
@@ -93,7 +93,7 @@ test_that("AFL-02: roi_source filters by provenance (NA = manual)", {
 
 test_that("FR-101: legacy CSV migration coerces to the canonical schema", {
   skip_if_deps_missing()
-  df <- fetch_rois(legacy_dir, source = "csv")
+  df <- fetch_rois(legacy_dir, source = "csv", shape = "rois")
   # Same 161 real rows as the golden FR-G2, but in the canonical schema.
   expect_equal(nrow(df), 161L)
   expect_identical(names(df), names(.roi_schema_spec()))
@@ -107,7 +107,7 @@ test_that("FR-02: malformed input yields the real rows, no phantom NA rows", {
   skip_if_deps_missing()
   # Golden malformed_edge returned 19 rows (2 real + 17 phantom from the dead
   # valid_entries block). The refactor removes that block -> 2 real rows.
-  df <- suppressWarnings(fetch_rois(malformed_dir, source = "csv"))
+  df <- suppressWarnings(fetch_rois(malformed_dir, source = "csv", shape = "rois"))
   expect_equal(nrow(df), 2L)
 })
 
@@ -116,7 +116,7 @@ test_that("FR-02: malformed input yields the real rows, no phantom NA rows", {
 test_that("FR-03: values that fail to parse are reported via warning", {
   skip_if_deps_missing()
   # The malformed CSV has roi_start = "not_a_number".
-  expect_warning(fetch_rois(malformed_dir, source = "csv"),
+  expect_warning(fetch_rois(malformed_dir, source = "csv", shape = "rois"),
                  "failed to parse")
 })
 
@@ -133,10 +133,10 @@ test_that("FR-05: recursive is honoured (was hardcoded TRUE)", {
   utils::write.csv(roi, file.path(sub, "A_roi_x.csv"), row.names = FALSE)
 
   # Shallow scan: the nested table is invisible -> the original "not found" stop.
-  expect_error(fetch_rois(root, source = "csv", recursive = FALSE),
+  expect_error(fetch_rois(root, source = "csv", recursive = FALSE, shape = "rois"),
                "No ROI tables found")
   # Recursive scan: finds it.
-  df <- fetch_rois(root, source = "csv", recursive = TRUE)
+  df <- fetch_rois(root, source = "csv", recursive = TRUE, shape = "rois")
   expect_equal(nrow(df), 1L)
 })
 
@@ -145,7 +145,7 @@ test_that("FR-05: recursive is honoured (was hardcoded TRUE)", {
 test_that("FR-06: stored soundscape_path uses forward slashes", {
   skip_if_deps_missing()
   db <- fixture_copy(); on.exit(unlink(db))
-  df <- fetch_rois(db, source = "duckdb")
+  df <- fetch_rois(db, source = "duckdb", shape = "rois")
   expect_false(any(grepl("\\\\", df$soundscape_path)))
 })
 
@@ -154,7 +154,7 @@ test_that("FR-06: stored soundscape_path uses forward slashes", {
 test_that("FR-103: origin_ provenance columns attach when metadata supplied", {
   skip_if_deps_missing()
   db <- fixture_copy(); on.exit(unlink(db))
-  base <- fetch_rois(db, source = "duckdb")
+  base <- fetch_rois(db, source = "duckdb", shape = "rois")
 
   # Build a minimal soundscape-metadata frame for one of the real paths.
   some_path <- base$soundscape_path[1]
@@ -165,7 +165,7 @@ test_that("FR-103: origin_ provenance columns attach when metadata supplied", {
 
   # Only one path has metadata, so the rest are unmatched (FR-104 warns).
   df <- suppressWarnings(
-    fetch_rois(db, source = "duckdb", soundscape_metadata = meta))
+    fetch_rois(db, source = "duckdb", soundscape_metadata = meta, shape = "rois"))
   expect_true(all(c("origin_soundscape_path", "origin_soundscape_file",
                     "origin_soundscape_sha256") %in% names(df)))
   hit <- df$soundscape_path == some_path
@@ -181,7 +181,7 @@ test_that("AUD-26: an unreadable .duckdb among good stores warns and keeps the g
   file.copy(fixture_db, file.path(d, "good.duckdb"))
   writeLines("not a database", file.path(d, "broken.duckdb"))
   expect_warning(
-    df <- suppressMessages(fetch_rois(d, source = "duckdb", recursive = FALSE)),
+    df <- suppressMessages(fetch_rois(d, source = "duckdb", recursive = FALSE, shape = "rois")),
     "could not be read")
   expect_gt(nrow(df), 0L)
 })
@@ -189,7 +189,7 @@ test_that("AUD-26: an unreadable .duckdb among good stores warns and keeps the g
 test_that("AUD-26: soundscape_metadata accepts a .duckdb path (connect-and-read branch)", {
   skip_if_deps_missing()
   db <- fixture_copy(); on.exit(unlink(db))
-  base <- fetch_rois(db, source = "duckdb")
+  base <- fetch_rois(db, source = "duckdb", shape = "rois")
   some_path <- base$soundscape_path[1]
   meta <- .schema_soundscapes(1L)
   meta$soundscape_path   <- some_path
@@ -200,7 +200,7 @@ test_that("AUD-26: soundscape_metadata accepts a .duckdb path (connect-and-read 
   .duckdb_upsert_metadata(con, meta)
   DBI::dbDisconnect(con, shutdown = TRUE)
   df <- suppressWarnings(
-    fetch_rois(db, source = "duckdb", soundscape_metadata = mdb))
+    fetch_rois(db, source = "duckdb", soundscape_metadata = mdb, shape = "rois"))
   hit <- df$soundscape_path == some_path
   expect_true(all(df$origin_soundscape_sha256[hit] == "deadbeef"))
 })
@@ -211,7 +211,7 @@ test_that("AUD-23: soundscape_metadata missing a consumed column errors", {
   bad_meta <- data.frame(soundscape_path = "x", soundscape_file = "x.wav",
                          stringsAsFactors = FALSE)  # missing soundscape_sha256
   expect_error(
-    fetch_rois(db, source = "duckdb", soundscape_metadata = bad_meta),
+    fetch_rois(db, source = "duckdb", soundscape_metadata = bad_meta, shape = "rois"),
     "soundscape_sha256")
 })
 
@@ -237,7 +237,7 @@ test_that("AFL-06: .normalize_path_key canonicalizes keys (idempotent)", {
 test_that("AFL-06: provenance join matches across cosmetic key differences", {
   skip_if_deps_missing()
   db <- fixture_copy(); on.exit(unlink(db))
-  base <- fetch_rois(db, source = "duckdb")
+  base <- fetch_rois(db, source = "duckdb", shape = "rois")
   some_path <- base$soundscape_path[1]              # canonical stored key
 
   # Metadata carries the SAME recording but with a legacy "./" prefix and "//".
@@ -252,7 +252,7 @@ test_that("AFL-06: provenance join matches across cosmetic key differences", {
   meta$soundscape_sha256 <- "deadbeef"
 
   df <- suppressWarnings(
-    fetch_rois(db, source = "duckdb", soundscape_metadata = meta))
+    fetch_rois(db, source = "duckdb", soundscape_metadata = meta, shape = "rois"))
   hit <- df$soundscape_path == some_path
   expect_true(any(hit))
   expect_true(all(df$origin_soundscape_sha256[hit] == "deadbeef"))
@@ -271,11 +271,11 @@ test_that("FR-104: ROIs missing from soundscape_metadata warn", {
   meta$soundscape_sha256 <- "deadbeef"
 
   expect_warning(
-    fetch_rois(db, source = "duckdb", soundscape_metadata = meta),
+    fetch_rois(db, source = "duckdb", soundscape_metadata = meta, shape = "rois"),
     "no matching recording in soundscape_metadata")
   # Provenance is still attached, all NA (the warning does not abort the join).
   df <- suppressWarnings(
-    fetch_rois(db, source = "duckdb", soundscape_metadata = meta))
+    fetch_rois(db, source = "duckdb", soundscape_metadata = meta, shape = "rois"))
   expect_true(all(is.na(df$origin_soundscape_sha256)))
 })
 
@@ -285,7 +285,66 @@ test_that("missing path errors clearly", {
   # CRAN item 7 (F2): NULL now resolves to the canonical rois.duckdb at the
   # project root; an absent default (or non-scalar input) still fails with an
   # actionable message instead of a raw error.
-  expect_error(fetch_rois(NULL), "does not exist: rois.duckdb")
-  expect_error(fetch_rois(c("a", "b")), "single non-NA character path")
-  expect_error(fetch_rois(tempfile(), source = "duckdb"), "does not exist")
+  expect_error(fetch_rois(NULL, shape = "rois"), "does not exist: rois.duckdb")
+  expect_error(fetch_rois(c("a", "b"), shape = "rois"), "single non-NA character path")
+  expect_error(fetch_rois(tempfile(), source = "duckdb", shape = "rois"), "does not exist")
+})
+
+# --- plan 2026-09-21_01: signals frame by default (DEC-10..DEC-19) ------------
+
+# Legacy `rois` store: one manual, one detection-derived, one unstamped row.
+.mk_legacy_store <- function(db) {
+  mk <- function(sp, label, source, type) {
+    r <- .schema_rois(1L)
+    r$soundscape_path <- sp
+    r$soundscape_file <- basename(sp)
+    r$roi_label <- label
+    r$roi_start <- 0
+    r$roi_end <- 1
+    r$roi_type <- type
+    r$roi_source <- source
+    r$roi_user <- "ann"
+    r$roi_input_timestamp <- "2026-01-01 00:00:00"
+    r
+  }
+  con <- .roi_duckdb_connect(db)
+  .roi_duckdb_save(con, mk("ss/m.wav", "SpM", "manual", "song"), "ss/m.wav")
+  .roi_duckdb_save(con, mk("ss/d.wav", "SpD", "detection", "detection"),
+                   "ss/d.wav")
+  .roi_duckdb_save(con, mk("ss/n.wav", "SpN", NA_character_, "song"),
+                   "ss/n.wav")
+  DBI::dbDisconnect(con, shutdown = TRUE)
+}
+
+test_that("DEC-17/DEC-19: a legacy rois store lifts to the signals frame", {
+  skip_if_deps_missing()
+  db <- tempfile(fileext = ".duckdb")
+  on.exit(unlink(db))
+  .mk_legacy_store(db)
+
+  df <- fetch_rois(db, shape = "signals")
+  expect_identical(names(df), names(.signal_schema_spec()))
+  expect_setequal(df$roi_label, c("SpM", "SpN"))
+  expect_true(all(df$created_by == "ann"))
+  all_rows <- fetch_rois(db, shape = "signals", include_detections = TRUE)
+  expect_equal(all_rows$signal_class[all_rows$roi_label == "SpD"],
+               "detection_to_roi")
+  det <- fetch_rois(db, shape = "signals", include_detections = TRUE,
+                    roi_source = "detection")
+  expect_equal(det$roi_label, "SpD")
+  expect_equal(nrow(fetch_rois(db, shape = "rois")), 3L)
+})
+
+test_that("DEC-14: the default shape warns once per session", {
+  skip_if_deps_missing()
+  db <- tempfile(fileext = ".duckdb")
+  on.exit(unlink(db))
+  .mk_legacy_store(db)
+  .fetch_rois_state$shape_warned <- NULL
+  on.exit(.fetch_rois_state$shape_warned <- NULL, add = TRUE)
+
+  expect_warning(fetch_rois(db), "shape = \"rois\"")
+  expect_no_warning(fetch_rois(db))
+  .fetch_rois_state$shape_warned <- NULL
+  expect_no_warning(fetch_rois(db, shape = "signals"))
 })

@@ -23,9 +23,14 @@
 
 # Open a connection and ensure the schema exists. Caller closes it with
 # DBI::dbDisconnect(con, shutdown = TRUE).
-.roi_duckdb_connect <- function(path) {
-  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = path)
-  .roi_duckdb_ensure_schema(con)
+#
+# `read_only = TRUE` (ENG-13, mirroring LVA-162) opens the store WITHOUT the
+# ensure-schema step, for callers that only read: opening read-write would emit
+# the DDL and mutate the user's file on a pure read. A read-only caller must
+# therefore tolerate a missing table, which the readers here already do.
+.roi_duckdb_connect <- function(path, read_only = FALSE) {
+  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = path, read_only = read_only)
+  if (!read_only) .roi_duckdb_ensure_schema(con)
   con
 }
 
@@ -141,16 +146,22 @@ export_rois_duckdb_to_csv <- function(duckdb_path, csv_path, overwrite = FALSE,
   if (file.exists(csv_path) && !overwrite) {
     stop("Destination CSV exists; pass overwrite = TRUE to replace it.")
   }
-  con <- .roi_duckdb_connect(duckdb_path)
+  # ENG-13: read-only open. The segmentation app writes `signals`-only stores,
+  # so the legacy `rois` table is usually absent; prefer `signals` whenever it
+  # carries ROI rows and fall back to the legacy table otherwise.
+  con <- .roi_duckdb_connect(duckdb_path, read_only = TRUE)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-  # Collect ROIs across all soundscapes
-  paths <- DBI::dbGetQuery(con,
-    "SELECT DISTINCT soundscape_path FROM rois ORDER BY soundscape_path;"
-  )$soundscape_path
-  dfs <- lapply(paths, function(sp) .roi_duckdb_read(con, sp))
-  df <- if (length(dfs) > 0) do.call(rbind, dfs) else .schema_rois(0L)
+  df <- if (identical(.prefer_signals_store(con, .SIGNAL_CLASS_ROI),
+                      "signals")) {
+    .signals_as_rois(.signals_duckdb_read(con, signal_class = .SIGNAL_CLASS_ROI))
+  } else {
+    .coerce_rois(.read_legacy_store_table(
+      con, "rois", .roi_schema_spec(), .schema_rois(0L),
+      "soundscape_path, roi_input_timestamp"))
+  }
   if (!is.null(columns)) df <- df[, columns, drop = FALSE]
   utils::write.csv(df, csv_path, row.names = FALSE, fileEncoding = "UTF-8")
+  .warn_if_empty_export(df, "rois")
   invisible(df)
 }
 

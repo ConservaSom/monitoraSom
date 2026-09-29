@@ -12,7 +12,8 @@ fetch_score_peaks(
   top_n = NULL,
   scope = c("pair", "grid"),
   output_db = NULL,
-  autosave_action = c("replace", "append")
+  autosave_action = c("replace", "append"),
+  csv_mirror = NULL
 )
 }
 \arguments{
@@ -50,6 +51,14 @@ the R session only.}
 \item{autosave_action}{\code{"replace"} (default; clear the detections table and
 insert the new rows) or \code{"append"} (update existing rows and keep prior
 ones). Applies only when \code{output_db} is set.}
+
+\item{csv_mirror}{Optional CSV copy of the signals database. \code{NULL}
+(default) writes no copy. \code{TRUE} writes \verb{<database name>_mirror.csv} in
+the folder of \code{output_db}; a string is the CSV path. The copy is written
+once, after the last write to the database, and holds the standard
+columns of the database, with \code{NA} as an empty field. It is a snapshot
+for reading only. Edits to the CSV never reach the database.
+Needs \code{output_db}.}
 }
 \value{
 A tibble of detections in the standard detections format (26
@@ -132,6 +141,15 @@ fetch_score_peaks(scores, top_n = 1, scope = "grid")
 
 # 6) A larger exclusion buffer keeps overlapping detections apart:
 fetch_score_peaks(scores, buffer_size = 80)[, c("template_id", "detection_start")]
+
+# 7) Save the detections in a database, with a CSV copy next to it
+#    (peaks_mirror.csv). Read the copy back; an empty field is NA.
+peaks_db <- file.path(tempdir(), "peaks.duckdb")
+df_detecs <- fetch_score_peaks(scores, output_db = peaks_db,
+                               csv_mirror = TRUE)
+df_copy <- utils::read.csv(file.path(tempdir(), "peaks_mirror.csv"),
+                           na.strings = "")
+nrow(df_copy) == nrow(df_detecs)    # the same detections
 }
 }
 \seealso{

@@ -14,8 +14,9 @@ export_templates(
 )
 }
 \arguments{
-\item{df_rois}{ROI data (a data.frame of ROIs in the standard format); extra
-columns are kept. Usually the focal branch of
+\item{df_rois}{ROI data (a data.frame of ROIs in the standard signals or
+ROI format, as \code{\link[=fetch_rois]{fetch_rois()}} returns them); extra \verb{origin_*} columns are
+kept. Usually the focal branch of
 \code{\link[=fetch_rois]{fetch_rois()}}. \code{NULL} (default) reads the standard ROI database
 \code{rois.duckdb} via \code{\link[=fetch_rois]{fetch_rois()}} and stops if it is absent.
 Must carry \code{soundscape_path}, \code{soundscape_file}, \code{roi_label},
@@ -59,7 +60,15 @@ template library the matching engine searches for.
 }
 \details{
 Feed it the ROIs you want to use as templates, usually the focal ROIs you
-selected with \code{\link[=fetch_rois]{fetch_rois()}}. Since monitoraSom 1.2.0 the template metadata
+selected with \code{\link[=fetch_rois]{fetch_rois()}}. Keeping templates apart from the other ROIs
+is up to you: nothing in the ROI data marks a template. The convention is
+the word "template" in \code{roi_comment} (any case, anywhere in the text); the
+segmentation app uses it to export flagged ROIs as it moves between
+recordings. With \code{df_rois = NULL}, every ROI in the database is cut, so
+filter first, for example
+\code{subset(df_rois, grepl("template", roi_comment, ignore.case = TRUE))}.
+
+Since monitoraSom 1.2.0 the template metadata
 lives in the template database (the \code{templates.duckdb} database), not in the file
 names. File names are short and never collide, because \code{template_id} is a
 content hash. So read templates back inside the R session with

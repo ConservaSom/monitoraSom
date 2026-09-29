@@ -484,7 +484,7 @@ fetch_template_metadata <- function(templates_path = NULL,
   if (is.data.frame(soundscapes)) return(soundscapes)
   if (is.character(soundscapes) && length(soundscapes) == 1L &&
       file.exists(soundscapes)) {
-    con <- .duckdb_connect(soundscapes)
+    con <- .duckdb_connect(soundscapes, read_only = TRUE)  # ENG-12: no DDL
     on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
     return(.duckdb_read_metadata(con))
   }

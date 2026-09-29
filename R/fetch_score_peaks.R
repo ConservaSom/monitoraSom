@@ -65,6 +65,13 @@
 #' @param autosave_action `"replace"` (default; clear the detections table and
 #'   insert the new rows) or `"append"` (update existing rows and keep prior
 #'   ones). Applies only when `output_db` is set.
+#' @param csv_mirror Optional CSV copy of the signals database. `NULL`
+#'   (default) writes no copy. `TRUE` writes `<database name>_mirror.csv` in
+#'   the folder of `output_db`; a string is the CSV path. The copy is written
+#'   once, after the last write to the database, and holds the standard
+#'   columns of the database, with `NA` as an empty field. It is a snapshot
+#'   for reading only. Edits to the CSV never reach the database.
+#'   Needs `output_db`.
 #'
 #' @return A tibble of detections in the standard detections format (26
 #'   columns), one row per surviving detection (zero rows, typed, when none pass
@@ -108,14 +115,24 @@
 #'
 #' # 6) A larger exclusion buffer keeps overlapping detections apart:
 #' fetch_score_peaks(scores, buffer_size = 80)[, c("template_id", "detection_start")]
+#'
+#' # 7) Save the detections in a database, with a CSV copy next to it
+#' #    (peaks_mirror.csv). Read the copy back; an empty field is NA.
+#' peaks_db <- file.path(tempdir(), "peaks.duckdb")
+#' df_detecs <- fetch_score_peaks(scores, output_db = peaks_db,
+#'                                csv_mirror = TRUE)
+#' df_copy <- utils::read.csv(file.path(tempdir(), "peaks_mirror.csv"),
+#'                            na.strings = "")
+#' nrow(df_copy) == nrow(df_detecs)    # the same detections
 #' }
 fetch_score_peaks <- function(
   df_scores, buffer_size = "template", min_score = NULL, min_quant = NULL,
   top_n = NULL, scope = c("pair", "grid"), output_db = NULL,
-  autosave_action = c("replace", "append")
+  autosave_action = c("replace", "append"), csv_mirror = NULL
 ) {
   scope <- match.arg(scope)
   autosave_action <- match.arg(autosave_action)
+  .validate_csv_mirror(csv_mirror, output_db, "`output_db`")    # plan DEC-12
   df_scores <- .load_scores(df_scores)                       # FSPB-02/03
 
   det <- .detect_peaks_batch(df_scores, buffer_size)         # FSPB-08 (pure capture)
@@ -134,6 +151,7 @@ fetch_score_peaks <- function(
     .signals_duckdb_upsert(con, .detections_as_signals(det),
                            replace = autosave_action == "replace")
     message("Detections upserted to ", output_db, ".")
+    .mirror_signals_csv(output_db, csv_mirror)                # plan DEC-14
   }
   det
 }

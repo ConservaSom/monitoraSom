@@ -28,7 +28,8 @@ launch_segmentation_app(
   zoom_time = NULL,
   nav_autosave = TRUE,
   pitch_shift = 1,
-  skip_path_confirmation = TRUE
+  skip_path_confirmation = TRUE,
+  csv_mirror = NULL
 )
 }
 \arguments{
@@ -54,7 +55,12 @@ stored in this same database. Defaults to
 provided.}
 
 \item{templates_path}{Directory for exporting template audio cuts and the
-template database (default: \verb{<project_path>/templates/}).}
+template database (default: \verb{<project_path>/templates/}). To flag a ROI
+as a template, write the word "template" in its comment field (any case,
+anywhere in the text). When you move to another recording, the app
+exports the flagged ROIs of the current one to this directory. The flag
+is the only mark that separates template ROIs from ground-truth ROIs in
+the database; see \code{\link[=export_templates]{export_templates()}}.}
 
 \item{labels_file}{Path to a label-list \code{.txt} file (one label per line;
 the list name is the file name without the \code{label_list_} prefix), a
@@ -105,6 +111,14 @@ persisted on navigation.}
 \item{pitch_shift}{Pitch shift value (-8, -6, -4, -2, or 1) for playback.}
 
 \item{skip_path_confirmation}{If TRUE, automatically confirms path setup.}
+
+\item{csv_mirror}{Optional CSV copy of the signals database. \code{NULL}
+(default) writes no copy. \code{TRUE} writes \verb{<database name>_mirror.csv} in
+the folder of \code{roi_db}; a string is the CSV path. The copy is written
+once, when you end the session with the End session button. It holds
+the standard columns of the database, with \code{NA} as an empty field. Saves
+made while you work never write it. It is a snapshot for reading only.
+Edits to the CSV never reach the database.}
 }
 \value{
 Called for its side effect: it starts an interactive Shiny app in the
@@ -182,9 +196,12 @@ if (interactive()) {
 
   # Launch the app on the synthesized recording: draw boxes around the
   # bursts, label them, and save. The ROIs persist to rois.duckdb.
+  # csv_mirror = TRUE writes a CSV copy of that database (rois_mirror.csv)
+  # when you end the session with the End session button.
   launch_segmentation_app(
     project_path = tempdir(), roi_user = "User",
-    soundscapes_path = soundscapes_dir
+    soundscapes_path = soundscapes_dir,
+    csv_mirror = TRUE
   )
 }
 }

@@ -65,7 +65,12 @@
 #'   \code{file.path(project_path, "rois.duckdb")} when \code{project_path} is
 #'   provided.
 #' @param templates_path Directory for exporting template audio cuts and the
-#'   template database (default: `<project_path>/templates/`).
+#'   template database (default: `<project_path>/templates/`). To flag a ROI
+#'   as a template, write the word "template" in its comment field (any case,
+#'   anywhere in the text). When you move to another recording, the app
+#'   exports the flagged ROIs of the current one to this directory. The flag
+#'   is the only mark that separates template ROIs from ground-truth ROIs in
+#'   the database; see [export_templates()].
 #' @param labels_file Path to a label-list `.txt` file (one label per line;
 #'   the list name is the file name without the `label_list_` prefix), a
 #'   directory of such files, or, for back-compatibility, the old `.xlsx` file
@@ -98,6 +103,13 @@
 #'   persisted on navigation.
 #' @param pitch_shift Pitch shift value (-8, -6, -4, -2, or 1) for playback.
 #' @param skip_path_confirmation If TRUE, automatically confirms path setup.
+#' @param csv_mirror Optional CSV copy of the signals database. `NULL`
+#'   (default) writes no copy. `TRUE` writes `<database name>_mirror.csv` in
+#'   the folder of `roi_db`; a string is the CSV path. The copy is written
+#'   once, when you end the session with the End session button. It holds
+#'   the standard columns of the database, with `NA` as an empty field. Saves
+#'   made while you work never write it. It is a snapshot for reading only.
+#'   Edits to the CSV never reach the database.
 #'
 #' @return Called for its side effect: it starts an interactive Shiny app in the
 #'   browser and returns when the app is closed. ROIs are persisted to `roi_db`.
@@ -126,9 +138,12 @@
 #'
 #'   # Launch the app on the synthesized recording: draw boxes around the
 #'   # bursts, label them, and save. The ROIs persist to rois.duckdb.
+#'   # csv_mirror = TRUE writes a CSV copy of that database (rois_mirror.csv)
+#'   # when you end the session with the End session button.
 #'   launch_segmentation_app(
 #'     project_path = tempdir(), roi_user = "User",
-#'     soundscapes_path = soundscapes_dir
+#'     soundscapes_path = soundscapes_dir,
+#'     csv_mirror = TRUE
 #'   )
 #' }
 launch_segmentation_app <- function(
@@ -155,7 +170,8 @@ launch_segmentation_app <- function(
     zoom_time = NULL,
     nav_autosave = TRUE,
     pitch_shift = 1,
-    skip_path_confirmation = TRUE) {
+    skip_path_confirmation = TRUE,
+    csv_mirror = NULL) {
 
   # --- FEAT-07: default-path write guard ------------------------------------
   # The app anchors every output (rois.duckdb, roi_cuts/, app_presets/) under
@@ -216,6 +232,12 @@ launch_segmentation_app <- function(
     nav_autosave = nav_autosave,
     pitch_shift = pitch_shift
   )
+  # Plan 2026-09-21_02 (DEC-12): check `csv_mirror` at launch. The ROI store
+  # may still be chosen in the setup panel, so a missing `roi_db` is fine here.
+  .validate_csv_mirror(
+    csv_mirror,
+    if (is.null(session_data$roi_db)) "rois.duckdb" else session_data$roi_db,
+    "`roi_db`")
 
   # --- Table-guided mode (LSA-203) ------------------------------------------
 
@@ -3294,13 +3316,28 @@ launch_segmentation_app <- function(
       ))
     })
 
+    # Plan 2026-09-21_02 (STEP-4): the CSV mirror fires once, on the way out,
+    # never on the navigation autosaves (FACT-5).
+    mirror_on_exit <- function() {
+      if (is.null(csv_mirror) || isFALSE(csv_mirror)) return(invisible(NULL))
+      db <- shiny::isolate(roi_db_val())
+      if (is.null(db)) {
+        warning("`csv_mirror` skipped: no ROI database was opened in this ",
+                "session.", call. = FALSE)
+        return(invisible(NULL))
+      }
+      .mirror_signals_csv(db, csv_mirror)
+    }
+
     shiny::observeEvent(input$save_and_exit, {
       handle_save_roi_table()
+      mirror_on_exit()
       .safe_cleanup_temp_files(session_data$temp_path)
       shiny::stopApp()
     })
 
     shiny::observeEvent(input$confirm_exit, {
+      mirror_on_exit()
       .safe_cleanup_temp_files(session_data$temp_path)
       shiny::stopApp()
     })

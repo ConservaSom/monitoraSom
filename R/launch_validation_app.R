@@ -155,6 +155,14 @@
 #'   none is available the ROI-label field degrades to an empty choice list
 #'   (typed labels still work).
 #' @param roi_label_list Name of the default ROI label list column.
+#' @param csv_mirror Optional CSV copy of the signals database. `NULL`
+#'   (default) writes no copy. `TRUE` writes `<database name>_mirror.csv` in
+#'   the folder of `input_path`; a string is the CSV path. The copy is written
+#'   once, when you confirm the end of the session. It holds the standard
+#'   columns of the database, with `NA` as an empty field. Saves made while
+#'   you work never write it. It is a snapshot for reading only. Edits to the
+#'   CSV never reach the database.
+#'   Needs a `.duckdb` `input_path`.
 #'
 #' @return Called for its side effect: it starts an interactive Shiny app in the
 #'   browser and returns when the app is closed. Validations are persisted back
@@ -212,12 +220,15 @@
 #'   run_matching(df_grid, score_method = "fft", min_score = 0.5,
 #'               output_db = input_path)
 #'
-#'   # 4. Launch the app on the detections and validate them.
+#'   # 4. Launch the app on the detections and validate them. csv_mirror = TRUE
+#'   #    writes a CSV copy of the database (signals_mirror.csv) when you
+#'   #    confirm the end of the session.
 #'   launch_validation_app(
 #'     project_path = project_path, validation_user = "User",
 #'     soundscapes_path = soundscapes_dir,
 #'     input_path = input_path,
-#'     mode = "detections"
+#'     mode = "detections",
+#'     csv_mirror = TRUE
 #'   )
 #'
 #'   # A standardized, reproducible validation session: fix the seed so the
@@ -244,7 +255,8 @@ launch_validation_app <- function(
     auto_next = TRUE, nav_autosave = TRUE, overwrite = TRUE, pitch_shift = 1,
     visible_bp = FALSE, play_norm = FALSE, skip_path_confirmation = TRUE,
     grid_dim = 3L, labels_file = NULL,
-    roi_label_list = "Brazilian birds (Pacheco et al. 2021)"
+    roi_label_list = "Brazilian birds (Pacheco et al. 2021)",
+    csv_mirror = NULL
   ) {
 
   # FEAT-07: default-path write guard. project_path defaults to ".", so a
@@ -604,21 +616,26 @@ validate_input_path <- function(input_path) {
     input_path <- anchor(.monitora_db_default_path("detections"))
   }
   # DEC-20 (STEP-19): a legacy CSV input triggers an offer to convert it to
-  # the signals store (portability with no friction). The converters already
-  # exist and are exported: migrate_detections_csv_to_duckdb() (CSV ->
-  # detections duckdb) and migrate_detections_store_to_signals() (detections
-  # duckdb -> signals). The conversion is NOT forced: the session keeps the
-  # CSV path (the app reads it, deprecated, and warns), and the message below
-  # gives the exact two calls to run for the durable store.
+  # the signals store (portability with no friction). LVA-163: the converters
+  # are NOT chained -- migrate_detections_csv_to_duckdb() already writes the
+  # unified `signals` table, so a following
+  # migrate_detections_store_to_signals() reads a `detections` table the first
+  # call never created and dies with a DuckDB Catalog Error. The conversion is
+  # NOT forced: the session keeps the CSV path (the app reads it, deprecated,
+  # and warns), and the message gives the one call that works.
   if (grepl("(?i)\\.csv$", input_path)) {
     store <- sub("\\.csv$", ".duckdb", input_path, ignore.case = TRUE)
     message("The input is a legacy CSV. Convert it once to the signals store ",
             "for full persistence:\n  migrate_detections_csv_to_duckdb('",
-            input_path, "', '", store, "')\n  migrate_detections_store_to_signals('",
-            store, "', '", store, "')\nThen launch with input_path = '",
+            input_path, "', '", store, "')\nThen launch with input_path = '",
             store, "'.")
   }
   session_data$input_path <- validate_input_path(input_path)
+  # Plan 2026-09-21_02 (DEC-12): the CSV mirror needs a DuckDB input store.
+  .validate_csv_mirror(
+    csv_mirror,
+    if (grepl("(?i)\\.duckdb$", session_data$input_path)) session_data$input_path,
+    "a `.duckdb` `input_path`")
 
   # LVA item 8 / plan 2026-08-18_02 sect. 10.5: single-store model - validations
   # are persisted back to the SAME signals store at `input_path` (the separate
@@ -1500,13 +1517,14 @@ validate_input_path <- function(input_path) {
                     )
                   )
                 ),
-                # ROI label [re-labelling] -- visible in ROI mode only (item 8 /
-                # plan 2026-08-18_02 sect. 5 passo 9): edits roi_label_updated, leaving
-                # roi_label (creation label) immutable. Hidden for detections.
+                # Label [re-labelling] -- both modes (item 8 / plan 2026-08-18_02
+                # sect. 5 passo 9; LVA-165 / DEC-3): edits roi_label_updated of the
+                # ROW, leaving the creation label (and the template) untouched.
                 tags$div(
                   id = "roi_label_field",
                   class = "lva-ctl-field",
-                  tags$label("ROI label", class = "control-label"),
+                  tags$label("ROI label", id = "roi_label_title",
+                             class = "control-label"),
                   tags$div(
                     class = "lva-ctl-inputrow",
                     tags$div(
@@ -1935,13 +1953,16 @@ validate_input_path <- function(input_path) {
         if (!file.exists(input$input_path)) {
           validation_errors <- c(validation_errors, "Input file does not exist")
         } else {
-          # LVA-142: readability smoke test, format-aware. A `.duckdb` store is
-          # probed by opening it (schema is ensured on connect); a legacy `.csv`
-          # is probed with a one-row fread.
+          # LVA-142: readability smoke test, format-aware. LVA-162: a
+          # `.duckdb` store is probed READ-ONLY -- the probe only needs to know
+          # that the file opens, and opening it read-write would emit the schema
+          # DDL and mutate the user's store before any validation happened. The
+          # session's write connection is opened separately, on first save.
           tryCatch(
             {
               if (grepl("(?i)\\.duckdb$", input$input_path)) {
-                con_test <- .detections_duckdb_connect(input$input_path)
+                con_test <- .detections_duckdb_connect(input$input_path,
+                                                       read_only = TRUE)
                 DBI::dbDisconnect(con_test, shutdown = TRUE)
               } else {
                 test_read <- data.table::fread(input$input_path, nrows = 1)
@@ -2224,6 +2245,21 @@ validate_input_path <- function(input_path) {
             } else {
               res <- res %>%
                 dplyr::mutate(validation_subset = as.character(validation_subset))
+            }
+
+            # LVA-165 (DEC-3): re-labelling also runs in detections mode. The
+            # detections reader carries the stored correction out-of-band as
+            # `label_updated`; rename it to `roi_label_updated`, the column
+            # apply_relabel() writes and .validations_as_signals() persists, so
+            # both modes share one correction column. Legacy inputs get NA.
+            if (!identical(mode, "rois")) {
+              if ("label_updated" %in% colnames(res)) {
+                res <- dplyr::rename(res, roi_label_updated = label_updated)
+              }
+              if (!"roi_label_updated" %in% colnames(res)) {
+                res$roi_label_updated <- NA_character_
+              }
+              res$roi_label_updated <- as.character(res$roi_label_updated)
             }
 
             # LVA-123: migrate legacy "NV" strings to NA_character_.
@@ -2602,15 +2638,18 @@ validate_input_path <- function(input_path) {
           "zoom_freq",
           max = (min(df_cut()$detection_sample_rate) / 2000) - 1
         )
-        # ROI-mode re-labelling field: show only in ROI mode; sync its value to
-        # the active row's EFFECTIVE label (SIG-08: roi_label_updated when
-        # non-NA, else the creation-time roi_label).
-        is_roi <- identical(input$validation_mode, "rois")
-        if (is_roi && "roi_label" %in% names(df_cut())) {
+        # Re-labelling field, in both modes (LVA-165 / DEC-3); sync its value
+        # to the active row's EFFECTIVE label (SIG-08: roi_label_updated when
+        # non-NA, else the creation-time label: roi_label for ROIs, the
+        # template label for detections).
+        is_roi <- "roi_label" %in% names(df_cut())
+        if (is_roi || "roi_label_updated" %in% names(df_cut())) {
           shinyjs::show(id = "roi_label_field")
+          shinyjs::html(id = "roi_label_title",
+                        html = if (is_roi) "ROI label" else "Detection label")
           cur <- df_cut()[det_counter(), ]
           eff <- .signal_effective_label(
-            cur$roi_label,
+            if (is_roi) cur$roi_label else .signal_label_from_detections(cur),
             if ("roi_label_updated" %in% names(cur)) cur$roi_label_updated else NULL
           )
           lbl <- if (length(eff) == 0L || is.na(eff)) "" else as.character(eff)
@@ -2780,20 +2819,10 @@ validate_input_path <- function(input_path) {
         ps <- min(page_start(), nrow(df_cut()))
         n <- grid_dim()^2
         idx <- ps:min(ps + n - 1L, nrow(df_cut()))
-        labels <- if ("roi_label" %in% names(df_cut())) {
-          # SIG-08: the EFFECTIVE label (the badge sect. 8.7 draws), so a re-label
-          # changes the signature and invalidates the cached cell images.
-          .signal_effective_label(
-            df_cut()$roi_label[idx],
-            if ("roi_label_updated" %in% names(df_cut())) {
-              df_cut()$roi_label_updated[idx]
-            } else {
-              NULL
-            }
-          )
-        } else {
-          NULL
-        }
+        # SIG-08: the EFFECTIVE label (the badge sect. 8.7 draws), so a re-label
+        # changes the signature and invalidates the cached cell images -- in
+        # both modes (LVA-166.5).
+        labels <- .lva_effective_label(df_cut(), idx)
         list(
           ps = ps, ids = df_cut()$detection_id[idx], labels = labels,
           # Gate review: the params come from the DEBOUNCED reactive, so the
@@ -2825,8 +2854,7 @@ validate_input_path <- function(input_path) {
               p <- sig$params
               # Row identity is fixed within a signature -> isolate the df_cut read.
               row <- shiny::isolate(df_cut())[sig$ps + kk - 1L, ]
-              key <- .lva_img_key(det_id, p, .signal_effective_label(
-                row$roi_label, row$roi_label_updated))
+              key <- .lva_img_key(det_id, p, .lva_effective_label(row))
               path <- if (exists(key, envir = img_buf, inherits = FALSE)) {
                 get(key, envir = img_buf)
               } else {
@@ -2989,8 +3017,7 @@ validate_input_path <- function(input_path) {
             function(i) {
               .lva_img_key(
                 df_cut()$detection_id[i], p,
-                .signal_effective_label(df_cut()$roi_label[i],
-                                        df_cut()$roi_label_updated[i]))
+                .lva_effective_label(df_cut(), i))
             },
             character(1)
           )
@@ -3014,8 +3041,7 @@ validate_input_path <- function(input_path) {
             for (i in nxt_idx) {
               key <- .lva_img_key(
                 df_cut()$detection_id[i], p,
-                .signal_effective_label(df_cut()$roi_label[i],
-                                        df_cut()$roi_label_updated[i]))
+                .lva_effective_label(df_cut(), i))
               .lva_png_prefetch(key, df_cut()[i, ], p)
             }
           }
@@ -3869,12 +3895,12 @@ validate_input_path <- function(input_path) {
         } else {
           NA_character_
         }
-        corr_annotate <- if (!is.na(corr) &&
-                             !identical(corr, as.character(det_i()$roi_label))) {
+        orig <- as.character(.lva_creation_label(det_i()))
+        corr_annotate <- if (!is.na(corr) && !identical(corr, orig)) {
           ggplot2::annotate(
             "label",
             x = Inf, y = input$zoom_freq[2], vjust = 2.2, hjust = 1,
-            label = paste0("Label: '", det_i()$roi_label,
+            label = paste0("Label: '", orig,
                            "' \u2192 '", corr, "'"),
             fill = "#ffba52", fontface = "bold"
           )
@@ -4053,16 +4079,7 @@ validate_input_path <- function(input_path) {
         p <- .lva_gather_params()
         keys <- vapply(
           idx, function(i) {
-            .lva_img_key(
-              df$detection_id[i], p,
-              .signal_effective_label(
-                df$roi_label[i],
-                if ("roi_label_updated" %in% names(df)) {
-                  df$roi_label_updated[i]
-                } else {
-                  NA_character_
-                }
-              ))
+            .lva_img_key(df$detection_id[i], p, .lva_effective_label(df, i))
           }, character(1)
         )
         all(vapply(
@@ -4233,7 +4250,8 @@ validate_input_path <- function(input_path) {
           }
           if (length(ids) > 0L) {
             sub <- df_output()[df_output()$detection_id %in% ids, , drop = FALSE]
-            .signals_duckdb_upsert(con, .lva_frame_to_signals(sub), replace = FALSE)
+            .signals_duckdb_upsert(con, .lva_frame_to_store_rows(con, sub),
+                                   replace = FALSE)
             val_dirty(character())
             val_store_ready(TRUE)
             wrote <- TRUE
@@ -4272,19 +4290,38 @@ validate_input_path <- function(input_path) {
           value = length(which(df_cut()$validation %in% c("TP", "FP", "UN"))),
           total = nrow(df_cut())
         )
-        # Diagnostics are detections-only; in ROI mode there is no template/score
-        # axis, so skip them (they would fail on NA template_name/peak_score).
-        if (!identical(input$validation_mode, "rois")) {
-          diag_input <- diag_input_procFUN(df_output())
-          df_diag_input_raw(diag_input)
-          # LVA-110: refresh the score-stabilization series on save (page-change
-          # autosave / manual save) -- never live on df_output, so it adds no
-          # per-validation overhead.
-          stabilization_react(
-            .lva_stabilization_series(df_output(), input$template_name)
-          )
-        }
       }
+      # LVA-163 (was LVA-150 / LVA-110): the diagnostics react to the DATA, not
+      # to a write. Before, this block lived at the end of save_output(), so the
+      # panel stayed blank until the first effective write and then FROZE: a save
+      # writes only the dirty rows, and a template switch writes nothing, so
+      # df_diag_input_raw kept the previous template's rows while the grid showed
+      # the new one.
+      #
+      # The debounce is what keeps LVA-110's promise (no per-validation overhead).
+      # Measured on the real 4363-row store with 620 verdicts: the projections
+      # cost 0.003 s but diagnostic_validations_i() -- which refits the binomial
+      # GLM and builds three ggplot objects -- costs 0.283 s. A burst of `q`
+      # validations inside 300 ms therefore triggers ONE refit, not one per key.
+      diag_refresh <- shiny::reactive({
+        x <- df_output()
+        if (is.null(x)) return(NULL)
+        if (identical(input$validation_mode, "rois")) return(NULL)
+        diag_input_procFUN(x)
+      }) %>%
+        shiny::debounce(millis = 300)
+      shiny::observeEvent(list(diag_refresh(), input$template_name), {
+        raw <- diag_refresh()
+        if (is.null(raw)) {
+          df_diag_input_raw(NULL)
+          stabilization_react(NULL)
+          return()
+        }
+        df_diag_input_raw(raw)
+        stabilization_react(
+          .lva_stabilization_series(df_output(), input$template_name)
+        )
+      })
       diag_input_procFUN <- function(x) {
         res <- x %>%
           dplyr::select(template_name, peak_score, validation) %>%
@@ -4323,11 +4360,7 @@ validate_input_path <- function(input_path) {
             validation = label,
             validation_time = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
             validation_user = input$validation_user,
-            validation_note = ifelse(
-              is.na(input$detec_note),
-              NA_character_,
-              as.character(input$detec_note)
-            ),
+            validation_note = .lva_note_value(input$detec_note),
             validation_order = cur_order,
             validation_subset = .lva_subset_fingerprint()
           )
@@ -4436,12 +4469,7 @@ validate_input_path <- function(input_path) {
         # re-label lands in roi_label_updated. The detection note (when set)
         # is stamped into validation_note too (gate review 2026-08-19: the
         # Apply-label action also applies Detection notes).
-        note_val <- if (length(input$detec_note) == 1L &&
-                        !is.na(input$detec_note)) {
-          as.character(input$detec_note)
-        } else {
-          NA_character_
-        }
+        note_val <- .lva_note_value(input$detec_note)
         res <- target %>%
           dplyr::mutate(
             roi_label_updated = as.character(new_label),
@@ -4924,9 +4952,33 @@ validate_input_path <- function(input_path) {
       shiny::observeEvent(input$end_session, {
         shiny::req(df_cut(), df_output())
 
+        # LVA-163: the template filter must apply to BOTH sides of the
+        # anti_join. `dfa` used to be the whole `df_output()` while `dfb` was
+        # filtered, so every row of the other templates failed to match and the
+        # count reported unsaved rows in a session where everything was saved
+        # (measured: 12 of 12, with both templates valid). The scalar is
+        # extracted once, guarded -- `input$template_name` holds a LABEL in ROI
+        # mode and is not always a length-1 character.
+        tpl_sel <- if (!identical(input$validation_mode, "rois")) {
+          isolate(input$template_name)
+        } else {
+          NULL
+        }
+        if (!is.character(tpl_sel) || length(tpl_sel) != 1L || is.na(tpl_sel)) {
+          tpl_sel <- NULL
+        }
         dfa <- df_output() %>%
           dplyr::select(detection_id, tidyr::contains("validation")) %>%
           dplyr::mutate(detection_id = as.character(detection_id))
+        if (!is.null(tpl_sel)) {
+          dfa <- dfa %>%
+            dplyr::left_join(
+              df_output() %>% dplyr::select(detection_id, template_name),
+              by = "detection_id"
+            ) %>%
+            dplyr::filter(template_name == tpl_sel) %>%
+            dplyr::select(-template_name)
+        }
         nrow_unsaved <- 0
 
         if (file.exists(input$input_path)) {
@@ -4944,7 +4996,9 @@ validate_input_path <- function(input_path) {
           con_r <- if (!is.null(val_con()) && is_duck) val_con() else NULL
           if (is_roi && is_duck) {
             if (is.null(con_r)) {
-              con_r <- .signals_duckdb_connect(input$input_path)
+              # LVA-162: opening the store to READ the persisted validations
+              # must not mutate it; the session's write connection is separate.
+              con_r <- .signals_duckdb_connect(input$input_path, read_only = TRUE)
               on.exit(DBI::dbDisconnect(con_r, shutdown = TRUE), add = TRUE)
             }
             dfb <- as.data.frame(.lva_signals_to_rois_with_vals(
@@ -4980,8 +5034,8 @@ validate_input_path <- function(input_path) {
               # in-session df_output keeps it character, so coerce before the join.
               detection_id = as.character(detection_id)
             )
-          if (!is_roi) {
-            dfb <- dfb %>% dplyr::filter(template_name == input$template_name)
+          if (!is.null(tpl_sel)) {
+            dfb <- dfb %>% dplyr::filter(template_name == tpl_sel)
           }
           dfb <- dfb %>% dplyr::select(detection_id, dplyr::contains("validation"))
           nrow_unsaved <- nrow(
@@ -5019,8 +5073,18 @@ validate_input_path <- function(input_path) {
         )
       })
 
-      # Stop the session after confirmation
+      # Stop the session after confirmation. Plan 2026-09-21_02 (STEP-4): the
+      # CSV mirror fires here once, never on the page-change autosaves (FACT-5).
       shiny::observeEvent(input$confirm_exit, {
+        if (!is.null(csv_mirror) && !isFALSE(csv_mirror)) {
+          path <- input$input_path
+          if (!is.null(path) && grepl("(?i)\\.duckdb$", path)) {
+            .mirror_signals_csv(path, csv_mirror)
+          } else {
+            warning("`csv_mirror` skipped: the data under review is not a ",
+                    "`.duckdb` database.", call. = FALSE)
+          }
+        }
         shiny::stopApp()
       })
 

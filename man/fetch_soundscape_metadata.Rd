@@ -18,7 +18,8 @@ fetch_soundscape_metadata(
   min_duration_s = 1,
   ncores = 1,
   compute_sha256 = TRUE,
-  pb = TRUE
+  pb = TRUE,
+  csv_mirror = NULL
 )
 }
 \arguments{
@@ -86,6 +87,17 @@ by their modification time.}
 
 \item{pb}{Logical, default \code{TRUE}. Show the progress bar. Set \code{FALSE} for
 non-interactive pipelines, such as rendering rmarkdown reports.}
+
+\item{csv_mirror}{Optional CSV copy of the metadata database. \code{NULL}
+(default) writes no copy. \code{TRUE} writes \verb{<database name>_mirror.csv} in
+the folder of \code{output_file}; a string is the CSV path. The copy is
+written once, after the database is updated, and holds the standard
+\verb{soundscape_*} columns, with \code{NA} as an empty field. The extra columns
+read from file names (\code{filename_metadata}) are not in the database, so
+they are not in the copy either. It is a snapshot for reading only.
+Edits to the CSV never reach the database. Needs a DuckDB \code{output_file}
+(\code{.duckdb} or \code{.db}). With \code{cache_policy = "verify_only"} nothing is
+written, so no copy is made.}
 }
 \value{
 A data.frame in the standard \verb{soundscape_*} column layout, one row
@@ -187,6 +199,14 @@ t_first; t_second    # the gain grows with the folder size
 
 # The scan diff (vs the cache) travels as attributes:
 attr(df, "new"); attr(df, "changed"); attr(df, "missing")
+
+# Keep a CSV copy of the cache database next to it
+# (soundscapes_metadata_mirror.csv). Read it back; an empty field is NA.
+df <- fetch_soundscape_metadata(demo_dir, output_file = cache_db,
+                               csv_mirror = TRUE)
+df_copy <- utils::read.csv(
+  file.path(tempdir(), "soundscapes_metadata_mirror.csv"), na.strings = "")
+df_copy[, c("soundscape_file", "soundscape_duration")]
 
 # Demo: the error log. Add one broken file and rescan with on_error = "warn":
 # the scan keeps the good recordings and reports the bad file. The per-file

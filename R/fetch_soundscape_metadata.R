@@ -97,6 +97,16 @@
 #'   by their modification time.
 #' @param pb Logical, default `TRUE`. Show the progress bar. Set `FALSE` for
 #'   non-interactive pipelines, such as rendering rmarkdown reports.
+#' @param csv_mirror Optional CSV copy of the metadata database. `NULL`
+#'   (default) writes no copy. `TRUE` writes `<database name>_mirror.csv` in
+#'   the folder of `output_file`; a string is the CSV path. The copy is
+#'   written once, after the database is updated, and holds the standard
+#'   `soundscape_*` columns, with `NA` as an empty field. The extra columns
+#'   read from file names (`filename_metadata`) are not in the database, so
+#'   they are not in the copy either. It is a snapshot for reading only.
+#'   Edits to the CSV never reach the database. Needs a DuckDB `output_file`
+#'   (`.duckdb` or `.db`). With `cache_policy = "verify_only"` nothing is
+#'   written, so no copy is made.
 #'
 #' @return A data.frame in the standard `soundscape_*` column layout, one row
 #'   per recording, carrying attributes `"new"`, `"changed"` and `"missing"` that
@@ -154,6 +164,14 @@
 #' # The scan diff (vs the cache) travels as attributes:
 #' attr(df, "new"); attr(df, "changed"); attr(df, "missing")
 #'
+#' # Keep a CSV copy of the cache database next to it
+#' # (soundscapes_metadata_mirror.csv). Read it back; an empty field is NA.
+#' df <- fetch_soundscape_metadata(demo_dir, output_file = cache_db,
+#'                                csv_mirror = TRUE)
+#' df_copy <- utils::read.csv(
+#'   file.path(tempdir(), "soundscapes_metadata_mirror.csv"), na.strings = "")
+#' df_copy[, c("soundscape_file", "soundscape_duration")]
+#'
 #' # Demo: the error log. Add one broken file and rescan with on_error = "warn":
 #' # the scan keeps the good recordings and reports the bad file. The per-file
 #' # reasons live in the cache database's metadata_errors table, read back with
@@ -169,7 +187,8 @@ fetch_soundscape_metadata <- function(
     output_format = "auto", cache_policy = "incremental",
     recorder = "auto", filename_metadata = NULL,
     external_geo = NULL, errors_log_file = NULL, on_error = "warn",
-    min_duration_s = 1, ncores = 1, compute_sha256 = TRUE, pb = TRUE) {
+    min_duration_s = 1, ncores = 1, compute_sha256 = TRUE, pb = TRUE,
+    csv_mirror = NULL) {
 
   recorder <- match.arg(recorder, c("auto", "audiomoth", "sm4", "generic"))
   on_error <- match.arg(on_error, c("warn", "stop", "skip"))
@@ -211,6 +230,15 @@ fetch_soundscape_metadata <- function(
   }
 
   backend <- .resolve_backend(output_file, output_format)
+  # Plan 2026-09-21_02, DEC-12: a CSV mirror needs a DuckDB cache. Checked
+  # here, before any recording is read. A CSV cache already is a CSV.
+  .validate_csv_mirror(csv_mirror, if (backend == "duckdb") output_file,
+                       if (is.null(output_file)) "`output_file`" else
+                         "a DuckDB `output_file` (`.duckdb` or `.db`)")
+  if (policy == "verify_only" && !is.null(csv_mirror) && !isFALSE(csv_mirror)) {
+    message("`csv_mirror` skipped: `cache_policy = \"verify_only\"` writes ",
+            "nothing.")
+  }
   con <- NULL
   if (backend == "duckdb" && !is.null(output_file)) {
     con <- .duckdb_connect(output_file)
@@ -278,6 +306,7 @@ fetch_soundscape_metadata <- function(
       dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
     }
     .write_cache(res, output_file, backend, con)
+    .mirror_soundscapes_csv(output_file, csv_mirror)          # plan STEP-6
   }
   if (min_duration_s == 0 && any(res$soundscape_duration < 1, na.rm = TRUE)) {
     warning(sprintf(

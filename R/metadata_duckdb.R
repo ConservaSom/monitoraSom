@@ -23,9 +23,11 @@
 }
 
 # Open a connection and ensure the schema exists (FSM-209). Caller closes it.
-.duckdb_connect <- function(path) {
-  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = path)
-  .duckdb_ensure_schema(con)
+# `read_only = TRUE` (ENG-12, mirroring LVA-162) opens the store WITHOUT the
+# ensure-schema step, so a caller that only reads never writes to the store.
+.duckdb_connect <- function(path, read_only = FALSE) {
+  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = path, read_only = read_only)
+  if (!read_only) .duckdb_ensure_schema(con)
   con
 }
 
@@ -47,8 +49,13 @@
   invisible(con)
 }
 
-# Read the canonical metadata table back as a data.frame.
+# Read the canonical metadata table back as a data.frame. A read-only caller
+# cannot create a missing table (ENG-12), so an absent `soundscapes` table reads
+# as the empty typed frame the ensure-schema path used to yield.
 .duckdb_read_metadata <- function(con) {
+  if (!("soundscapes" %in% DBI::dbListTables(con))) {
+    return(.schema_soundscapes(0L))
+  }
   .check_schema_version(con, "soundscapes")          # AFL-19: read-time check
   cols <- paste(names(.soundscape_schema_spec()), collapse = ", ")
   DBI::dbGetQuery(con, sprintf("SELECT %s FROM soundscapes;", cols))
@@ -156,7 +163,7 @@ export_metadata_duckdb_to_csv <- function(duckdb_path, csv_path,
   if (file.exists(csv_path) && !overwrite) {
     stop("Destination CSV exists; pass overwrite = TRUE to replace it.")
   }
-  con <- .duckdb_connect(duckdb_path)
+  con <- .duckdb_connect(duckdb_path, read_only = TRUE)  # ENG-12: no DDL
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   df <- .duckdb_read_metadata(con)
   if (!is.null(columns)) df <- df[, columns, drop = FALSE]

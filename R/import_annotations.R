@@ -52,6 +52,19 @@ NULL
   out
 }
 
+# DEC-14 (plan 2026-09-21_03): the caller must name who made the annotations,
+# because Raven and Audacity files carry no author. The value becomes
+# `roi_user` (`created_by` in the signals store), which is part of the ROI id.
+.check_roi_user <- function(roi_user, fn) {
+  if (length(roi_user) != 1L || !is.character(roi_user) || is.na(roi_user) ||
+      !nzchar(trimws(roi_user))) {
+    stop(fn, ": 'roi_user' is required and must be a single non-empty ",
+         "string naming who made the annotations (Raven and Audacity files ",
+         "carry no author).")
+  }
+  invisible(roi_user)
+}
+
 #' Read a Raven selection table into ROI data
 #'
 #' @description Reads a Raven selection table (tab-separated, with a header) and
@@ -65,7 +78,9 @@ NULL
 #'   and `End Time (s)` are required; `Low Freq (Hz)`/`High Freq (Hz)` and
 #'   `Channel` are used when present and become `NA` otherwise. The source
 #'   recording is taken from the table's own `Begin File`/`Begin Path` columns
-#'   when they exist, else from `soundscape_path`.
+#'   when they exist, else from `soundscape_path`. Raven stores no author, so
+#'   `roi_user` is required: it names who made the annotations and is stamped
+#'   on every row.
 #'
 #' @param path Path to a Raven selection table (a tab-separated `.txt` file
 #'   with a header).
@@ -77,9 +92,13 @@ NULL
 #'   force a specific column (see the example below).
 #' @param roi_source Origin stamp written to `roi_source` (default
 #'   `"import_raven"`; carried through unchanged in the `origin` column).
+#' @param roi_user **Required.** A single non-empty string naming who made the
+#'   annotations. It is written to `roi_user` on every row (`created_by` in the
+#'   `signals` store) and is part of the ROI id, so importing the same table
+#'   under two names gives two sets of ROIs.
 #' @return ROI data in the standard format: `roi_start`,
 #'   `roi_end`, `roi_min_freq`/`roi_max_freq` in kHz, `roi_label`, `roi_channel`,
-#'   `roi_source`, `soundscape_file`, `soundscape_path`.
+#'   `roi_source`, `roi_user`, `soundscape_file`, `soundscape_path`.
 #' @seealso [write_raven_selection()], [read_audacity_labels()],
 #'   [validate_by_overlap()]
 #' @examples
@@ -93,7 +112,7 @@ NULL
 #' f <- file.path(tempdir(), "sel.txt")
 #' write_raven_selection(rois, f)
 #'
-#' back <- read_raven_selection(f)
+#' back <- read_raven_selection(f, roi_user = "Ana")
 #' back[, c("roi_start", "roi_end", "roi_min_freq", "roi_label")]
 #'
 #' # Force a custom annotation column with label_col (no auto-detection):
@@ -103,16 +122,19 @@ NULL
 #'   "Field Note" = "sp1", check.names = FALSE)
 #' f2 <- file.path(tempdir(), "sel_custom.txt")
 #' utils::write.table(tbl, f2, sep = "\t", quote = FALSE, row.names = FALSE)
-#' back2 <- read_raven_selection(f2, label_col = "Field Note")
+#' back2 <- read_raven_selection(f2, label_col = "Field Note", roi_user = "Ana")
 #' back2[, c("roi_start", "roi_end", "roi_label")]
 #' }
 #' @export
 read_raven_selection <- function(path, soundscape_path = NULL,
-                                 label_col = NULL, roi_source = "import_raven") {
+                                 label_col = NULL, roi_source = "import_raven",
+                                 roi_user) {
   if (length(path) != 1L || !is.character(path) || is.na(path) ||
       !file.exists(path)) {
     stop("read_raven_selection: 'path' must be a single existing file path.")
   }
+  if (missing(roi_user)) roi_user <- NULL
+  .check_roi_user(roi_user, "read_raven_selection")
   tbl <- utils::read.delim(path, sep = "\t", header = TRUE, check.names = FALSE,
                            stringsAsFactors = FALSE, quote = "")
   need <- c("Begin Time (s)", "End Time (s)")
@@ -148,6 +170,7 @@ read_raven_selection <- function(path, soundscape_path = NULL,
     roi_channel  = if (has("Channel")) .raven_channel_to_roi(tbl[["Channel"]])
                    else NA_character_,
     roi_source   = roi_source,
+    roi_user     = roi_user,
     stringsAsFactors = FALSE
   )
   # DEC-17 (STEP-17): keep information the ROI schema has no column for. Raven
@@ -195,14 +218,19 @@ read_raven_selection <- function(path, soundscape_path = NULL,
 #'   `roi_max_freq` (kHz). Labels without a continuation get `NA` frequencies.
 #'   Malformed lines (fewer than three fields, or a stray continuation) are
 #'   skipped, and an empty or all-blank file yields empty ROI data rather than
-#'   an error.
+#'   an error. Audacity stores no author, so `roi_user` is required: it names
+#'   who made the labels and is stamped on every row.
 #'
 #' @param path Path to an Audacity label track (tab-separated, no header).
 #' @param soundscape_path Optional recording path stamped on every row. Default
 #'   `NULL` leaves the `soundscape_*` fields `NA`.
 #' @param roi_source Origin stamp written to `roi_source` (default
 #'   `"import_audacity"`; carried through unchanged in the `origin` column).
-#' @return ROI data in the standard format; frequencies in kHz.
+#' @param roi_user **Required.** A single non-empty string naming who made the
+#'   labels. It is written to `roi_user` on every row (`created_by` in the
+#'   `signals` store) and is part of the ROI id.
+#' @return ROI data in the standard format, with `roi_user` stamped;
+#'   frequencies in kHz.
 #' @seealso [write_audacity_labels()], [read_raven_selection()],
 #'   [validate_by_overlap()]
 #' @examples
@@ -214,16 +242,18 @@ read_raven_selection <- function(path, soundscape_path = NULL,
 #' f <- file.path(tempdir(), "labels.txt")
 #' write_audacity_labels(rois, f)
 #'
-#' back <- read_audacity_labels(f)
+#' back <- read_audacity_labels(f, roi_user = "Ana")
 #' back[, c("roi_start", "roi_end", "roi_min_freq", "roi_label")]
 #' }
 #' @export
 read_audacity_labels <- function(path, soundscape_path = NULL,
-                                 roi_source = "import_audacity") {
+                                 roi_source = "import_audacity", roi_user) {
   if (length(path) != 1L || !is.character(path) || is.na(path) ||
       !file.exists(path)) {
     stop("read_audacity_labels: 'path' must be a single existing file path.")
   }
+  if (missing(roi_user)) roi_user <- NULL
+  .check_roi_user(roi_user, "read_audacity_labels")
   lines <- readLines(path, warn = FALSE)
   lines <- lines[nzchar(trimws(lines))]
   starts <- numeric(0)
@@ -256,6 +286,7 @@ read_audacity_labels <- function(path, soundscape_path = NULL,
     roi_min_freq = lo / 1000,
     roi_max_freq = hi / 1000,
     roi_source   = roi_source,
+    roi_user     = roi_user,
     soundscape_path = if (!is.null(soundscape_path)) soundscape_path else NA_character_,
     soundscape_file = if (!is.null(soundscape_path)) basename(soundscape_path)
                       else NA_character_,

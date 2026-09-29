@@ -2,8 +2,8 @@
 #'
 #' @description
 #' Reads the regions of interest (ROIs) produced by the segmentation app and
-#' returns them as one data.frame (`df_rois`) in the standard ROI format: this
-#' is pure ROI data, with no detections in it yet. It
+#' returns them as one data.frame (`df_rois`) in the standard signals format
+#' (45 columns). By default it holds only ROI rows, with no detections. It
 #' reads one ROI `.duckdb` database, or many, into one table. The usual next
 #' step is to split `df_rois` into a template branch (for [export_templates()])
 #' and a soundscape branch (for validation).
@@ -14,21 +14,25 @@
 #' single `.duckdb` file, or at a directory to read every ROI database found in
 #' it (set `recursive = TRUE` to also search subfolders). Use `source = "csv"`
 #' only to migrate old `*_roi_*.csv` exports; the output format is identical
-#' either way.
+#' either way. Databases written before the signals format (a `rois` table)
+#' are read too, and return in the same format.
 #'
 #' `fetch_rois()` does **not** decide which ROIs are templates and which are
 #' search soundscapes. That split is yours, usually a `dplyr::filter()` on
-#' `soundscape_path`. Two optional refinements: `roi_source` keeps only
+#' `soundscape_path`, or a filter on the "template" marker in `roi_comment`
+#' (see [export_templates()]). Two optional refinements: `roi_source` keeps only
 #' ground-truth ROIs or only detection-derived ROIs, and `soundscape_metadata`
 #' adds `origin_*` columns that record where each ROI's source recording came
 #' from, so later steps can trace it back.
 #'
-#' Two things to know: the returned frame is always the standard 18-column
-#' format (`roi_channel` present; the `roi_path`/`roi_file` columns from
-#' versions before 1.2.0 are gone), so code reading those columns must
-#'   adapt; and when `soundscape_metadata` is supplied, ROIs whose recording
-#'   is absent from it get `NA` provenance and a warning rather than a hard
-#'   error.
+#' Three things to know. First, the default return is the standard signals
+#' format: `roi_user` is now `created_by`, `roi_input_timestamp` is now
+#' `created_at`, and `roi_source` is now the pair `signal_class` + `origin`.
+#' `shape = "rois"` returns the previous 20-column ROI format unchanged; the
+#' first call per session without `shape` warns about this change. Second,
+#' the `roi_path`/`roi_file` columns from versions before 1.2.0 are gone.
+#' Third, when `soundscape_metadata` is supplied, ROIs whose recording is
+#' absent from it get `NA` provenance and a warning rather than a hard error.
 #'
 #' @section Pipeline context:
 #' Step 2 of the monitoraSom analysis flow. Reads the ROI `.duckdb` database
@@ -63,12 +67,17 @@
 #'   output of [detecs_to_rois()], the `detection_to_roi` rows promoted by
 #'   [validate_by_overlap()], and, when `include_detections = TRUE`, the
 #'   detection rows themselves.
-#' @param include_detections Logical, default `FALSE`. When `TRUE`, projection
-#'   also covers the `"detection"` and `"detection_to_roi"` rows of a unified
-#'   signals store, so promoted rows and raw detections read back in ROI form
-#'   (DEC-26/STEP-20d). Legacy `rois`-table stores are unaffected.
+#' @param include_detections Logical, default `FALSE`. `FALSE` returns only
+#'   `signal_class = "roi"` rows. `TRUE` also returns the `"detection"` and
+#'   `"detection_to_roi"` rows, so promoted rows and raw detections read back
+#'   too (DEC-26/STEP-20d). In a database written before the signals format,
+#'   the ROIs made by [detecs_to_rois()] count as `"detection_to_roi"` rows.
+#' @param shape `"signals"` (default) returns the standard signals format (45
+#'   columns). `"rois"` returns the previous 20-column ROI format, row for row
+#'   as before. Pass it explicitly to silence the once-per-session warning
+#'   about the default change.
 #'
-#' @return A data.frame of ROIs in the standard format, one row per ROI,
+#' @return A data.frame, one row per signal, in the format `shape` selects,
 #'   optionally with the three `origin_*` provenance columns added when
 #'   `soundscape_metadata` is supplied. Attribute `spectro_summary` carries
 #'   the distinct `roi_wl`/`roi_ovlp`/`roi_sample_rate`/`roi_pitch_shift`
@@ -88,12 +97,16 @@
 #' library(monitoraSom)
 #' rois_db <- system.file("extdata", "template_trio", "rois.duckdb",
 #'                        package = "monitoraSom")
-#' df_rois <- fetch_rois(rois_path = rois_db)
-#' str(df_rois)          # standard 18-column ROI format, one row per ROI
+#' df_rois <- fetch_rois(rois_path = rois_db, shape = "signals")
+#' str(df_rois)          # standard 45-column signals format, one row per ROI
+#'
+#' # The previous 20-column ROI format:
+#' df_legacy <- fetch_rois(rois_path = rois_db, shape = "rois")
 #'
 #' # Variation: read every ROI database found under a directory (e.g. per-site):
 #' rois_dir <- system.file("extdata", "template_trio", package = "monitoraSom")
-#' df_all <- fetch_rois(rois_path = rois_dir, recursive = TRUE)
+#' df_all <- fetch_rois(rois_path = rois_dir, recursive = TRUE,
+#'                      shape = "signals")
 #' str(df_all)
 #' }
 fetch_rois <- function(rois_path = NULL,
@@ -101,8 +114,14 @@ fetch_rois <- function(rois_path = NULL,
                        source = c("duckdb", "csv"),
                        soundscape_metadata = NULL,
                        roi_source = NULL,
-                       include_detections = FALSE) {
+                       include_detections = FALSE,
+                       shape = c("signals", "rois")) {
   source <- match.arg(source)
+  # DEC-14 (plan 2026-09-21_01): the default return changed from the legacy
+  # ROI frame to the signals frame; say so once per session, unless the
+  # caller chose a shape.
+  if (missing(shape)) .warn_fetch_rois_shape_once()
+  shape <- match.arg(shape)
   if (!is.null(roi_source)) {
     roi_source <- match.arg(roi_source, c("manual", "detection"))  # AFL-02
   }
@@ -130,9 +149,15 @@ fetch_rois <- function(rois_path = NULL,
 
   df_rois <- switch(
     source,
-    duckdb = .fetch_rois_duckdb(rois_path, recursive, include_detections),
+    duckdb = .fetch_rois_duckdb(rois_path, recursive, include_detections,
+                                shape),
     csv    = .fetch_rois_csv(rois_path, recursive)
   )
+  # DEC-17: a legacy CSV read lifts to the signals frame like a legacy store.
+  if (source == "csv" && shape == "signals") {
+    df_rois <- .signals_class_filter(.rois_as_signals(df_rois),
+                                     include_detections)
+  }
 
   # FR-06 / AFL-06: the stored key is canonicalized (forward slashes, no leading
   # "./", collapsed "//") on every OS so downstream string matching on
@@ -162,13 +187,22 @@ fetch_rois <- function(rois_path = NULL,
 #' Read and union ROIs from one or many ROI `.duckdb` stores (FR-101).
 #'
 #' `rois_path` is either a single `.duckdb` file or a directory of them. Each DB
-#' is opened through [.roi_duckdb_connect()] (which additively ensures the
-#' canonical schema, so an old store missing `roi_channel` reads back cleanly)
-#' and its `rois` table is read in full. Unreadable DBs are reported, not
-#' silently dropped (FR-02 spirit, FSM-204 pattern). The `.duckdb` extension is
-#' matched **case-insensitively** (AUD-13; friendlier cross-platform).
+#' is opened **read-only** (FR-107: reading must never write; see below) and its
+#' `rois` table is read in full. Unreadable DBs are reported, not silently
+#' dropped (FR-02 spirit, FSM-204 pattern). The `.duckdb` extension is matched
+#' **case-insensitively** (AUD-13; friendlier cross-platform).
+#'
+#' The read-only contract has two consequences, both deliberate:
+#' - A store written before a column joined the schema spec reads back cleanly:
+#'   the `SELECT` names only the columns the store declares
+#'   ([.legacy_select_columns()]), and the absent ones come back as the typed
+#'   `NA` that the `.coerce_*()` converters supply. Healing is deferred to the
+#'   first real WRITE (the segmentation app's save, or an explicit migrator).
+#' - Read-only media (`chmod 0444`, a mounted archive) now reads where it used
+#'   to fail with `Permission denied`.
 #' @noRd
-.fetch_rois_duckdb <- function(rois_path, recursive, include_detections = FALSE) {
+.fetch_rois_duckdb <- function(rois_path, recursive, include_detections = FALSE,
+                               shape = "rois") {
   db_files <- if (dir.exists(rois_path)) {
     list.files(
       rois_path, pattern = "\\.duckdb$", ignore.case = TRUE,
@@ -182,24 +216,35 @@ fetch_rois <- function(rois_path = NULL,
   }
 
   # F4 (signals program): read the unified signals store when present; a
-  # legacy `rois` table passes through unchanged (frozen compat shape). The
-  # probe opens READ-ONLY — connecting through the signals layer would CREATE
-  # the empty `signals` table on a legacy store and mask the layout.
+  # legacy `rois` table is read in its frozen compat shape, then lifted when
+  # shape = "signals" (DEC-17).
+  # FR-107: ONE read-only connection answers both the layout question and the
+  # read. The previous shape probed read-only, then RE-OPENED READ-WRITE via
+  # the `*_duckdb_connect()` helpers, whose ensure-schema step mutated every
+  # store it touched (a column added on a pure read, a spurious `rois` table
+  # on a non-ROI store, a `rois` table created on an empty file).
   read_one <- function(db) {
-    has_signals <- local({
-      con <- DBI::dbConnect(duckdb::duckdb(), dbdir = db, read_only = TRUE)
-      on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-      "signals" %in% DBI::dbListTables(con)
-    })
-    con <- if (has_signals) .signals_duckdb_connect(db) else
-      .roi_duckdb_connect(db)
+    con <- DBI::dbConnect(duckdb::duckdb(), dbdir = db, read_only = TRUE)
     on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-    if (has_signals) {
-      .signals_as_rois(.signals_duckdb_read(con),
-                       include_detections = include_detections)
+    if ("signals" %in% DBI::dbListTables(con)) {
+      signals <- .signals_duckdb_read(con)
+      if (shape == "signals") {
+        return(.signals_class_filter(signals, include_detections))
+      }
+      .signals_as_rois(signals, include_detections = include_detections)
     } else {
-      cols <- paste(names(.roi_schema_spec()), collapse = ", ")
-      .coerce_rois(DBI::dbGetQuery(con, sprintf("SELECT %s FROM rois;", cols)))
+      cols <- paste(.legacy_select_columns(con, "rois", .roi_schema_spec()),
+                    collapse = ", ")
+      legacy <- .coerce_rois(DBI::dbGetQuery(
+        con, sprintf("SELECT %s FROM rois;", cols)))
+      # DEC-17: a legacy store lifts to the signals frame; the return shape
+      # does not depend on the store's age. DEC-19: its detection-derived
+      # rows become detection_to_roi and follow the same class filter.
+      if (shape == "signals") {
+        return(.signals_class_filter(.rois_as_signals(legacy),
+                                     include_detections))
+      }
+      legacy
     }
   }
   ok <- list()
@@ -219,7 +264,36 @@ fetch_rois <- function(rois_path = NULL,
     warning(sprintf("%d ROI store(s) could not be read (first: %s)",
                     length(failed), failed[1]))
   }
-  .attach_spectro_summary(.coerce_rois(dplyr::bind_rows(ok)))
+  coerce <- if (shape == "signals") .coerce_signals else .coerce_rois
+  .attach_spectro_summary(coerce(dplyr::bind_rows(ok)))
+}
+
+#' Keep the signal classes `fetch_rois()` returns (DEC-12): `"roi"` rows only,
+#' or every classed row when `include_detections = TRUE` -- the same row set
+#' `.signals_as_rois()` projects, so both shapes agree.
+#' @noRd
+.signals_class_filter <- function(signals, include_detections) {
+  keep <- !is.na(signals$signal_class) &
+    (include_detections | signals$signal_class == .SIGNAL_CLASS_ROI)
+  signals[keep, , drop = FALSE]
+}
+
+# DEC-14: warned-once registry for the default-shape change (one warning per
+# R session; same pattern as `.ws_guard_state`, _path_guard.R).
+.fetch_rois_state <- new.env(parent = emptyenv())
+
+#' One `warning()` per R session when `fetch_rois()` runs with the default
+#' `shape` (DEC-14). An explicit `shape` never reaches this helper.
+#' @noRd
+.warn_fetch_rois_shape_once <- function() {
+  if (isTRUE(.fetch_rois_state$shape_warned)) return(invisible(FALSE))
+  .fetch_rois_state$shape_warned <- TRUE
+  warning("fetch_rois() now returns the standard signals frame (45 columns: ",
+          "roi_user -> created_by, roi_input_timestamp -> created_at, ",
+          "roi_source -> signal_class + origin). Use shape = \"rois\" for the ",
+          "previous ROI frame, or pass shape explicitly to silence this ",
+          "warning. It is shown once per session.", call. = FALSE)
+  invisible(TRUE)
 }
 
 #' Read legacy `*_roi_*.csv` tables and coerce to the canonical schema (FR-101
@@ -392,7 +466,7 @@ fetch_rois <- function(rois_path = NULL,
   } else if (is.character(soundscape_metadata) &&
              length(soundscape_metadata) == 1L &&
              file.exists(soundscape_metadata)) {
-    con <- .duckdb_connect(soundscape_metadata)
+    con <- .duckdb_connect(soundscape_metadata, read_only = TRUE)  # ENG-12
     on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
     .duckdb_read_metadata(con)
   } else {

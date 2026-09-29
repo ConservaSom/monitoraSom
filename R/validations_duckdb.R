@@ -10,9 +10,14 @@
 #' @keywords internal
 #' @noRd
 
-.validations_duckdb_connect <- function(path) {
-  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = path)
-  .validations_duckdb_ensure_schema(con)
+# Open a connection and ensure the schema. Caller closes with
+# DBI::dbDisconnect(con, shutdown = TRUE).
+#
+# `read_only = TRUE` (LVA-162) opens the store WITHOUT the ensure-schema step,
+# for callers that only read: see the matching note in [_detections_duckdb.R].
+.validations_duckdb_connect <- function(path, read_only = FALSE) {
+  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = path, read_only = read_only)
+  if (!read_only) .validations_duckdb_ensure_schema(con)
   con
 }
 
@@ -35,9 +40,15 @@
   invisible(con)
 }
 
+# Read the whole table back in canonical schema/types. The `SELECT` names only
+# the columns this store declares, so an older store reads on a READ-ONLY
+# connection (LVA-162; same rule as the detections reader).
 .validations_duckdb_read <- function(con) {
+  if (!.duckdb_has_table(con, "validations")) return(.schema_validations(0L))
   .check_schema_version(con, "validations")          # AFL-19: read-time check
-  cols <- paste(names(.validation_schema_spec()), collapse = ", ")
+  cols <- paste(.legacy_select_columns(con, "validations",
+                                      .validation_schema_spec()),
+                collapse = ", ")
   df <- DBI::dbGetQuery(con, sprintf(
     "SELECT %s FROM validations ORDER BY detection_id;", cols
   ))
@@ -92,10 +103,22 @@ export_validations_duckdb_to_csv <- function(duckdb_path, csv_path,
   if (file.exists(csv_path) && !overwrite) {
     stop("Destination CSV exists; pass overwrite = TRUE to replace it.")
   }
-  con <- .validations_duckdb_connect(duckdb_path)
+  # ENG-13: read-only open, and read the `signals` verdicts when present. The
+  # legacy projection keeps only rows with a non-NA verdict, so a store whose
+  # detections are unvalidated legitimately exports 0 rows (and now warns).
+  con <- .validations_duckdb_connect(duckdb_path, read_only = TRUE)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-  df <- .validations_duckdb_read(con)
+  df <- if (identical(.prefer_signals_store(con, .SIGNAL_CLASS_DETECTION),
+                      "signals")) {
+    .signals_as_validations(.signals_duckdb_read(
+      con, signal_class = .SIGNAL_CLASS_DETECTION))
+  } else {
+    .coerce_validations(.read_legacy_store_table(
+      con, "validations", .validation_schema_spec(), .schema_validations(0L),
+      "detection_id"))
+  }
   if (!is.null(columns)) df <- df[, columns, drop = FALSE]
   utils::write.csv(df, csv_path, row.names = FALSE, fileEncoding = "UTF-8")
+  .warn_if_empty_export(df, "validations")
   invisible(df)
 }

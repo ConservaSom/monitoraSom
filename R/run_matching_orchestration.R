@@ -117,6 +117,30 @@
        failures = if (length(failures)) dplyr::bind_rows(failures) else NULL)
 }
 
+# RMB-14: coerce one .par_map() result to the list(scores, failures) shape of
+# .run_score_group(). A daemon that died comes back as the metadata-shaped
+# list(ok, record, error) of .normalize_worker_result(); an mclapply task that
+# died comes back as a "try-error". Either way, every pair of the group becomes
+# one failure row, so the AUD-39 warning counts it.
+.as_score_group_result <- function(r, rows) {
+  if (is.list(r) && all(c("scores", "failures") %in% names(r))) return(r)
+  msg <- if (inherits(r, "try-error")) {
+    conditionMessage(attr(r, "condition"))
+  } else if (is.list(r) && is.list(r$error) &&
+             is.character(r$error$error_message)) {
+    r$error$error_message
+  } else {
+    "the worker returned no result"
+  }
+  tid <- if ("template_id" %in% names(rows)) as.character(rows$template_id)
+         else rep(NA_character_, nrow(rows))
+  list(scores = NULL,
+       failures = data.frame(soundscape_path = rows$soundscape_path,
+                             template_id = tid,
+                             message = paste("worker failed:", msg),
+                             stringsAsFactors = FALSE))
+}
+
 # Parallel scores over all soundscape groups (RMB-02/RMB-08, C1.2/C2). Templates
 # are preloaded once in the main process and shipped into each group call.
 # Order-preserving across groups.
@@ -132,10 +156,20 @@
     },
     ncores = ncores, worker_setup = .RUN_MATCHING_WORKER_SOURCES, pb = pb
   )
+  # RMB-14: a worker that died outside the per-pair tryCatch returns no
+  # list(scores, failures); count its whole group as failed, never drop it.
+  res <- Map(.as_score_group_result, res, groups)
   scores <- dplyr::bind_rows(lapply(res, `[[`, "scores"))
   # AUD-39: surface contained per-pair failures as one structured warning plus a
   # `failed_pairs` attribute on the scores; successful pairs are kept.
   failures <- dplyr::bind_rows(lapply(res, `[[`, "failures"))
+  # RMB-14: zero scored pairs is an error, not an empty result.
+  if (nrow(df_grid) > 0L && nrow(scores) == 0L) {
+    stop(sprintf(
+      "run_matching: no pair was scored; all %d pair(s) failed (first: template %s on %s -- %s).",
+      nrow(failures), failures$template_id[1L],
+      basename(failures$soundscape_path[1L]), failures$message[1L]))
+  }
   if (!is.null(failures) && nrow(failures) > 0L) {
     warning(sprintf(
       "run_matching: %d pair(s) failed and were skipped (first: template %s on %s -- %s).",

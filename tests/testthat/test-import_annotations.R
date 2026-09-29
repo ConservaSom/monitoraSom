@@ -10,7 +10,8 @@ audacity_fixture <- file.path(fx, "audacity_labels.txt")
 # --- Raven reader --------------------------------------------------------
 
 test_that("read_raven_selection maps to the canonical ROI schema", {
-  rois <- read_raven_selection(raven_fixture, soundscape_path = "recs/REC.wav")
+  rois <- read_raven_selection(raven_fixture, soundscape_path = "recs/REC.wav",
+                               roi_user = "Ana")
   expect_true(all(names(.roi_schema_spec()) %in% names(rois)))
   # The Waveform/Spectrogram duplicate of selection 1 collapses to one row.
   expect_equal(nrow(rois), 2L)
@@ -29,7 +30,8 @@ test_that("read_raven_selection maps to the canonical ROI schema", {
 # --- Audacity reader -----------------------------------------------------
 
 test_that("read_audacity_labels handles standard + frequency-continuation lines", {
-  rois <- read_audacity_labels(audacity_fixture, soundscape_path = "recs/REC.wav")
+  rois <- read_audacity_labels(audacity_fixture, soundscape_path = "recs/REC.wav",
+                               roi_user = "Ana")
   expect_true(all(rois$roi_source == "import_audacity"))  # F3: rich origin stamp
   expect_true(all(names(.roi_schema_spec()) %in% names(rois)))
   expect_equal(nrow(rois), 2L)
@@ -44,10 +46,11 @@ test_that("read_audacity_labels handles standard + frequency-continuation lines"
 # --- round-trip ----------------------------------------------------------
 
 test_that("Raven read -> write -> read preserves the key fields", {
-  rois <- read_raven_selection(raven_fixture, soundscape_path = "recs/REC.wav")
+  rois <- read_raven_selection(raven_fixture, soundscape_path = "recs/REC.wav",
+                               roi_user = "Ana")
   tmp <- tempfile(fileext = ".txt"); on.exit(unlink(tmp))
   write_raven_selection(rois, tmp)
-  back <- read_raven_selection(tmp)
+  back <- read_raven_selection(tmp, roi_user = "Ana")
   expect_equal(back$roi_start, rois$roi_start)
   expect_equal(back$roi_end, rois$roi_end)
   expect_equal(back$roi_min_freq, rois$roi_min_freq)
@@ -57,10 +60,10 @@ test_that("Raven read -> write -> read preserves the key fields", {
 })
 
 test_that("Audacity read -> write -> read preserves the key fields", {
-  rois <- read_audacity_labels(audacity_fixture)
+  rois <- read_audacity_labels(audacity_fixture, roi_user = "Ana")
   tmp <- tempfile(fileext = ".txt"); on.exit(unlink(tmp))
   write_audacity_labels(rois, tmp)
-  back <- read_audacity_labels(tmp)
+  back <- read_audacity_labels(tmp, roi_user = "Ana")
   expect_equal(back$roi_start, rois$roi_start)
   expect_equal(back$roi_end, rois$roi_end)
   expect_equal(back$roi_label, rois$roi_label)
@@ -71,12 +74,21 @@ test_that("Audacity read -> write -> read preserves the key fields", {
 # --- guards --------------------------------------------------------------
 
 test_that("readers reject a missing / non-scalar path", {
-  expect_error(read_raven_selection(tempfile()), "existing file path")
-  expect_error(read_audacity_labels(c("a", "b")), "existing file path")
+  expect_error(read_raven_selection(tempfile(), roi_user = "Ana"), "existing file path")
+  expect_error(read_audacity_labels(c("a", "b"), roi_user = "Ana"), "existing file path")
 })
 
 test_that("read_raven_selection errors on a table missing the time columns", {
   bad <- tempfile(fileext = ".txt"); on.exit(unlink(bad))
   writeLines(paste("Selection", "Annotation", sep = "\t"), bad)
-  expect_error(read_raven_selection(bad), "missing required column")
+  expect_error(read_raven_selection(bad, roi_user = "Ana"), "missing required column")
+})
+
+test_that("DEC-14: both readers require a single non-empty roi_user", {
+  expect_error(read_raven_selection(raven_fixture), "'roi_user' is required")
+  expect_error(read_audacity_labels(audacity_fixture), "'roi_user' is required")
+  expect_error(read_raven_selection(raven_fixture, roi_user = ""),
+               "'roi_user' is required")
+  expect_identical(
+    unique(read_raven_selection(raven_fixture, roi_user = "Ana")$roi_user), "Ana")
 })

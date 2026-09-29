@@ -1,3 +1,17 @@
+# monitoraSom 1.2.0.2
+
+Patch release. It replaces the `1.2.0.1` build that the GitHub repository
+carried until 2026-09-25.
+
+* `read_raven_selection()` and `read_audacity_labels()` require `roi_user`,
+  the name of who made the annotations. The files carry no author.
+* The writers and both apps take `csv_mirror`, a CSV snapshot of the DuckDB
+  store (see the `1.2.0` notes below).
+* Reading the soundscape-metadata store no longer writes to it. Every read
+  path opens the store read-only.
+* `run_matching()` with `ncores > 1` no longer drops the pairs of a worker
+  that died. Before this fix, it could return zero rows with no warning.
+
 # monitoraSom 1.2.0
 
 First CRAN submission. Relative to the previous release, this version adds a
@@ -17,6 +31,9 @@ matching internals. The changes below are the user-visible differences.
   helpers.
 * Third-party annotations: `read_raven_selection()` / `write_raven_selection()`
   and `read_audacity_labels()` / `write_audacity_labels()`.
+  The two readers require `roi_user`, the name of who made the annotations
+  (the files carry no author); it is stamped on every row and becomes the
+  `created_by` of the imported ROIs.
 * Detection filtering: `filter_detections()` and `filter_detections_i()`.
 * Visualization: `plot_scores_overview()` and `plot_spectro()` complement
   `plot_scores()`.
@@ -35,6 +52,14 @@ matching internals. The changes below are the user-visible differences.
 * The pipeline now persists to DuckDB stores with a versioned schema. Earlier
   versions wrote and read results as CSV files (`write.csv()` / `sink()`);
   detections, ROIs, metadata, templates and validations now live in DuckDB.
+  To keep a copy that opens without DuckDB, `template_matching()`,
+  `run_matching()`, `fetch_score_peaks()`, `validate_by_overlap()` and
+  `import_birdnet_detections()` take `csv_mirror`: with `csv_mirror = TRUE`
+  they write `<database name>_mirror.csv` next to the signals database, once,
+  after the last write. `fetch_soundscape_metadata()` takes the same argument
+  for the metadata database. `launch_segmentation_app()` and
+  `launch_validation_app()` take it too, and write the copy when you end the
+  session. The CSV is a snapshot for reading only.
 * A new FFT-accelerated backend was added to `run_matching_i()` /
   `run_matching()` and is now the default `score_method`. The previous
   cross-correlation (`"cor"`) and dynamic-time-warping (`"dtw"`) backends
@@ -59,6 +84,15 @@ matching internals. The changes below are the user-visible differences.
   is known: a recording must carry ROIs or the "no signals of interest"
   sentinel. Detections on never-reviewed recordings are excluded with a
   warning, never counted as species absence.
+* `fetch_rois()` now returns the standard signals format (45 columns) by
+  default: `roi_user` is now `created_by`, `roi_input_timestamp` is now
+  `created_at`, and `roi_source` is now the pair `signal_class` + `origin`.
+  `shape = "rois"` returns the previous 20-column ROI format unchanged. The
+  first call per session without `shape` warns about the change. Databases
+  and CSV tables in the previous format are still read. By default only ROI
+  rows return, so the ROIs that `detecs_to_rois()` wrote into an older
+  database now need `include_detections = TRUE`. `export_templates()` and
+  `validate_by_overlap()` accept both formats.
 
 ## Interactive apps
 

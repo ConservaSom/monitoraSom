@@ -73,6 +73,13 @@
 #'   a ROI row (`signal_class = "detection_to_roi"`) in `output_db`, so the
 #'   detection->ROI cycle closes automatically. The promoted rows are excluded
 #'   from ground truth by design. Requires `output_db`.
+#' @param csv_mirror Optional CSV copy of the signals database. `NULL`
+#'   (default) writes no copy. `TRUE` writes `<database name>_mirror.csv` in
+#'   the folder of `output_db`; a string is the CSV path. The copy is written
+#'   once, after the last write to the database, and holds the standard
+#'   columns of the database, with `NA` as an empty field. It is a snapshot
+#'   for reading only. Edits to the CSV never reach the database.
+#'   Needs `output_db`.
 #'
 #' @return A named list of two tibbles: `detections_validated` (TP/FP, one row per
 #'   detection) and `false_negatives` (one row per (template, missed ROI), tagged
@@ -93,6 +100,16 @@
 #' names(val)    # ...of two data frames:
 #' head(val$detections_validated)    # $detections_validated: TP/FP per detection
 #' head(val$false_negatives)         # $false_negatives: missed ROIs per template
+#'
+#' # Save the verdicts in a signals database, with a CSV copy next to it
+#' # (validations_mirror.csv). The copy is written after the TP/FP rows and the
+#' # promoted ROIs, so it holds both. Read it back; an empty field is NA.
+#' val_db <- file.path(tempdir(), "validations.duckdb")
+#' val <- validate_by_overlap(df_detecs, df_rois, validation_user = "User",
+#'                            output_db = val_db, csv_mirror = TRUE)
+#' df_copy <- utils::read.csv(file.path(tempdir(), "validations_mirror.csv"),
+#'                            na.strings = "")
+#' table(df_copy$signal_class)       # detections and ROIs in one table
 #' }
 validate_by_overlap <- function(df_detecs = NULL, df_rois = NULL,
                                 validation_user = NULL,
@@ -101,7 +118,7 @@ validate_by_overlap <- function(df_detecs = NULL, df_rois = NULL,
                                 source = c("duckdb", "csv"),
                                 include_detection_to_roi = FALSE,
                                 roi_label_source = c("effective", "original"),
-                                promote_to_roi = TRUE) {
+                                promote_to_roi = TRUE, csv_mirror = NULL) {
   source <- match.arg(source)
   roi_label_source <- match.arg(roi_label_source)
 
@@ -143,6 +160,7 @@ validate_by_overlap <- function(df_detecs = NULL, df_rois = NULL,
     .require_explicit_workspace(output_db, label = "output_db",
                                 caller = "validate_by_overlap")
   }
+  .validate_csv_mirror(csv_mirror, output_db, "`output_db`")    # plan DEC-12
   if (!is.null(output_path)) {
     warning("`output_path` (CSV) is deprecated: persist with `output_db` ",
             "(DuckDB). Writing a legacy CSV this time.", call. = FALSE)
@@ -162,6 +180,9 @@ validate_by_overlap <- function(df_detecs = NULL, df_rois = NULL,
   df_detecs <- .vbo_guard_exhaustiveness(df_detecs, df_rois)     # LSA-207
   df_rois <- .vbo_maybe_exclude_promoted(df_rois,
                                          include_detection_to_roi) # VBO-102
+  # DEC-13 (plan 2026-09-21_01): a signals frame is projected after the class
+  # guards, so the FN table keeps roi_user/roi_input_timestamp (not NA).
+  df_rois <- .as_legacy_rois_input(df_rois)
   .vbo_validate_bounds(df_detecs, df_rois)                       # AFL-12
 
   validation_time <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
@@ -207,6 +228,7 @@ validate_by_overlap <- function(df_detecs = NULL, df_rois = NULL,
     }
     message("TP/FP validations upserted to the signals store: ", output_db,
             " (FN rows kept in $false_negatives only)")
+    .mirror_signals_csv(output_db, csv_mirror)                # plan DEC-14
   }
   if (!is.null(output_path)) {
     legacy <- dplyr::bind_rows(res$detections_validated, res$false_negatives)
@@ -252,7 +274,8 @@ validate_by_overlap <- function(df_detecs = NULL, df_rois = NULL,
     if (!file.exists(df_rois)) {
       stop("There is no file at the provided path to `df_rois`: ", df_rois)
     }
-    return(fetch_rois(df_rois, recursive = recursive, source = source))
+    return(fetch_rois(df_rois, recursive = recursive, source = source,
+                      shape = "signals"))
   }
   stop("`df_rois` must be a data.frame or a path to a ROI store.")
 }

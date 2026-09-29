@@ -141,7 +141,7 @@
   }
   backend <- .resolve_backend(path, "auto")
   if (backend == "duckdb") {
-    con <- .duckdb_connect(path)
+    con <- .duckdb_connect(path, read_only = TRUE)  # ENG-12: no DDL
     on.exit(try(DBI::dbDisconnect(con, shutdown = TRUE), silent = TRUE),
             add = TRUE)
     df <- .read_cache(path, "duckdb", con = con)

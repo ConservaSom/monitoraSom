@@ -44,7 +44,14 @@
 .worker_bootstrap <- function(files = NULL) {
   src_dir <- getOption("monitoraSom.src_dir", default = NULL)
   use_source <- !is.null(src_dir) && length(files) > 0L
-  use_library <- !use_source && requireNamespace("monitoraSom", quietly = TRUE)
+  # RMB-14: load the installed package on the workers only when THIS code is
+  # that package. Code loaded with source() and no src_dir would otherwise run
+  # a different (installed) build on the workers; return FALSE instead, so
+  # .par_map() falls back to mclapply (forks this session) or serial.
+  from_namespace <- identical(
+    environmentName(topenv(environment(.worker_bootstrap))), "monitoraSom")
+  use_library <- !use_source && from_namespace &&
+    requireNamespace("monitoraSom", quietly = TRUE)
   if (!use_source && !use_library) return(FALSE)
 
   if (use_source) {

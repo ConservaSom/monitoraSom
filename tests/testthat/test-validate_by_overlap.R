@@ -336,3 +336,15 @@ test_that("VBO-102: all-promoted reference errors when excluded", {
     suppressWarnings(validate_by_overlap(det, gtr, validation_user = "T")),
     "No ground-truth ROIs remain after excluding")
 })
+
+# --- DEC-13 (plan 2026-09-21_01): signals-frame ground truth -------------------
+
+test_that("DEC-13: a signals-frame reference keeps the author in the FN table", {
+  sig <- .rois_as_signals(.coerce_rois(roi))    # the fetch_rois() default shape
+  res_sig <- run_quiet(det, sig, validation_user = "T")
+  res_old <- run_quiet(det, roi, validation_user = "T")
+  expect_equal(nrow(res_sig$false_negatives), ORIG_FN)
+  expect_true(all(!is.na(res_sig$false_negatives$roi_user)))
+  expect_setequal(res_sig$false_negatives$roi_user,
+                  res_old$false_negatives$roi_user)
+})

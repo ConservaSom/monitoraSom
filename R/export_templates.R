@@ -10,7 +10,15 @@
 #'
 #' @details
 #' Feed it the ROIs you want to use as templates, usually the focal ROIs you
-#' selected with [fetch_rois()]. Since monitoraSom 1.2.0 the template metadata
+#' selected with [fetch_rois()]. Keeping templates apart from the other ROIs
+#' is up to you: nothing in the ROI data marks a template. The convention is
+#' the word "template" in `roi_comment` (any case, anywhere in the text); the
+#' segmentation app uses it to export flagged ROIs as it moves between
+#' recordings. With `df_rois = NULL`, every ROI in the database is cut, so
+#' filter first, for example
+#' `subset(df_rois, grepl("template", roi_comment, ignore.case = TRUE))`.
+#'
+#' Since monitoraSom 1.2.0 the template metadata
 #' lives in the template database (the `templates.duckdb` database), not in the file
 #' names. File names are short and never collide, because `template_id` is a
 #' content hash. So read templates back inside the R session with
@@ -40,8 +48,9 @@
 #' template WAV cuts and the `templates.duckdb` template database that
 #' \code{\link{fetch_template_metadata}} (step 4) reads back.
 #'
-#' @param df_rois ROI data (a data.frame of ROIs in the standard format); extra
-#'   columns are kept. Usually the focal branch of
+#' @param df_rois ROI data (a data.frame of ROIs in the standard signals or
+#'   ROI format, as [fetch_rois()] returns them); extra `origin_*` columns are
+#'   kept. Usually the focal branch of
 #'   [fetch_rois()]. `NULL` (default) reads the standard ROI database
 #'   `rois.duckdb` via [fetch_rois()] and stops if it is absent.
 #'   Must carry `soundscape_path`, `soundscape_file`, `roi_label`,
@@ -119,7 +128,7 @@ export_templates <- function(df_rois = NULL,
   # CRAN item 7 (F4): no ROI object -> read the canonical ROI store
   # (rois.duckdb at the project root) and stop if it is absent.
   if (is.null(df_rois)) {
-    df_rois <- fetch_rois()
+    df_rois <- fetch_rois(shape = "signals")
   }
 
   # ERC-03: validate the input carries the columns the function reads, then
@@ -137,7 +146,10 @@ export_templates <- function(df_rois = NULL,
   }
   # Keep optional provenance (origin_*) columns through the coercion.
   origin_cols <- grep("^origin_", names(df_rois), value = TRUE)
-  rois <- .coerce_rois(df_rois)
+  # DEC-13 (plan 2026-09-21_01): a signals frame -- the fetch_rois() default --
+  # is projected first, so roi_user/roi_input_timestamp come from
+  # created_by/created_at instead of reading as NA.
+  rois <- .coerce_rois(.as_legacy_rois_input(df_rois))
   for (col in origin_cols) rois[[col]] <- df_rois[[col]]
 
   # ERC-107 (plan §8.8): the effective label names the cut and the template database,

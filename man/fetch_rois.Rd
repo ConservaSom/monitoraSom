@@ -10,7 +10,8 @@ fetch_rois(
   source = c("duckdb", "csv"),
   soundscape_metadata = NULL,
   roi_source = NULL,
-  include_detections = FALSE
+  include_detections = FALSE,
+  shape = c("signals", "rois")
 )
 }
 \arguments{
@@ -45,13 +46,19 @@ output of \code{\link[=detecs_to_rois]{detecs_to_rois()}}, the \code{detection_t
 \code{\link[=validate_by_overlap]{validate_by_overlap()}}, and, when \code{include_detections = TRUE}, the
 detection rows themselves.}
 
-\item{include_detections}{Logical, default \code{FALSE}. When \code{TRUE}, projection
-also covers the \code{"detection"} and \code{"detection_to_roi"} rows of a unified
-signals store, so promoted rows and raw detections read back in ROI form
-(DEC-26/STEP-20d). Legacy \code{rois}-table stores are unaffected.}
+\item{include_detections}{Logical, default \code{FALSE}. \code{FALSE} returns only
+\code{signal_class = "roi"} rows. \code{TRUE} also returns the \code{"detection"} and
+\code{"detection_to_roi"} rows, so promoted rows and raw detections read back
+too (DEC-26/STEP-20d). In a database written before the signals format,
+the ROIs made by \code{\link[=detecs_to_rois]{detecs_to_rois()}} count as \code{"detection_to_roi"} rows.}
+
+\item{shape}{\code{"signals"} (default) returns the standard signals format (45
+columns). \code{"rois"} returns the previous 20-column ROI format, row for row
+as before. Pass it explicitly to silence the once-per-session warning
+about the default change.}
 }
 \value{
-A data.frame of ROIs in the standard format, one row per ROI,
+A data.frame, one row per signal, in the format \code{shape} selects,
 optionally with the three \verb{origin_*} provenance columns added when
 \code{soundscape_metadata} is supplied. Attribute \code{spectro_summary} carries
 the distinct \code{roi_wl}/\code{roi_ovlp}/\code{roi_sample_rate}/\code{roi_pitch_shift}
@@ -61,8 +68,8 @@ heterogeneous inputs.
 }
 \description{
 Reads the regions of interest (ROIs) produced by the segmentation app and
-returns them as one data.frame (\code{df_rois}) in the standard ROI format: this
-is pure ROI data, with no detections in it yet. It
+returns them as one data.frame (\code{df_rois}) in the standard signals format
+(45 columns). By default it holds only ROI rows, with no detections. It
 reads one ROI \code{.duckdb} database, or many, into one table. The usual next
 step is to split \code{df_rois} into a template branch (for \code{\link[=export_templates]{export_templates()}})
 and a soundscape branch (for validation).
@@ -73,21 +80,25 @@ segmentation app has written since monitoraSom 1.2.0. Point \code{rois_path} at 
 single \code{.duckdb} file, or at a directory to read every ROI database found in
 it (set \code{recursive = TRUE} to also search subfolders). Use \code{source = "csv"}
 only to migrate old \verb{*_roi_*.csv} exports; the output format is identical
-either way.
+either way. Databases written before the signals format (a \code{rois} table)
+are read too, and return in the same format.
 
 \code{fetch_rois()} does \strong{not} decide which ROIs are templates and which are
 search soundscapes. That split is yours, usually a \code{dplyr::filter()} on
-\code{soundscape_path}. Two optional refinements: \code{roi_source} keeps only
+\code{soundscape_path}, or a filter on the "template" marker in \code{roi_comment}
+(see \code{\link[=export_templates]{export_templates()}}). Two optional refinements: \code{roi_source} keeps only
 ground-truth ROIs or only detection-derived ROIs, and \code{soundscape_metadata}
 adds \verb{origin_*} columns that record where each ROI's source recording came
 from, so later steps can trace it back.
 
-Two things to know: the returned frame is always the standard 18-column
-format (\code{roi_channel} present; the \code{roi_path}/\code{roi_file} columns from
-versions before 1.2.0 are gone), so code reading those columns must
-adapt; and when \code{soundscape_metadata} is supplied, ROIs whose recording
-is absent from it get \code{NA} provenance and a warning rather than a hard
-error.
+Three things to know. First, the default return is the standard signals
+format: \code{roi_user} is now \code{created_by}, \code{roi_input_timestamp} is now
+\code{created_at}, and \code{roi_source} is now the pair \code{signal_class} + \code{origin}.
+\code{shape = "rois"} returns the previous 20-column ROI format unchanged; the
+first call per session without \code{shape} warns about this change. Second,
+the \code{roi_path}/\code{roi_file} columns from versions before 1.2.0 are gone.
+Third, when \code{soundscape_metadata} is supplied, ROIs whose recording is
+absent from it get \code{NA} provenance and a warning rather than a hard error.
 }
 \section{Pipeline context}{
 
@@ -105,12 +116,16 @@ branch).
 library(monitoraSom)
 rois_db <- system.file("extdata", "template_trio", "rois.duckdb",
                        package = "monitoraSom")
-df_rois <- fetch_rois(rois_path = rois_db)
-str(df_rois)          # standard 18-column ROI format, one row per ROI
+df_rois <- fetch_rois(rois_path = rois_db, shape = "signals")
+str(df_rois)          # standard 45-column signals format, one row per ROI
+
+# The previous 20-column ROI format:
+df_legacy <- fetch_rois(rois_path = rois_db, shape = "rois")
 
 # Variation: read every ROI database found under a directory (e.g. per-site):
 rois_dir <- system.file("extdata", "template_trio", package = "monitoraSom")
-df_all <- fetch_rois(rois_path = rois_dir, recursive = TRUE)
+df_all <- fetch_rois(rois_path = rois_dir, recursive = TRUE,
+                     shape = "signals")
 str(df_all)
 }
 }

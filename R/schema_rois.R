@@ -193,7 +193,19 @@
 # TRUE for detection-derived rows (NA-safe). The dedicated `roi_source` is the
 # primary signal; `roi_type == "detection"` is the legacy fallback for stores
 # written before `roi_source` existed. Everything else is ground-truth.
+# SIG-1xx (plan 2026-09-21_01 STEP-3a): a signals frame (it carries
+# `signal_class`) has no `roi_source`; there the rule is the one
+# `.signals_as_rois()` uses to derive `roi_source` -- any non-"roi" class, or a
+# "template_matching"/"birdnet" origin. One helper, both frame shapes.
 .is_detection_roi <- function(df) {
+  if ("signal_class" %in% names(df)) {
+    cls <- df$signal_class
+    org <- if ("origin" %in% names(df)) df$origin
+           else rep(NA_character_, length(cls))
+    return((!is.na(cls) & cls != .SIGNAL_CLASS_ROI) |
+             (!is.na(org) & org %in% c(.SIGNAL_ORIGIN_TEMPLATE_MATCH,
+                                       .SIGNAL_ORIGIN_BIRDNET)))
+  }
   n   <- if (is.data.frame(df)) nrow(df) else length(df[["roi_source"]])
   src <- if ("roi_source" %in% names(df)) df$roi_source else rep(NA_character_, n)
   typ <- if ("roi_type"  %in% names(df)) df$roi_type  else rep(NA_character_, n)

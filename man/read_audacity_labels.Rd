@@ -7,7 +7,8 @@
 read_audacity_labels(
   path,
   soundscape_path = NULL,
-  roi_source = "import_audacity"
+  roi_source = "import_audacity",
+  roi_user
 )
 }
 \arguments{
@@ -18,9 +19,14 @@ read_audacity_labels(
 
 \item{roi_source}{Origin stamp written to \code{roi_source} (default
 \code{"import_audacity"}; carried through unchanged in the \code{origin} column).}
+
+\item{roi_user}{\strong{Required.} A single non-empty string naming who made the
+labels. It is written to \code{roi_user} on every row (\code{created_by} in the
+\code{signals} store) and is part of the ROI id.}
 }
 \value{
-ROI data in the standard format; frequencies in kHz.
+ROI data in the standard format, with \code{roi_user} stamped;
+frequencies in kHz.
 }
 \description{
 Reads an Audacity label track (tab-separated, no header) and
@@ -35,7 +41,8 @@ label (Audacity's extended format); those Hz bounds map to \code{roi_min_freq}/
 \code{roi_max_freq} (kHz). Labels without a continuation get \code{NA} frequencies.
 Malformed lines (fewer than three fields, or a stray continuation) are
 skipped, and an empty or all-blank file yields empty ROI data rather than
-an error.
+an error. Audacity stores no author, so \code{roi_user} is required: it names
+who made the labels and is stamped on every row.
 }
 \examples{
 # Off-flow utility: round-trip ROIs out to Audacity format and back in tempdir.
@@ -46,7 +53,7 @@ rois <- data.frame(
 f <- file.path(tempdir(), "labels.txt")
 write_audacity_labels(rois, f)
 
-back <- read_audacity_labels(f)
+back <- read_audacity_labels(f, roi_user = "Ana")
 back[, c("roi_start", "roi_end", "roi_min_freq", "roi_label")]
 }
 }

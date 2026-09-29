@@ -50,6 +50,12 @@
 #' @param format `"table"`, `"csv"`, or `NULL` (default) to auto-detect by
 #'   extension and header sniff.
 #' @param origin Origin stamp for the `origin` column (default `"birdnet"`).
+#' @param csv_mirror Optional CSV copy of the signals database. `NULL`
+#'   (default) writes no copy. `TRUE` writes `<database name>_mirror.csv` in
+#'   the folder of `signals_db`; a string is the CSV path. The copy is written
+#'   once, after the last write to the database, and holds the standard
+#'   columns of the database, with `NA` as an empty field. It is a snapshot
+#'   for reading only. Edits to the CSV never reach the database.
 #' @return The imported signals frame, invisibly.
 #' @seealso [read_raven_selection()], [validate_by_overlap()]
 #' @examples
@@ -69,10 +75,19 @@
 #' db <- tempfile(fileext = ".duckdb")
 #' sig <- import_birdnet_detections(f, db)
 #' sig[, c("roi_label", "roi_comment", "det_peak_score")]
+#'
+#' # Import again with a CSV copy of the database, written to a path you
+#' # choose. The import updates the rows that already exist, so the copy has
+#' # one row. Read it back; an empty field is NA.
+#' csv <- tempfile(fileext = ".csv")
+#' sig <- import_birdnet_detections(f, db, csv_mirror = csv)
+#' df_copy <- utils::read.csv(csv, na.strings = "")
+#' df_copy[, c("roi_label", "det_peak_score")]
 #' }
 #' @export
 import_birdnet_detections <- function(path, signals_db, min_conf = 0,
-                                      format = NULL, origin = "birdnet") {
+                                      format = NULL, origin = "birdnet",
+                                      csv_mirror = NULL) {
   if (length(path) != 1L || !is.character(path) || is.na(path) ||
       !file.exists(path)) {
     stop("import_birdnet_detections: 'path' must be a single existing file path.")
@@ -85,6 +100,7 @@ import_birdnet_detections <- function(path, signals_db, min_conf = 0,
     stop("import_birdnet_detections: 'format' must be 'table', 'csv' or NULL.")
   }
 
+  .validate_csv_mirror(csv_mirror, signals_db, "`signals_db`")  # plan DEC-12
   tbl <- .read_birdnet_table(path, format)
   sig <- .birdnet_as_signals(tbl, path, origin)
   if (nrow(sig) > 0L) sig <- sig[sig$det_peak_score >= min_conf, , drop = FALSE]
@@ -92,6 +108,7 @@ import_birdnet_detections <- function(path, signals_db, min_conf = 0,
   con <- .signals_duckdb_connect(signals_db)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   .signals_duckdb_upsert(con, sig)
+  .mirror_signals_csv(signals_db, csv_mirror)                 # plan DEC-14
   invisible(sig)
 }
 

@@ -37,7 +37,8 @@ launch_validation_app(
   skip_path_confirmation = TRUE,
   grid_dim = 3L,
   labels_file = NULL,
-  roi_label_list = "Brazilian birds (Pacheco et al. 2021)"
+  roi_label_list = "Brazilian birds (Pacheco et al. 2021)",
+  csv_mirror = NULL
 )
 }
 \arguments{
@@ -186,6 +187,15 @@ none is available the ROI-label field degrades to an empty choice list
 (typed labels still work).}
 
 \item{roi_label_list}{Name of the default ROI label list column.}
+
+\item{csv_mirror}{Optional CSV copy of the signals database. \code{NULL}
+(default) writes no copy. \code{TRUE} writes \verb{<database name>_mirror.csv} in
+the folder of \code{input_path}; a string is the CSV path. The copy is written
+once, when you confirm the end of the session. It holds the standard
+columns of the database, with \code{NA} as an empty field. Saves made while
+you work never write it. It is a snapshot for reading only. Edits to the
+CSV never reach the database.
+Needs a \code{.duckdb} \code{input_path}.}
 }
 \value{
 Called for its side effect: it starts an interactive Shiny app in the
@@ -284,12 +294,15 @@ if (interactive()) {
   run_matching(df_grid, score_method = "fft", min_score = 0.5,
               output_db = input_path)
 
-  # 4. Launch the app on the detections and validate them.
+  # 4. Launch the app on the detections and validate them. csv_mirror = TRUE
+  #    writes a CSV copy of the database (signals_mirror.csv) when you
+  #    confirm the end of the session.
   launch_validation_app(
     project_path = project_path, validation_user = "User",
     soundscapes_path = soundscapes_dir,
     input_path = input_path,
-    mode = "detections"
+    mode = "detections",
+    csv_mirror = TRUE
   )
 
   # A standardized, reproducible validation session: fix the seed so the

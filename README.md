@@ -25,15 +25,18 @@ vignette("monitoraSom")
 
 ## Setup and installation
 
-This package can be installed from [GitHub](https://github.com/ConservaSom/monitoraSom). To install, you will need an R version 4.1.0 or newer and [devtools](https://cran.r-project.org/package=devtools) package installed on your [R program](https://www.r-project.org/). The `monitoraSom` package is still under development, so be aware of potential breaking changes.
+Install the package from [GitHub](https://github.com/ConservaSom/monitoraSom) with [pak](https://pak.r-lib.org/). You need R 4.1.0 or newer. The `monitoraSom` package is still under development, so be aware of potential breaking changes.
+
+```r
+install.packages("pak")
+pak::pkg_install("ConservaSom/monitoraSom@v1.2.0.2")
+```
+
+To follow the latest development state instead of a release, drop the tag: `pak::pkg_install("ConservaSom/monitoraSom")`.
 
 **Note for Windows users**: Ensure you have Rtools compatible with your R version installed. Download from [CRAN](https://cran.r-project.org/bin/windows/Rtools/).
 
-Please follow the code below to install the latest released version:
-
-```r
-devtools::install_github("ConservaSom/monitoraSom", dependencies = TRUE)
-```
+**Note for Ubuntu Linux users**: the `duckdb` dependency builds from source and can take more than five minutes. The [r2u](https://eddelbuettel.github.io/r2u/) repository serves it as a ready-made binary. After you set up r2u, run `sudo apt install r-cran-duckdb` in the shell, then run the `pak` command above. Without r2u, the install still works, only slower.
 
 ## The example project
 
@@ -132,7 +135,7 @@ If you are not ready to move, you can install the previous version from the
 same repository:
 
 ```r
-devtools::install_github("ConservaSom/monitoraSom@v1.0.2")
+pak::pkg_install("ConservaSom/monitoraSom@v1.0.2")
 ```
 
 A project made with 1.0.2 uses CSV files, and the new version does not read

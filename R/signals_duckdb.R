@@ -25,9 +25,16 @@
 
 # --- connection / schema ------------------------------------------------------
 
-.signals_duckdb_connect <- function(path) {
-  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = path)
-  .signals_duckdb_ensure_schema(con)
+# Open a connection and ensure the schema. Caller closes with
+# DBI::dbDisconnect(con, shutdown = TRUE).
+#
+# `read_only = TRUE` (LVA-162) opens the store WITHOUT the ensure-schema step,
+# for callers that only read: opening read-write would emit the DDL (CREATE +
+# one ALTER per spec column) and mutate the user's file on a pure read. See the
+# matching note in [_detections_duckdb.R]. Writes use the default.
+.signals_duckdb_connect <- function(path, read_only = FALSE) {
+  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = path, read_only = read_only)
+  if (!read_only) .signals_duckdb_ensure_schema(con)
   con
 }
 
@@ -56,10 +63,20 @@
 
 # Read signals, optionally filtered by soundscape_path and/or signal_class,
 # in canonical schema/types and signal_id order.
+#
+# FR-107/SIG-09: the `SELECT` names only the columns this store declares, so a
+# signals table older than the current spec reads cleanly instead of failing
+# with a `Binder Error`. The read must not depend on the ensure-schema write to
+# have healed the store first -- once the read path is read-only, nothing else
+# does it. Absent columns come back as the typed `NA` from `.coerce_signals()`.
 .signals_duckdb_read <- function(con, soundscape_path = NULL,
                                  signal_class = NULL) {
+  # A read-only caller cannot create the table the way ensure-schema did, so a
+  # store with no `signals` table reads as empty rather than erroring (LVA-162).
+  if (!.duckdb_has_table(con, "signals")) return(.schema_signals(0L))
   .check_schema_version(con, "signals")              # AFL-19: read-time check
-  cols <- paste(names(.signal_schema_spec()), collapse = ", ")
+  cols <- paste(.legacy_select_columns(con, "signals", .signal_schema_spec()),
+                collapse = ", ")
   where <- character(0)
   params <- list()
   if (!is.null(soundscape_path)) {
@@ -222,12 +239,42 @@
 
 # --- legacy-store migrations (idempotent upserts by signal_id) ----------------
 
+# Columns actually present in `table` on an open connection, in declared order
+# (empty when the table does not exist).
+#
+# The three migrators below need this because they read their source
+# READ-ONLY: a source store written before a column was added to the schema
+# spec does not have that column, and a `SELECT` naming it fails with a DuckDB
+# `Binder Error` instead of migrating the rows. Sibling readers used to avoid
+# this by running the ensure-schema step first; since LVA-162 the read paths
+# also open read-only and use `.legacy_select_columns()`, so they no longer heal
+# the store either. `table` is always a literal at the call sites, never user
+# input.
+.duckdb_table_columns <- function(con, table) {
+  DBI::dbGetQuery(con, sprintf(
+    "SELECT name FROM pragma_table_info('%s');", table))$name
+}
+
+# TRUE when `table` exists on `con`. A read-only caller guards with this before
+# its `SELECT`: it cannot create the table the way the ensure-schema path did.
+.duckdb_has_table <- function(con, table) {
+  table %in% DBI::dbListTables(con)
+}
+
+# The spec columns the source store can actually supply, so old stores migrate.
+# Columns added to the spec after the store was written fall back to the typed
+# `NA` the `.coerce_*()` converters already supply.
+.legacy_select_columns <- function(con, table, spec) {
+  intersect(names(spec), .duckdb_table_columns(con, table))
+}
+
 # Migrate a legacy `rois` DuckDB store into the signals store. Re-running is
 # idempotent (same signal_ids upserted, no duplicates).
 migrate_rois_store_to_signals <- function(rois_db, signals_db) {
   src <- DBI::dbConnect(duckdb::duckdb(), dbdir = rois_db, read_only = TRUE)
   on.exit(DBI::dbDisconnect(src, shutdown = TRUE))
-  cols <- paste(names(.roi_schema_spec()), collapse = ", ")
+  cols <- paste(.legacy_select_columns(src, "rois", .roi_schema_spec()),
+                collapse = ", ")
   df <- .coerce_rois(DBI::dbGetQuery(src, sprintf(
     "SELECT %s FROM rois ORDER BY soundscape_path, roi_input_timestamp;", cols)))
   con <- .signals_duckdb_connect(signals_db)
@@ -241,7 +288,9 @@ migrate_rois_store_to_signals <- function(rois_db, signals_db) {
 migrate_detections_store_to_signals <- function(detections_db, signals_db) {
   src <- DBI::dbConnect(duckdb::duckdb(), dbdir = detections_db, read_only = TRUE)
   on.exit(DBI::dbDisconnect(src, shutdown = TRUE))
-  cols <- paste(names(.detection_schema_spec()), collapse = ", ")
+  cols <- paste(.legacy_select_columns(src, "detections",
+                                      .detection_schema_spec()),
+                collapse = ", ")
   df <- .coerce_detections(DBI::dbGetQuery(src, sprintf(
     "SELECT %s FROM detections ORDER BY detection_id;", cols)))
   con <- .signals_duckdb_connect(signals_db)
@@ -255,7 +304,9 @@ migrate_detections_store_to_signals <- function(detections_db, signals_db) {
 migrate_validations_store_to_signals <- function(validations_db, signals_db) {
   src <- DBI::dbConnect(duckdb::duckdb(), dbdir = validations_db, read_only = TRUE)
   on.exit(DBI::dbDisconnect(src, shutdown = TRUE))
-  cols <- paste(names(.validation_schema_spec()), collapse = ", ")
+  cols <- paste(.legacy_select_columns(src, "validations",
+                                      .validation_schema_spec()),
+                collapse = ", ")
   df <- .coerce_validations(DBI::dbGetQuery(src, sprintf(
     "SELECT %s FROM validations ORDER BY detection_id;", cols)))
   val <- df[!is.na(df$validation), , drop = FALSE]    # TP/FP only (VBO-05)
@@ -267,4 +318,67 @@ migrate_validations_store_to_signals <- function(validations_db, signals_db) {
   # too, the shared id upserts merge them into one row.
   .signals_duckdb_upsert(con, .validations_as_signals(val))
   invisible(nrow(val))
+}
+
+# --- legacy-store readers for the CSV exporters (ENG-13) ----------------------
+
+# Read a legacy store table, tolerating its absence. The `SELECT` names only
+# the columns the store declares (SIG-09's rule), so a store older than the
+# current spec still reads. A store written by the current version has no such
+# table at all, which is why the empty return is the common case, not an error.
+#
+# # R equivalent
+#   if (!table %in% dbListTables(con)) empty else dbGetQuery(con, select)
+# # Arguments
+#   con       DBI connection (read-only).
+#   table     character — legacy table name (`detections`, `rois`, ...).
+#   spec      named list — the legacy schema spec.
+#   empty     data.frame — the typed zero-row schema to return when absent.
+#   order_by  character — ORDER BY expression for stable row order.
+# # Returns
+#   data.frame — the table rows, or `empty`.
+.read_legacy_store_table <- function(con, table, spec, empty, order_by) {
+  if (!.duckdb_has_table(con, table)) return(empty)
+  .check_schema_version(con, table)                  # AFL-19: read-time check
+  cols <- paste(.legacy_select_columns(con, table, spec), collapse = ", ")
+  DBI::dbGetQuery(con, sprintf("SELECT %s FROM %s ORDER BY %s;",
+                               cols, table, order_by))
+}
+
+# Signal classes a store actually holds, cheaply. Used to decide whether the
+# `signals` table carries the rows an exporter was asked for.
+.signal_classes_present <- function(con) {
+  if (!.duckdb_has_table(con, "signals")) return(character(0))
+  DBI::dbGetQuery(con, "SELECT DISTINCT signal_class FROM signals;")$signal_class
+}
+
+# Resolve which table an exporter must read (ENG-13). The current pipeline
+# writes `signals`; stores from before the unified schema have the legacy table
+# instead, and the migrators can leave BOTH populated in one file. Prefer
+# `signals` whenever it holds rows of the class being exported, so the exporters
+# never return an empty CSV on a store written by the current version.
+#
+# `classes` are the signal_class values that map onto the exported legacy shape
+# (`roi` for the ROI shape, `detection` for detections/validations).
+# # Arguments
+#   con      DBI connection (read-only).
+#   classes  character — signal classes the requested shape is built from.
+# # Returns
+#   character — `"signals"` or `"legacy"`.
+.prefer_signals_store <- function(con, classes) {
+  if (!.duckdb_has_table(con, "signals")) return("legacy")
+  present <- .signal_classes_present(con)
+  if (any(classes %in% present)) return("signals")
+  "legacy"
+}
+
+# Warn when an export produced no rows. A caller who asked for a CSV and got
+# only a header must be told, because the file looks valid on disk (ENG-13).
+.warn_if_empty_export <- function(df, source) {
+  if (nrow(df) != 0L) return(invisible(FALSE))
+  warning(sprintf(
+    "The export wrote 0 rows: the %s store holds no rows of the requested kind. %s",
+    source,
+    "The CSV has a header only."), call. = FALSE)
+  invisible(TRUE)
 }

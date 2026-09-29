@@ -8,7 +8,8 @@ read_raven_selection(
   path,
   soundscape_path = NULL,
   label_col = NULL,
-  roi_source = "import_raven"
+  roi_source = "import_raven",
+  roi_user
 )
 }
 \arguments{
@@ -25,11 +26,16 @@ force a specific column (see the example below).}
 
 \item{roi_source}{Origin stamp written to \code{roi_source} (default
 \code{"import_raven"}; carried through unchanged in the \code{origin} column).}
+
+\item{roi_user}{\strong{Required.} A single non-empty string naming who made the
+annotations. It is written to \code{roi_user} on every row (\code{created_by} in the
+\code{signals} store) and is part of the ROI id, so importing the same table
+under two names gives two sets of ROIs.}
 }
 \value{
 ROI data in the standard format: \code{roi_start},
 \code{roi_end}, \code{roi_min_freq}/\code{roi_max_freq} in kHz, \code{roi_label}, \code{roi_channel},
-\code{roi_source}, \code{soundscape_file}, \code{soundscape_path}.
+\code{roi_source}, \code{roi_user}, \code{soundscape_file}, \code{soundscape_path}.
 }
 \description{
 Reads a Raven selection table (tab-separated, with a header) and
@@ -43,7 +49,9 @@ Spectrogram view); the frequency band lives on the spectrogram row, so when a
 and \verb{End Time (s)} are required; \verb{Low Freq (Hz)}/\verb{High Freq (Hz)} and
 \code{Channel} are used when present and become \code{NA} otherwise. The source
 recording is taken from the table's own \verb{Begin File}/\verb{Begin Path} columns
-when they exist, else from \code{soundscape_path}.
+when they exist, else from \code{soundscape_path}. Raven stores no author, so
+\code{roi_user} is required: it names who made the annotations and is stamped
+on every row.
 }
 \examples{
 # Off-flow utility: round-trip ROIs out to Raven format and back in tempdir.
@@ -56,7 +64,7 @@ rois <- data.frame(
 f <- file.path(tempdir(), "sel.txt")
 write_raven_selection(rois, f)
 
-back <- read_raven_selection(f)
+back <- read_raven_selection(f, roi_user = "Ana")
 back[, c("roi_start", "roi_end", "roi_min_freq", "roi_label")]
 
 # Force a custom annotation column with label_col (no auto-detection):
@@ -66,7 +74,7 @@ tbl <- data.frame(
   "Field Note" = "sp1", check.names = FALSE)
 f2 <- file.path(tempdir(), "sel_custom.txt")
 utils::write.table(tbl, f2, sep = "\t", quote = FALSE, row.names = FALSE)
-back2 <- read_raven_selection(f2, label_col = "Field Note")
+back2 <- read_raven_selection(f2, label_col = "Field Note", roi_user = "Ana")
 back2[, c("roi_start", "roi_end", "roi_label")]
 }
 }

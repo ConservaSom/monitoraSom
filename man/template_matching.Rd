@@ -18,6 +18,7 @@ template_matching(
   autosave_action = c("replace", "append"),
   output_file = NULL,
   ncores = 1,
+  csv_mirror = NULL,
   ...
 )
 }
@@ -76,6 +77,14 @@ Prefer \code{output_db}.}
 the parallel stages (the soundscape-metadata scan and the matching
 engine). Raise it to speed up large collections; it is capped at the
 number of available cores.}
+
+\item{csv_mirror}{Optional CSV copy of the signals database. \code{NULL}
+(default) writes no copy. \code{TRUE} writes \verb{<database name>_mirror.csv} in
+the folder of \code{output_db}; a string is the CSV path. The copy is written
+once, after the last write to the database, and holds the standard
+columns of the database, with \code{NA} as an empty field. It is a snapshot
+for reading only. Edits to the CSV never reach the database.
+Needs \code{output_db}.}
 
 \item{...}{Further engine arguments forwarded to \code{\link[=run_matching]{run_matching()}}:
 \code{buffer_size}, \code{stream_threshold_s}, \code{dtw_slack}. Scores-storage options
@@ -151,8 +160,16 @@ export_templates(df_rois, templates_path = tpl, create_dir = TRUE)
 tpl <- file.path(tpl, "templates.duckdb")
 out <- file.path(tempdir(), "detections.duckdb")
 df_detecs <- template_matching(soundscapes_path = ss, templates_path = tpl,
-                               min_score = 0.3, output_db = out)
+                               min_score = 0.3, output_db = out,
+                               csv_mirror = TRUE)
 head(df_detecs)
+
+# csv_mirror = TRUE also wrote a CSV copy of the database next to it:
+# detections_mirror.csv. Read it back; an empty field is NA.
+df_copy <- utils::read.csv(file.path(tempdir(), "detections_mirror.csv"),
+                           na.strings = "")
+dim(df_copy)                  # one row per signal in the database
+head(df_copy$signal_id)
 
 # Granular workflow: run the same four stages yourself to inspect the grid.
 df_templates   <- fetch_template_metadata(tpl)

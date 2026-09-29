@@ -211,8 +211,23 @@ validate_zoom_freq <- function(zoom_freq) {
   } else {
     NA_character_
   }
-  if (!is.na(corr) && !identical(corr, as.character(row$roi_label))) {
+  # LVA-166.5: a detection cell already carries the score in the top-left
+  # label, so its correction gets a box of its own (bottom-left) instead of
+  # sharing that label. ROI cells keep "original -> corrected" in one label.
+  is_det <- !is.na(row$peak_score)
+  if (!is_det && !is.na(corr) &&
+      !identical(corr, as.character(row$roi_label))) {
     base_label <- paste0(base_label, "  \u2192 ", corr)
+  }
+  corr_label <- if (is_det && !is.na(corr)) {
+    ggplot2::annotate(
+      "label",
+      x = -Inf, y = -Inf, hjust = -0.05, vjust = -0.15,
+      label = paste0("\u2192 ", corr),
+      size = 4.5, color = "black", fill = "#ffba52", alpha = 0.85
+    )
+  } else {
+    NULL
   }
   fast_spectro(
     rec = rec,
@@ -246,6 +261,7 @@ validate_zoom_freq <- function(zoom_freq) {
       label = base_label,
       size = 4.5, color = "white", fill = "black", alpha = 0.55
     ) +
+    corr_label +
     ggplot2::theme(
       legend.position = "none",
       plot.title = ggplot2::element_blank(),
@@ -337,6 +353,34 @@ validate_zoom_freq <- function(zoom_freq) {
 #' @return A single character scalar.
 #' @keywords internal
 #' @noRd
+# Note to stamp with a verdict or a re-label (LVA-166.6c): the browser sends an
+# empty note field as "", so a blank value means "no note" and becomes NA, the
+# canonical missing value of the val_* group (cf. LVA-123).
+.lva_note_value <- function(note) {
+  if (length(note) != 1L || is.na(note) || !nzchar(trimws(note))) {
+    return(NA_character_)
+  }
+  as.character(note)
+}
+
+# Creation label of review rows: `roi_label` in ROI frames, the template label
+# in detection frames (LVA-165). Main thread only: it calls _schema_signals.R.
+.lva_creation_label <- function(df) {
+  if ("roi_label" %in% names(df)) df$roi_label else
+    .signal_label_from_detections(df)
+}
+
+# Effective label of rows `i` (SIG-08: `roi_label_updated` when set, else the
+# creation label), in both modes. Feeds the cell-image key and the page
+# signature, so a re-label re-renders the cell in either mode (LVA-166.5).
+.lva_effective_label <- function(df, i = seq_len(nrow(df))) {
+  sub <- df[i, , drop = FALSE]
+  .signal_effective_label(
+    .lva_creation_label(sub),
+    if ("roi_label_updated" %in% names(sub)) sub$roi_label_updated else NULL
+  )
+}
+
 .lva_img_key <- function(detection_id, params, label = NULL) {
   paste(
     detection_id, params$wl, params$ovlp,
@@ -471,15 +515,18 @@ validate_input_path <- function(input_path) {
 # LVA item 8 / plan 2026-08-18_02 §5 passo 3 (single-store): the input now also
 # carries the `val_*` columns (projected onto `validation_*`), so a reopened
 # session resumes its verdicts directly — no separate output-store merge.
+# LVA-162: every branch opens the store READ-ONLY, so reading the input never
+# writes to it (the pre-fix code went through `*_duckdb_connect()`, whose
+# ensure-schema step added columns to the user's file on a pure read).
 .lva_read_detections_input <- function(path) {
   if (grepl("(?i)\\.duckdb$", path)) {
     if (.lva_has_signals_table(path)) {
-      con <- .signals_duckdb_connect(path)
+      con <- .signals_duckdb_connect(path, read_only = TRUE)
       on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
       sg <- .signals_duckdb_read(con, signal_class = .SIGNAL_CLASS_DETECTION)
       return(.lva_signals_to_detections_with_vals(sg))
     }
-    con <- .detections_duckdb_connect(path)
+    con <- .detections_duckdb_connect(path, read_only = TRUE)
     on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
     return(.detections_duckdb_read(con))
   }
@@ -530,7 +577,7 @@ validate_input_path <- function(input_path) {
     )
     return(data.frame())
   }
-  con <- .signals_duckdb_connect(path)
+  con <- .signals_duckdb_connect(path, read_only = TRUE)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   sg <- .signals_duckdb_read(
     con, signal_class = c(.SIGNAL_CLASS_ROI, .SIGNAL_CLASS_DETECTION_TO_ROI)
@@ -623,15 +670,54 @@ validate_input_path <- function(input_path) {
   }
 }
 
+# LVA-164: the review frame carries only the columns the app shows, so
+# `.lva_frame_to_signals()` rebuilds each row with NA provenance (created_by,
+# created_at, origin, ...), signal_class "roi" even for promoted rows, and (in
+# detections mode, LVA-166.1) origin "template_matching" even for BirdNET rows.
+# The upsert replaces the whole stored row, so a save used to wipe them (and
+# drop ROI rows from ground truth). Take every column the app does not edit
+# (all but val_* and roi_label_updated) from the stored row before the upsert.
+.lva_frame_to_store_rows <- function(con, df) {
+  sg <- .lva_frame_to_signals(df)
+  if (nrow(sg) == 0L) return(sg)
+  classes <- if ("roi_label" %in% names(df)) {
+    c(.SIGNAL_CLASS_ROI, .SIGNAL_CLASS_DETECTION_TO_ROI)
+  } else {
+    .SIGNAL_CLASS_DETECTION
+  }
+  ids <- unique(sg$signal_id)
+  # A page autosave touches a few rows: read them by id (~6 ms). A full save
+  # touches the whole frame: one class read is cheaper than a long IN list
+  # (measured on 50k rows: 0.12 s vs 0.76 s).
+  stored <- if (length(ids) <= 500L) {
+    cols <- paste(.legacy_select_columns(con, "signals", .signal_schema_spec()),
+                  collapse = ", ")
+    .coerce_signals(DBI::dbGetQuery(con, sprintf(
+      "SELECT %s FROM signals WHERE signal_id IN (%s);",
+      cols, paste(rep("?", length(ids)), collapse = ", ")
+    ), params = as.list(ids)))
+  } else {
+    .signals_duckdb_read(con, signal_class = classes)
+  }
+  hit <- match(sg$signal_id, stored$signal_id)
+  rows <- which(!is.na(hit))
+  if (length(rows) == 0L) return(sg)
+  edited <- c(grep("^val_", names(sg), value = TRUE), "roi_label_updated")
+  for (col in setdiff(names(sg), edited)) {
+    sg[[col]][rows] <- stored[[col]][hit[rows]]
+  }
+  sg
+}
+
 # Persist the validated frame (the whole in-session table). `.duckdb` ->
-# `.lva_frame_to_signals()` + `.signals_duckdb_upsert(replace = FALSE)` —
+# `.lva_frame_to_store_rows()` + `.signals_duckdb_upsert(replace = FALSE)` —
 # idempotent upsert by signal_id (A5/D2: no flow deletes rows). Unvalidated
 # rows carry `val_* = NA` and are kept. `.csv` (deprecated) -> data.table::fwrite.
 .lva_write_validations_output <- function(df, path) {
   if (grepl("(?i)\\.duckdb$", path)) {
     con <- .signals_duckdb_connect(path)
     on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-    .signals_duckdb_upsert(con, .lva_frame_to_signals(df), replace = FALSE)
+    .signals_duckdb_upsert(con, .lva_frame_to_store_rows(con, df), replace = FALSE)
     return(invisible(df))
   }
   warning(
@@ -783,11 +869,11 @@ validate_input_path <- function(input_path) {
 .lva_read_validations_output <- function(path) {
   if (grepl("(?i)\\.duckdb$", path)) {
     if (.lva_has_signals_table(path)) {
-      con <- .signals_duckdb_connect(path)
+      con <- .signals_duckdb_connect(path, read_only = TRUE)
       on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
       return(.lva_signals_as_validations_all(con))
     }
-    con <- .validations_duckdb_connect(path)
+    con <- .validations_duckdb_connect(path, read_only = TRUE)
     on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
     return(.validations_duckdb_read(con))
   }

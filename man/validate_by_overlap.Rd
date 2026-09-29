@@ -14,7 +14,8 @@ validate_by_overlap(
   source = c("duckdb", "csv"),
   include_detection_to_roi = FALSE,
   roi_label_source = c("effective", "original"),
-  promote_to_roi = TRUE
+  promote_to_roi = TRUE,
+  csv_mirror = NULL
 )
 }
 \arguments{
@@ -65,6 +66,14 @@ truth with \code{"effective"}.}
 a ROI row (\code{signal_class = "detection_to_roi"}) in \code{output_db}, so the
 detection->ROI cycle closes automatically. The promoted rows are excluded
 from ground truth by design. Requires \code{output_db}.}
+
+\item{csv_mirror}{Optional CSV copy of the signals database. \code{NULL}
+(default) writes no copy. \code{TRUE} writes \verb{<database name>_mirror.csv} in
+the folder of \code{output_db}; a string is the CSV path. The copy is written
+once, after the last write to the database, and holds the standard
+columns of the database, with \code{NA} as an empty field. It is a snapshot
+for reading only. Edits to the CSV never reach the database.
+Needs \code{output_db}.}
 }
 \value{
 A named list of two tibbles: \code{detections_validated} (TP/FP, one row per
@@ -121,6 +130,16 @@ class(val)    # the result is a list...
 names(val)    # ...of two data frames:
 head(val$detections_validated)    # $detections_validated: TP/FP per detection
 head(val$false_negatives)         # $false_negatives: missed ROIs per template
+
+# Save the verdicts in a signals database, with a CSV copy next to it
+# (validations_mirror.csv). The copy is written after the TP/FP rows and the
+# promoted ROIs, so it holds both. Read it back; an empty field is NA.
+val_db <- file.path(tempdir(), "validations.duckdb")
+val <- validate_by_overlap(df_detecs, df_rois, validation_user = "User",
+                           output_db = val_db, csv_mirror = TRUE)
+df_copy <- utils::read.csv(file.path(tempdir(), "validations_mirror.csv"),
+                           na.strings = "")
+table(df_copy$signal_class)       # detections and ROIs in one table
 }
 }
 \seealso{

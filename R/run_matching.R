@@ -95,6 +95,13 @@
 #'   warning, then the durable id falls back to the file path.
 #' @param pb Logical, default `TRUE`. Show the progress bar. Set `FALSE` for
 #'   non-interactive pipelines, such as rendering rmarkdown reports.
+#' @param csv_mirror Optional CSV copy of the signals database. `NULL`
+#'   (default) writes no copy. `TRUE` writes `<database name>_mirror.csv` in
+#'   the folder of `output_db`; a string is the CSV path. The copy is written
+#'   once, after the last write to the database, and holds the standard
+#'   columns of the database, with `NA` as an empty field. It is a snapshot
+#'   for reading only. Edits to the CSV never reach the database.
+#'   Needs `output_db` and `output = "detections"`.
 #'
 #' @return When `output_db = NULL`, a detections `data.frame` (standard
 #'   detections format, one row per score peak) or, when `output = "scores"`, a
@@ -158,11 +165,18 @@
 #' # Switch the engine: time-warping-tolerant DTW instead of FFT correlation.
 #' detections_dtw <- run_matching(df_grid, score_method = "dtw")
 #'
-#' # Scores live only in DuckDB. For CSV consumers, export the detections and
-#' # re-import the same file to confirm the CSV mirrors the DuckDB contents:
+#' # Save the detections in a DuckDB database. csv_mirror = TRUE also writes a
+#' # CSV copy of the whole database next to it (det_mirror.csv), with the same
+#' # columns as the database. Read it back; an empty field is NA.
 #' det_db <- file.path(tempdir(), "det.duckdb")
+#' run_matching(df_grid, score_method = "fft", output_db = det_db,
+#'              csv_mirror = TRUE)
+#' df_copy <- utils::read.csv(file.path(tempdir(), "det_mirror.csv"),
+#'                            na.strings = "")
+#' head(df_copy[, c("signal_id", "det_template_id", "det_peak_score")])
+#'
+#' # For the detections table in the format used before 1.2.0, export it:
 #' det_csv <- file.path(tempdir(), "det.csv")
-#' run_matching(df_grid, score_method = "fft", output_db = det_db)
 #' export_detections_duckdb_to_csv(det_db, det_csv, overwrite = TRUE)
 #' df_csv <- utils::read.csv(det_csv)
 #' head(df_csv)
@@ -173,7 +187,7 @@ run_matching <- function(
   scores_format = "duckdb", stream_threshold_s = 300,
   buffer_size = "template", min_score = NULL, min_quant = NULL, top_n = NULL,
   scope = c("pair", "grid"), dtw_slack = 0.2,
-  require_template_id = TRUE, pb = TRUE
+  require_template_id = TRUE, pb = TRUE, csv_mirror = NULL
 ) {
   scope <- match.arg(scope)
   output <- match.arg(output, c("detections", "scores"))
@@ -190,6 +204,11 @@ run_matching <- function(
     stop("`pb` must be a single TRUE or FALSE.")
   }
   if (!is.null(output_db)) .validate_output_db(output_db, output, scores_format)
+  .validate_csv_mirror(csv_mirror, output_db, "`output_db`")    # plan DEC-12
+  if (output == "scores" && !is.null(csv_mirror) && !isFALSE(csv_mirror)) {
+    stop("`csv_mirror` copies the signals database; it needs ",
+         "`output = \"detections\"`.", call. = FALSE)
+  }
   # FEAT-07: warn once when persisting to an unmarked explicit path.
   if (!is.null(output_db)) {
     .require_explicit_workspace(output_db, label = "output_db",
@@ -217,7 +236,7 @@ run_matching <- function(
   if (output == "scores") return(.finish_scores(scores, output_db, scores_format))
   detections <- .scores_to_detections(scores, buffer_size, min_score,
                                        min_quant, top_n, scope)
-  .finish_detections(detections, output_db, autosave_action)
+  .finish_detections(detections, output_db, autosave_action, csv_mirror)
 }
 
 #' Estimate the size of a matching run before launching it
@@ -455,7 +474,10 @@ summarise_matching <- function(detections, df_grid, quiet = FALSE) {
 # Persist detections to the signals store (F3 of the signals program): the
 # rows enter as signal_class = "detection" via .detections_as_signals(), so
 # signal_id == detection_id (join-stable) and det_* stays filled.
-.finish_detections <- function(detections, output_db, autosave_action) {
+# `csv_mirror` (plan DEC-14): the CSV mirror fires here, once, after the last
+# write of the run.
+.finish_detections <- function(detections, output_db, autosave_action,
+                               csv_mirror = NULL) {
   if (is.null(output_db)) {
     message("Template matching finished. Detections returned to the R session.")
     return(detections)
@@ -465,6 +487,7 @@ summarise_matching <- function(detections, df_grid, quiet = FALSE) {
   .signals_duckdb_upsert(con, .detections_as_signals(detections),
                          replace = autosave_action == "replace")
   message("Template matching finished. Detections upserted to ", output_db, ".")
+  .mirror_signals_csv(output_db, csv_mirror)
   invisible(detections)
 }
 

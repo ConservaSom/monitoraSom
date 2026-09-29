@@ -199,6 +199,14 @@ so no ROI is orphaned by cosmetic differences in how a path is written.
 df_rois <- fetch_rois("my_project/rois.duckdb")
 ```
 
+`fetch_rois()` returns the standard signals format, one row per ROI. Use
+`shape = "rois"` for the format of earlier versions. Nothing in the ROI data
+marks which ROIs are templates. The convention is the word "template" in the
+ROI comment: the segmentation app exports those ROIs as you move between
+recordings, and you select them for `export_templates()` with a filter such as
+`subset(df_rois, grepl("template", roi_comment, ignore.case = TRUE))`. The
+example project uses its own comment, "Substructure C", as shown below.
+
 ## The whole analysis in one command
 
 `template_matching()` is the main function of the workflow. It reads the

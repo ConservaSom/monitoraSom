@@ -20,7 +20,8 @@ run_matching(
   scope = c("pair", "grid"),
   dtw_slack = 0.2,
   require_template_id = TRUE,
-  pb = TRUE
+  pb = TRUE,
+  csv_mirror = NULL
 )
 }
 \arguments{
@@ -85,6 +86,14 @@ warning, then the durable id falls back to the file path.}
 
 \item{pb}{Logical, default \code{TRUE}. Show the progress bar. Set \code{FALSE} for
 non-interactive pipelines, such as rendering rmarkdown reports.}
+
+\item{csv_mirror}{Optional CSV copy of the signals database. \code{NULL}
+(default) writes no copy. \code{TRUE} writes \verb{<database name>_mirror.csv} in
+the folder of \code{output_db}; a string is the CSV path. The copy is written
+once, after the last write to the database, and holds the standard
+columns of the database, with \code{NA} as an empty field. It is a snapshot
+for reading only. Edits to the CSV never reach the database.
+Needs \code{output_db} and \code{output = "detections"}.}
 }
 \value{
 When \code{output_db = NULL}, a detections \code{data.frame} (standard
@@ -194,11 +203,18 @@ nrow(detections_strong)                # the three 4 kHz hits (the faint
 # Switch the engine: time-warping-tolerant DTW instead of FFT correlation.
 detections_dtw <- run_matching(df_grid, score_method = "dtw")
 
-# Scores live only in DuckDB. For CSV consumers, export the detections and
-# re-import the same file to confirm the CSV mirrors the DuckDB contents:
+# Save the detections in a DuckDB database. csv_mirror = TRUE also writes a
+# CSV copy of the whole database next to it (det_mirror.csv), with the same
+# columns as the database. Read it back; an empty field is NA.
 det_db <- file.path(tempdir(), "det.duckdb")
+run_matching(df_grid, score_method = "fft", output_db = det_db,
+             csv_mirror = TRUE)
+df_copy <- utils::read.csv(file.path(tempdir(), "det_mirror.csv"),
+                           na.strings = "")
+head(df_copy[, c("signal_id", "det_template_id", "det_peak_score")])
+
+# For the detections table in the format used before 1.2.0, export it:
 det_csv <- file.path(tempdir(), "det.csv")
-run_matching(df_grid, score_method = "fft", output_db = det_db)
 export_detections_duckdb_to_csv(det_db, det_csv, overwrite = TRUE)
 df_csv <- utils::read.csv(det_csv)
 head(df_csv)

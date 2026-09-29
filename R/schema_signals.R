@@ -479,6 +479,27 @@
   out
 }
 
+#' @noRd
+#' Consumer entry (plan 2026-09-21_01, DEC-13): `fetch_rois()` returns the
+#' standard signals frame by default, but `export_templates()` and
+#' `validate_by_overlap()` read `roi_user`/`roi_input_timestamp`/`roi_source`.
+#' A standard signals frame is projected to the legacy ROI shape, keeping
+#' EVERY class (the caller already chose them). Any other frame -- legacy, or
+#' legacy with a stray `signal_class` column -- passes unchanged.
+#'
+#' @param df ROI input of a consumer (data frame).
+.as_legacy_rois_input <- function(df) {
+  signals_cols <- c("signal_class", "origin", "created_by", "created_at")
+  if (!all(signals_cols %in% names(df))) return(df)
+  # .signals_as_rois() drops rows without a class; a row count change here
+  # would misalign the caller's out-of-band columns (origin_*), so refuse.
+  if (anyNA(df$signal_class)) {
+    stop("The signals frame has ", sum(is.na(df$signal_class)),
+         " row(s) with a missing `signal_class`; every row needs one.")
+  }
+  .signals_as_rois(df, include_detections = TRUE)
+}
+
 #' Signals -> legacy `detections` shape (27 cols). Keeps `signal_class ==
 #' "detection"` only; other classes are dropped with an informative message
 #' (they carry no det_* data — keeping them would fabricate values).
