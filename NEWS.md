@@ -1,3 +1,12 @@
+# monitoraSom 1.2.0.3
+
+Documentation patch. No code changes.
+
+* The README explains how to avoid the long first install on Ubuntu. `pak`
+  builds `duckdb` from source, which can take 20 minutes or more. The README
+  now shows how to copy a ready-made `duckdb` binary into the R user library
+  before `pak`. It also warns that the first install can be slow.
+
 # monitoraSom 1.2.0.2
 
 Patch release. It replaces the `1.2.0.1` build that the GitHub repository

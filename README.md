@@ -29,14 +29,27 @@ Install the package from [GitHub](https://github.com/ConservaSom/monitoraSom) wi
 
 ```r
 install.packages("pak")
-pak::pkg_install("ConservaSom/monitoraSom@v1.2.0.2")
+pak::pkg_install("ConservaSom/monitoraSom@v1.2.0.3")
 ```
+
+**The first install can be slow.** The `duckdb` dependency is a large database engine. If no binary is available for your system, R builds it from source, and this can take 20 minutes or more. This happens once. The notes below show how to avoid the wait on macOS and Ubuntu.
 
 To follow the latest development state instead of a release, drop the tag: `pak::pkg_install("ConservaSom/monitoraSom")`.
 
 **Note for Windows users**: Ensure you have Rtools compatible with your R version installed. Download from [CRAN](https://cran.r-project.org/bin/windows/Rtools/).
 
-**Note for Ubuntu Linux users**: the `duckdb` dependency builds from source and can take more than five minutes. The [r2u](https://eddelbuettel.github.io/r2u/) repository serves it as a ready-made binary. After you set up r2u, run `sudo apt install r-cran-duckdb` in the shell, then run the `pak` command above. Without r2u, the install still works, only slower.
+**Note for macOS users**: CRAN serves a ready-made `duckdb` binary, and `pak` uses it. No extra step is needed.
+
+**Note for Ubuntu Linux users**: on Ubuntu 24.04 with R 4.6 or newer, `pak` builds `duckdb` from source. This took more than 18 minutes in our test. A ready-made binary is faster: the full install, with all dependencies, took under 3 minutes. Get the binary from the [r2u](https://eddelbuettel.github.io/r2u/) repository (see the [package list](https://r2u.stat.illinois.edu/ubuntu/pool/dists/noble/main/) for the current file name). Copy it into your R user library **before** you run `pak`. You do not need `sudo`.
+
+```bash
+curl -LO https://r2u.stat.illinois.edu/ubuntu/pool/dists/noble/main/r-cran-duckdb_1.5.6-1.ca2404.1_amd64.deb
+dpkg -x r-cran-duckdb_*.deb duckdb_deb
+LIB="$(Rscript -e 'cat(Sys.getenv("R_LIBS_USER"))')"
+mkdir -p "$LIB" && cp -r duckdb_deb/usr/lib/R/site-library/duckdb "$LIB"/
+```
+
+Then run the `pak` command above. Do not use `sudo apt install` for this: `pak` looks only in the library it installs into, so it ignores a `duckdb` installed by `apt` and builds it again. On other systems, the install still works, only slower.
 
 ## The example project
 
